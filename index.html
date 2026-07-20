@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PredictAnalytics - 예측 시장 데이터 및 분석</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-primary: #f5f6fa;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f0f2ff;
+    --border: #e2e6f0;
+    --text-primary: #1a1d2e;
+    --text-secondary: #5a6075;
+    --text-muted: #9aa0b8;
+    --green: #0ea968;
+    --green-dark: #087a4a;
+    --red: #e03040;
+    --red-dark: #b02030;
+    --purple: #6c5ce7;
+    --blue: #3b82f6;
+    --yellow: #d97706;
+    --accent: #6c5ce7;
+  }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 20px;
+    height: 52px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-primary);
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  nav {
+    display: flex;
+    gap: 4px;
+  }
+
+  nav a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+
+  nav a:hover, nav a.active {
+    color: var(--text-primary);
+    background: var(--bg-card);
+  }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    width: 220px;
+    transition: border-color 0.15s;
+  }
+
+  .search-bar:focus-within {
+    border-color: var(--purple);
+  }
+
+  .search-bar input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 13px;
+    width: 100%;
+  }
+
+  .search-bar input::placeholder { color: var(--text-muted); }
+
+  .btn-primary {
+    background: var(--purple);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn-primary:hover { background: #7c4de6; }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), #e040fb);
+    cursor: pointer;
+  }
+
+  /* ─── TICKER ─── */
+  .ticker-wrap {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    padding: 6px 0;
+  }
+
+  .ticker-track {
+    display: flex;
+    gap: 0;
+    animation: ticker 60s linear infinite;
+    width: max-content;
+  }
+
+  .ticker-track:hover { animation-play-state: paused; }
+
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .ticker-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 20px;
+    border-right: 1px solid var(--border);
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .ticker-item:hover { color: var(--purple); }
+
+  .ticker-badge {
+    background: #f0f2ff;
+    color: var(--text-muted);
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .ticker-up { color: var(--green); }
+  .ticker-down { color: var(--red); }
+
+  /* ─── HERO ─── */
+  .hero {
+    background: linear-gradient(180deg, #ffffff 0%, #f5f6fa 100%);
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-inner {
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .hero h1 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .hero p {
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+
+  /* ─── MAIN LAYOUT ─── */
+  .main-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 300px;
+    gap: 16px;
+    padding: 16px 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* ─── PROFILE CARD ─── */
+  .profile-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    height: fit-content;
+    position: sticky;
+    top: 70px;
+  }
+
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .profile-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .profile-name {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 2px;
+  }
+
+  .profile-sub {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  .profile-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .profile-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .profile-stat .label {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  .profile-stat .value {
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  .value-green { color: var(--green); }
+  .value-red { color: var(--red); }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 14px 0;
+  }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+
+  .tag {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+
+  /* ─── NEWS FEED (CENTER) ─── */
+  .news-section {
+    min-height: 400px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .filter-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .filter-tab {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-tab:hover, .filter-tab.active {
+    background: var(--purple);
+    border-color: var(--purple);
+    color: white;
+  }
+
+  .news-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .news-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .news-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--purple);
+    transform: translateY(-1px);
+  }
+
+  .news-card-featured {
+    grid-template-columns: 1fr;
+    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+    border-color: var(--purple);
+  }
+
+  .news-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .news-category {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .cat-politics { background: rgba(108, 92, 231, 0.2); color: var(--purple); }
+  .cat-economy  { background: rgba(22, 199, 132, 0.2); color: var(--green); }
+  .cat-crypto   { background: rgba(245, 158, 11, 0.2); color: var(--yellow); }
+  .cat-sports   { background: rgba(59, 130, 246, 0.2); color: var(--blue); }
+  .cat-world    { background: rgba(234, 57, 67, 0.2);  color: var(--red); }
+  .cat-science  { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+
+  .news-time {
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+
+  .news-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .news-card-featured .news-title {
+    font-size: 18px;
+  }
+
+  .news-excerpt {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .news-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .news-author {
+    color: var(--text-muted);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .author-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: white;
+    font-weight: 700;
+  }
+
+  .news-stats {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  .news-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .news-img {
+    width: 90px;
+    height: 70px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: var(--text-muted);
+  }
+
+  .news-img-featured {
+    width: 100%;
+    height: 180px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 52px;
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+  }
+
+  .probability-bar {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+  }
+
+  .prob-label { color: var(--text-secondary); }
+  .prob-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .prob-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), #00d4aa);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+  .prob-value { font-weight: 700; color: var(--green); }
+
+  .load-more {
+    text-align: center;
+    margin-top: 16px;
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    padding: 8px 24px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-outline:hover {
+    border-color: var(--purple);
+    color: var(--purple);
+  }
+
+  /* ─── RIGHT SIDEBAR ─── */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: sticky;
+    top: 70px;
+    height: fit-content;
+  }
+
+  .sidebar-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .sidebar-card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .big-stat {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .stat-change {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .stat-change .up { color: var(--green); }
+  .stat-change .down { color: var(--red); }
+
+  .mini-chart {
+    width: 100%;
+    height: 48px;
+    margin-top: 8px;
+  }
+
+  .trader-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .trader-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    transition: background 0.15s;
+  }
+
+  .trader-item:hover { background: var(--bg-secondary); }
+
+  .trader-rank {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    width: 18px;
+    text-align: center;
+  }
+
+  .trader-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .trader-info { flex: 1; min-width: 0; }
+  .trader-name {
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .trader-pnl {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .trader-change {
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .more-link {
+    display: block;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 10px;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .more-link:hover { color: var(--purple); }
+
+  /* ─── MARKET SECTION ─── */
+  .market-section {
+    padding: 0 20px 32px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .market-section .section-header {
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .tab-group {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: -1px;
+  }
+
+  .tab-btn:hover { color: var(--text-primary); }
+  .tab-btn.active { color: var(--purple); border-bottom-color: var(--purple); }
+
+  .market-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+  }
+
+  .market-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .market-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--purple);
+    transform: translateY(-2px);
+  }
+
+  .market-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .market-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .market-title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .market-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .market-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .option-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .option-pct {
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  .btn-yes {
+    background: rgba(22, 199, 132, 0.15);
+    border: 1px solid rgba(22, 199, 132, 0.3);
+    color: var(--green);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn-yes:hover { background: rgba(22, 199, 132, 0.3); }
+
+  .btn-no {
+    background: rgba(234, 57, 67, 0.15);
+    border: 1px solid rgba(234, 57, 67, 0.3);
+    color: var(--red);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn-no:hover { background: rgba(234, 57, 67, 0.3); }
+
+  .market-footer {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+
+  .watchlist-btn {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    transition: color 0.15s;
+  }
+
+  .watchlist-btn:hover { color: var(--yellow); }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f5f6fa; }
+  ::-webkit-scrollbar-thumb { background: #d1d5e8; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #9aa0b8; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 1200px) {
+    .main-layout { grid-template-columns: 240px 1fr 260px; }
+  }
+
+  @media (max-width: 960px) {
+    .main-layout { grid-template-columns: 1fr; }
+    .profile-card, .sidebar { position: static; }
+  }
+
+  @media (max-width: 600px) {
+    .header-inner { gap: 12px; }
+    nav { display: none; }
+    .main-layout { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─── -->
+<header>
+  <div class="header-inner">
+    <a href="#" class="logo">
+      <div class="logo-icon">📊</div>
+      <span>PredictAnalytics</span>
+    </a>
+    <nav>
+      <a href="#" class="active">거래자</a>
+      <a href="#">시장</a>
+      <a href="#">뉴스</a>
+      <a href="#">API</a>
+      <a href="#">더 ▾</a>
+    </nav>
+    <div class="header-right">
+      <div class="search-bar">
+        <span style="color:var(--text-muted)">🔍</span>
+        <input type="text" placeholder="시장 또는 뉴스를 검색하세요">
+      </div>
+      <button class="btn-primary">지원하다</button>
+      <div class="avatar"></div>
+    </div>
+  </div>
+</header>
+
+<!-- ─── TICKER ─── -->
+<div class="ticker-wrap">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<!-- ─── HERO ─── -->
+<div class="hero">
+  <div class="hero-inner">
+    <h1>예측 데이터 및 분석</h1>
+    <p>예측 시장 거래자를 위한 강력한 데이터, 분석 및 인텔리전스. 오늘의 주요 뉴스와 시장 동향을 한눈에.</p>
+  </div>
+</div>
+
+<!-- ─── MAIN LAYOUT ─── -->
+<div class="main-layout">
+
+  <!-- LEFT: Profile -->
+  <aside>
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar">🎯</div>
+        <div>
+          <div class="profile-name">분석가 Pro</div>
+          <div class="profile-sub">0x2c33...5465</div>
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="profile-stat">
+          <span class="label">포트폴리오 가치</span>
+          <span class="value value-green">$12,840</span>
+        </div>
+        <div class="profile-stat">
+          <span class="label">총 PnL</span>
+          <span class="value value-green">▲ +24.5%</span>
+        </div>
+        <div class="profile-stat">
+          <span class="label">승률</span>
+          <span class="value">68.2%</span>
+        </div>
+        <div class="profile-stat">
+          <span class="label">활성 포지션</span>
+          <span class="value">14</span>
+        </div>
+        <div class="profile-stat">
+          <span class="label">총 거래</span>
+          <span class="value">387</span>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="profile-stat">
+        <span class="label">30일 볼륨</span>
+        <span class="value">$48,200</span>
+      </div>
+      <div class="profile-stat" style="margin-top:8px">
+        <span class="label">팔로워</span>
+        <span class="value">1,240</span>
+      </div>
+      <div class="tag-list">
+        <span class="tag">정치</span>
+        <span class="tag">암호화폐</span>
+        <span class="tag">경제</span>
+        <span class="tag">스포츠</span>
+        <span class="tag">기술</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER: News Feed -->
+  <main>
+    <div class="news-section">
+      <div class="section-header">
+        <div class="section-title">
+          <div class="live-dot"></div>
+          오늘의 주요 뉴스 &amp; 분석
+        </div>
+        <span style="color:var(--text-muted);font-size:12px">2026년 7월 20일 업데이트</span>
+      </div>
+
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="filterNews('전체')">전체</button>
+        <button class="filter-tab" onclick="filterNews('정치')">정치</button>
+        <button class="filter-tab" onclick="filterNews('경제')">경제</button>
+        <button class="filter-tab" onclick="filterNews('암호화폐')">암호화폐</button>
+        <button class="filter-tab" onclick="filterNews('스포츠')">스포츠</button>
+        <button class="filter-tab" onclick="filterNews('세계')">세계</button>
+      </div>
+
+      <div class="news-list" id="newsList"></div>
+      <div class="load-more">
+        <button class="btn-outline" onclick="loadMore()">더 보기 ↓</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT: Sidebar -->
+  <aside class="sidebar">
+
+    <div class="sidebar-card">
+      <h3>24시간 볼륨</h3>
+      <div class="big-stat">1억 4,403만 달러</div>
+      <div class="stat-change">폴리마켓 총 거래량 <span class="down">▼ 3.2%</span></div>
+      <svg class="mini-chart" viewBox="0 0 200 48" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ea3943" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#ea3943" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M0,20 L20,18 L40,22 L60,15 L80,25 L100,12 L120,18 L140,30 L160,25 L180,35 L200,38" stroke="#ea3943" stroke-width="2" fill="none"/>
+        <path d="M0,20 L20,18 L40,22 L60,15 L80,25 L100,12 L120,18 L140,30 L160,25 L180,35 L200,38 L200,48 L0,48 Z" fill="url(#chartGrad)"/>
+      </svg>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>이용 가능한 시장</h3>
+      <div class="big-stat">145,535</div>
+      <div class="stat-change">활성 예측 마켓 <span class="up">▲ 1.8%</span></div>
+      <svg class="mini-chart" viewBox="0 0 200 48" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="chartGrad2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#16c784" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#16c784" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M0,35 L30,30 L60,28 L90,25 L120,20 L150,15 L170,12 L200,8" stroke="#16c784" stroke-width="2" fill="none"/>
+        <path d="M0,35 L30,30 L60,28 L90,25 L120,20 L150,15 L170,12 L200,8 L200,48 L0,48 Z" fill="url(#chartGrad2)"/>
+      </svg>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>인기 트레이더 ›</h3>
+      <div class="trader-list" id="traderList"></div>
+      <a class="more-link">모든 거래자 →</a>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>빠른 통계</h3>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;font-size:13px">
+          <span style="color:var(--text-secondary)">비트코인 현재가</span>
+          <span style="font-weight:700;color:var(--yellow)">$118,240</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px">
+          <span style="color:var(--text-secondary)">S&P 500</span>
+          <span style="font-weight:700;color:var(--green)">▲ 5,843</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px">
+          <span style="color:var(--text-secondary)">원/달러 환율</span>
+          <span style="font-weight:700">1,342원</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px">
+          <span style="color:var(--text-secondary)">VIX 공포지수</span>
+          <span style="font-weight:700;color:var(--red)">▲ 18.4</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- ─── MARKET GRID ─── -->
+<div class="market-section">
+  <div class="section-header">
+    <div class="section-title">시장 | 거래자</div>
+  </div>
+  <div class="tab-group">
+    <button class="tab-btn active">전체</button>
+    <button class="tab-btn">정치</button>
+    <button class="tab-btn">경제</button>
+    <button class="tab-btn">암호화폐</button>
+    <button class="tab-btn">스포츠</button>
+    <button class="tab-btn">세계</button>
+  </div>
+  <div class="market-grid" id="marketGrid"></div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────
+
+const tickerData = [
+  { rank: '#1', name: '🔥 핫트레이더', change: '+24.5%', up: true },
+  { rank: '#2', name: '릭손21', change: '+15.7%', up: true },
+  { rank: '#3', name: '코세키비쥬', change: '+6.9%', up: true },
+  { rank: '#4', name: '0x2c33...5465', change: '+4.9%', up: true },
+  { rank: '#5', name: '0x99f0...9495', change: '+26.4%', up: true },
+  { rank: '#6', name: '스포츠마스터777', change: '+10.9%', up: true },
+  { rank: '#7', name: '멕시코산아보카도', change: '+17.6%', up: true },
+  { rank: '#8', name: '0xc1a9...e2db', change: '+13.1%', up: true },
+  { rank: '#9',  name: '시글', change: '-1.7%', up: false },
+  { rank: '#10', name: '알파트레이더', change: '+8.3%', up: true },
+  { rank: '#11', name: '문라이트99', change: '+31.2%', up: true },
+  { rank: '#12', name: '크립토킹', change: '-2.1%', up: false },
+];
+
+const newsData = [
+  {
+    category: '정치', catClass: 'cat-politics', emoji: '🗳️',
+    title: '2028년 미국 대선 경선: 민주당 후보 지지율 최신 분석',
+    excerpt: '예측 시장 데이터와 여론조사를 종합하면 민주당 경선은 여전히 혼전 양상이다. 가빈 뉴섬 캘리포니아 주지사가 20% 내외의 지지율로 선두를 유지하고 있지만 아직 확정적이지 않다.',
+    time: '37분 전', author: 'N. Silver', prob: 20, featured: true,
+    views: '4.2k', comments: 128
+  },
+  {
+    category: '암호화폐', catClass: 'cat-crypto', emoji: '₿',
+    title: '비트코인 $120,000 돌파 가능성: 옵션 시장이 말하는 것',
+    excerpt: '7월 내 비트코인의 $120,000 돌파 가능성이 예측 시장에서 34%로 책정되었다. 기관 매수세가 지속되면서 강세론자들의 근거가 강화되고 있다.',
+    time: '1시간 전', author: 'M. Kopas', prob: 34,
+    views: '8.1k', comments: 245
+  },
+  {
+    category: '경제', catClass: 'cat-economy', emoji: '📈',
+    title: 'Fed 2026년 금리 인하 횟수: 예측 시장 vs 월가 전망',
+    excerpt: '연방준비제도의 올해 금리 인하 횟수를 놓고 예측 시장(1.8회)과 월스트리트 컨센서스(2.1회) 간에 의미 있는 괴리가 나타나고 있다.',
+    time: '2시간 전', author: 'A. Chen', prob: 62,
+    views: '5.7k', comments: 91
+  },
+  {
+    category: '세계', catClass: 'cat-world', emoji: '🌏',
+    title: '중국의 2026년 대만 침공 시나리오: 위험 확률 업데이트',
+    excerpt: '최근 남중국해 군사 훈련 증가에도 불구하고 예측 시장은 2026년 내 대규모 군사 충돌 가능성을 여전히 낮게(4%) 평가하고 있다.',
+    time: '3시간 전', author: 'K. Park', prob: 4,
+    views: '12.3k', comments: 412
+  },
+  {
+    category: '스포츠', catClass: 'cat-sports', emoji: '⚽',
+    title: '2026 FIFA 월드컵 우승 확률: 브라질 vs 프랑스 빅매치',
+    excerpt: '토너먼트가 진행되면서 브라질과 프랑스가 예측 시장에서 공동 선두로 올라섰다. 한국의 16강 진출 확률은 현재 67%로 집계된다.',
+    time: '4시간 전', author: 'J. Kim', prob: 67,
+    views: '18.9k', comments: 703
+  },
+  {
+    category: '정치', catClass: 'cat-politics', emoji: '🏛️',
+    title: 'JD 밴스 2028년 공화당 후보 확정 가능성 49%로 상승',
+    excerpt: '현직 부통령 JD 밴스가 예측 시장에서 공화당 2028년 대선 후보로 지목될 확률이 49%까지 치솟았다. 로버트 F. 케네디 주니어는 소수 후보로 평가된다.',
+    time: '5시간 전', author: 'N. Silver', prob: 49,
+    views: '6.4k', comments: 188
+  },
+  {
+    category: '경제', catClass: 'cat-economy', emoji: '🤖',
+    title: 'AI가 2026년 내 인간 일자리 대체 본격화되나',
+    excerpt: '골드만삭스 보고서에 따르면 생성형 AI로 인해 2026년 미국 내 약 30만 개의 화이트칼라 직종이 자동화될 것으로 전망된다. 예측 시장의 반응은 엇갈린다.',
+    time: '6시간 전', author: 'T. Yoo', prob: 41,
+    views: '9.2k', comments: 326
+  },
+  {
+    category: '암호화폐', catClass: 'cat-crypto', emoji: '🔷',
+    title: '이더리움 ETF 순매수 지속: 기관 수요 분석',
+    excerpt: '이더리움 현물 ETF 출시 이후 기관 투자자들의 순매수가 3주 연속 이어지며 ETH 가격 $5,000 돌파에 대한 기대감이 높아지고 있다.',
+    time: '7시간 전', author: 'D. Lee', prob: 58,
+    views: '7.8k', comments: 214
+  },
+];
+
+const traderData = [
+  { rank: 1, name: '0x2c33...5465', pnl: '610만 달러', change: '+4.90%', color: '#8b5cf6' },
+  { rank: 2, name: '0x99f0...9495', pnl: '5,100달러', change: '+26.40%', color: '#3b82f6' },
+  { rank: 3, name: '스포츠마스터777', pnl: '150만 달러', change: '+10.90%', color: '#16c784' },
+  { rank: 4, name: '멕시코산아보카도', pnl: '69만 1800달러', change: '+17.60%', color: '#f59e0b' },
+  { rank: 5, name: '릭손21', pnl: '2.1만 달러', change: '+15.70%', color: '#ea3943' },
+];
+
+const marketData = [
+  {
+    icon: '🐴', bg: '#ede9fe',
+    title: '2028년 민주당 대선 후보',
+    options: [{ label: '가빈 뉴섬', pct: 20 }, { label: '가빈 뉴섬', pct: 20 }],
+    volume: '25억 달러 규모'
+  },
+  {
+    icon: '₿', bg: '#fef3c7',
+    title: '비트코인 상승 또는 하락 - 7월 20일 오전 4시 20분~4시 25분',
+    options: [{ label: '예', pct: 34 }, { label: '아니요', pct: 66 }],
+    volume: '살다'
+  },
+  {
+    icon: '🔵', bg: '#dbeafe',
+    title: '2028년 대통령 선거 당선자',
+    options: [{ label: 'JD 밴스', pct: 20 }, { label: 'JD 밴스', pct: 20 }],
+    volume: '13억 달러 규모'
+  },
+  {
+    icon: '🐘', bg: '#fee2e2',
+    title: '2028년 공화당 대통령 후보',
+    options: [{ label: '로버트 F. 케네디 주니어', pct: 49 }, { label: '로버트 F. 케네디 주니어', pct: 49 }],
+    volume: '14억 달러 규모'
+  },
+  {
+    icon: '👽', bg: '#d1fae5',
+    title: '미국은 언제까지 외계인의 존재를 공식적으로 인정할까요?',
+    options: [{ label: '12월 31일', pct: 6 }, { label: '12월 31일', pct: 6 }],
+    volume: '10.26000 달러 규모'
+  },
+  {
+    icon: '₿', bg: '#fef3c7',
+    title: '2026년 비트코인 가격은 얼마가 될까요?',
+    options: [{ label: '↑ 70,000', pct: 100 }, { label: '↑ 90,000', pct: 100 }],
+    volume: '12억 달러 규모'
+  },
+  {
+    icon: '🇨🇳', bg: '#fee2e2',
+    title: '중국은 2026년 말까지 대만을 침공할까요?',
+    options: [{ label: '예', pct: 4 }, { label: '아니요', pct: 96 }],
+    volume: '5억 달러 규모'
+  },
+  {
+    icon: '⚽', bg: '#dbeafe',
+    title: '2026 FIFA 월드컵 배당률 및 예측',
+    options: [{ label: '브라질', pct: 18 }, { label: '프랑스', pct: 16 }],
+    volume: '8억 달러 규모'
+  },
+];
+
+// ─── RENDER ──────────────────────────────────────────────────────────
+
+function renderTicker() {
+  const items = [...tickerData, ...tickerData];
+  const html = items.map(t => `
+    <div class="ticker-item">
+      <span class="ticker-badge">${t.rank}</span>
+      <span>${t.name}</span>
+      <span class="${t.up ? 'ticker-up' : 'ticker-down'}">${t.change}</span>
+    </div>
+  `).join('');
+  document.getElementById('tickerTrack').innerHTML = html;
+}
+
+function renderNews(filter = '전체') {
+  const filtered = filter === '전체' ? newsData : newsData.filter(n => n.category === filter);
+  const html = filtered.map((n, i) => n.featured && i === 0 ? `
+    <div class="news-card news-card-featured">
+      <div>
+        <div class="news-img-featured">${n.emoji}</div>
+        <div class="news-meta">
+          <span class="news-category ${n.catClass}">${n.category}</span>
+          <span class="news-time">${n.time}</span>
+        </div>
+        <div class="news-title">${n.title}</div>
+        <div class="news-excerpt">${n.excerpt}</div>
+        <div class="probability-bar">
+          <span class="prob-label">예측 확률</span>
+          <div class="prob-bar-wrap">
+            <div class="prob-bar-fill" style="width:${n.prob}%"></div>
+          </div>
+          <span class="prob-value">${n.prob}%</span>
+        </div>
+        <div class="news-footer">
+          <div class="news-author">
+            <div class="author-dot">${n.author[0]}</div>
+            ${n.author}
+          </div>
+          <div class="news-stats">
+            <span class="news-stat">👁 ${n.views}</span>
+            <span class="news-stat">💬 ${n.comments}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  ` : `
+    <div class="news-card">
+      <div>
+        <div class="news-meta">
+          <span class="news-category ${n.catClass}">${n.category}</span>
+          <span class="news-time">${n.time}</span>
+        </div>
+        <div class="news-title">${n.title}</div>
+        <div class="news-excerpt">${n.excerpt}</div>
+        <div class="probability-bar">
+          <span class="prob-label">예측 확률</span>
+          <div class="prob-bar-wrap">
+            <div class="prob-bar-fill" style="width:${n.prob}%"></div>
+          </div>
+          <span class="prob-value">${n.prob}%</span>
+        </div>
+        <div class="news-footer">
+          <div class="news-author">
+            <div class="author-dot">${n.author[0]}</div>
+            ${n.author}
+          </div>
+          <div class="news-stats">
+            <span class="news-stat">👁 ${n.views}</span>
+            <span class="news-stat">💬 ${n.comments}</span>
+          </div>
+        </div>
+      </div>
+      <div class="news-img">${n.emoji}</div>
+    </div>
+  `).join('');
+  document.getElementById('newsList').innerHTML = html;
+}
+
+function renderTraders() {
+  const html = traderData.map(t => `
+    <div class="trader-item">
+      <span class="trader-rank">${t.rank}</span>
+      <div class="trader-avatar" style="background:${t.color}">${t.name[0]}</div>
+      <div class="trader-info">
+        <div class="trader-name">${t.name}</div>
+        <div class="trader-pnl">${t.pnl}</div>
+      </div>
+      <span class="trader-change" style="color:var(--green)">${t.change}</span>
+    </div>
+  `).join('');
+  document.getElementById('traderList').innerHTML = html;
+}
+
+function renderMarkets() {
+  const html = marketData.map(m => `
+    <div class="market-card">
+      <div class="market-card-header">
+        <div class="market-icon" style="background:${m.bg}">${m.icon}</div>
+        <div class="market-title">${m.title}</div>
+      </div>
+      <div class="market-options">
+        ${m.options.map(o => `
+          <div class="market-option">
+            <span class="option-label">${o.label}</span>
+            <span class="option-pct">${o.pct}%</span>
+            <button class="btn-yes">예</button>
+            <button class="btn-no">아니요</button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="market-footer">
+        <span>📊 ${m.volume}</span>
+        <button class="watchlist-btn" onclick="toggleWatchlist(this)">☆ 관심 목록</button>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('marketGrid').innerHTML = html;
+}
+
+// ─── INTERACTIONS ────────────────────────────────────────────────────
+
+function filterNews(cat) {
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderNews(cat);
+}
+
+function loadMore() {
+  const extra = [
+    {
+      category: '과학', catClass: 'cat-science', emoji: '🚀',
+      title: 'SpaceX 화성 유인 탐사: 2028년 발사 가능성은?',
+      excerpt: '일론 머스크가 2028년 화성 유인 탐사를 재차 예고했다. 예측 시장은 이를 18%로 평가하며 여전히 낮은 수준을 유지하고 있다.',
+      time: '8시간 전', author: 'P. Choi', prob: 18, views: '11.5k', comments: 389
+    },
+    {
+      category: '경제', catClass: 'cat-economy', emoji: '🏦',
+      title: '트럼프 관세 정책, 글로벌 공급망 재편 현황 점검',
+      excerpt: '2025년 발표된 고율 관세 정책이 1년여를 지나며 글로벌 공급망에 의미 있는 변화를 만들고 있다. 한국 수출 기업들의 대응 전략을 분석한다.',
+      time: '9시간 전', author: 'Y. Jung', prob: 55, views: '6.1k', comments: 142
+    },
+  ];
+  const container = document.getElementById('newsList');
+  extra.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'news-card';
+    el.innerHTML = `
+      <div>
+        <div class="news-meta">
+          <span class="news-category ${n.catClass}">${n.category}</span>
+          <span class="news-time">${n.time}</span>
+        </div>
+        <div class="news-title">${n.title}</div>
+        <div class="news-excerpt">${n.excerpt}</div>
+        <div class="probability-bar">
+          <span class="prob-label">예측 확률</span>
+          <div class="prob-bar-wrap">
+            <div class="prob-bar-fill" style="width:${n.prob}%"></div>
+          </div>
+          <span class="prob-value">${n.prob}%</span>
+        </div>
+        <div class="news-footer">
+          <div class="news-author">
+            <div class="author-dot">${n.author[0]}</div>
+            ${n.author}
+          </div>
+          <div class="news-stats">
+            <span class="news-stat">👁 ${n.views}</span>
+            <span class="news-stat">💬 ${n.comments}</span>
+          </div>
+        </div>
+      </div>
+      <div class="news-img">${n.emoji}</div>
+    `;
+    container.appendChild(el);
+  });
+  event.target.textContent = '더 이상 없습니다';
+  event.target.disabled = true;
+}
+
+function toggleWatchlist(btn) {
+  const active = btn.textContent.includes('★');
+  btn.textContent = active ? '☆ 관심 목록' : '★ 관심 목록';
+  btn.style.color = active ? '' : 'var(--yellow)';
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────
+renderTicker();
+renderNews();
+renderTraders();
+renderMarkets();
+</script>
+</body>
+</html>
