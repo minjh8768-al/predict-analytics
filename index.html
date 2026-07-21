@@ -954,16 +954,41 @@
   .tw-tab.active { background: #1d9bf0; border-color: #1d9bf0; color: white; }
   #twitterContainer {
     border-radius: 8px;
-    overflow: hidden;
-    min-height: 180px;
-    background: #f7f9fc;
+    overflow-y: auto;
+    max-height: 340px;
   }
-  .tw-loading {
-    color: var(--text-muted);
-    font-size: 12px;
-    text-align: center;
-    padding: 30px 0;
+  .tweet-list { display: flex; flex-direction: column; }
+  .tweet-item {
+    padding: 11px 2px;
+    border-bottom: 1px solid var(--border);
   }
+  .tweet-item:last-child { border-bottom: none; }
+  .tweet-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin-bottom: 6px;
+  }
+  .tweet-avatar {
+    width: 33px; height: 33px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; color: white; flex-shrink: 0;
+  }
+  .tweet-name-wrap { flex: 1; min-width: 0; }
+  .tweet-name {
+    font-weight: 700; font-size: 12.5px;
+    color: var(--text-primary);
+    display: flex; align-items: center; gap: 3px;
+  }
+  .tweet-handle { font-size: 11px; color: var(--text-muted); }
+  .tweet-time { font-size: 10px; color: var(--text-muted); white-space: nowrap; margin-top: 1px; }
+  .tweet-body {
+    font-size: 12.5px; color: var(--text-secondary);
+    line-height: 1.55; margin: 0 0 8px;
+  }
+  .tweet-stats { display: flex; gap: 14px; font-size: 11px; color: var(--text-muted); }
+  .tweet-stat { display: flex; align-items: center; gap: 3px; }
 
   /* ─── RESPONSIVE ─── */
   @media (max-width: 1200px) {
@@ -1223,7 +1248,7 @@ const newsData = [
   // FEATURED_START
   {
     category: '정치', catClass: 'cat-politics', emoji: '🇺🇸',
-    img: 'https://images.unsplash.com/photo-1580128660010-fd027e1e587a?w=800&h=420&fit=crop&auto=format',
+    img: 'https://images.unsplash.com/photo-1580128660010-fd027e1e587a?w=500&h=600&fit=crop&crop=faces&auto=format',
     title: '트럼프, 대국민 연설서 "선거 인프라 충격적 취약점" 폭로 예고 — 선거 조작 의혹 재점화',
     excerpt: '트럼프 대통령이 7월 16일 백악관 이스트룸에서 대국민 연설을 통해 "중국이 2020년 선거 데이터를 해킹했다"는 기밀 정보를 공개하겠다고 밝혔다. 예측 시장은 이번 발표가 2026년 중간선거에 미칠 영향을 주목하고 있다. 동시에 캐나다 산불 연기 문제로 캐나다에 관세 위협을 가하고 미국-이란 충돌이 격화되는 등 트럼프 행정부를 둘러싼 긴장이 고조되고 있다.',
     time: '2시간 전', author: 'N. Silver', prob: 62, featured: true,
@@ -1557,31 +1582,59 @@ renderNews();
 renderTraders();
 renderMarkets();
 
-// ─── TWITTER WIDGET ───────────────────────────────────────────────────
+// ─── TWITTER / X 소셜 피드 (정적) ────────────────────────────────────
+const PROFILES = {
+  realDonaldTrump: { name: 'Donald J. Trump', handle: '@realDonaldTrump', color: '#c0392b', i: 'T' },
+  elonmusk:        { name: 'Elon Musk',        handle: '@elonmusk',        color: '#2c3e50', i: 'E' },
+  JDVance:         { name: 'JD Vance',          handle: '@JDVance',         color: '#1a5276', i: 'V' }
+};
+const TWEETS = {
+  realDonaldTrump: [
+    { text: 'The Election Infrastructure of this Country is far more VULNERABLE than anyone knows. We will release full findings to the American people. STAY TUNED!', time: '2시간 전', likes: '84.2K', rt: '31.5K' },
+    { text: 'GREAT meeting at the White House today with world leaders. America is back, stronger than EVER. The Fake News will never report the truth!', time: '5시간 전', likes: '67.1K', rt: '22.3K' },
+    { text: 'Stock Market is UP. Jobs are UP. Inflation is DOWN. Crime is DOWN. Our Economy is doing FANTASTICALLY well. MAKE AMERICA GREAT AGAIN!', time: '어제', likes: '92.4K', rt: '38.7K' }
+  ],
+  elonmusk: [
+    { text: 'DOGE has identified over $2 trillion in potential government savings. The bureaucracy is not happy, but the American taxpayer will be.', time: '1시간 전', likes: '156.3K', rt: '45.2K' },
+    { text: 'Grok 3.5 is now the most capable AI in the world on key benchmarks. Open-source weights releasing next month.', time: '4시간 전', likes: '203.7K', rt: '67.8K' },
+    { text: 'Starship Flight 9 is go for next week. Full orbital trajectory. The future is multiplanetary — this is the way.', time: '어제', likes: '178.4K', rt: '52.1K' }
+  ],
+  JDVance: [
+    { text: 'We have reduced illegal border crossings by over 90% since January. The mainstream media refuses to cover it. The numbers speak for themselves.', time: '3시간 전', likes: '42.8K', rt: '15.3K' },
+    { text: 'Great meetings with European allies on NATO and collective defense. America stands with its partners — but every nation must carry its share.', time: '6시간 전', likes: '38.5K', rt: '12.7K' },
+    { text: 'The American worker deserves a government that fights for them every single day. That is exactly what this administration delivers.', time: '어제', likes: '55.2K', rt: '19.4K' }
+  ]
+};
+
+const VERIFIED_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="#1d9bf0" style="flex-shrink:0"><path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91C1.88 9.33 1 10.57 1 12s.88 2.67 2.19 3.34c-.46 1.39-.2 2.9.81 3.91s2.52 1.27 3.91.81c.66 1.31 1.91 2.19 3.34 2.19s2.67-.88 3.33-2.19c1.4.46 2.91.2 3.92-.81s1.26-2.52.8-3.91C21.37 14.67 22.25 13.43 22.25 12zm-6.19-1.71l-6 6a.75.75 0 01-1.06 0l-3-3a.75.75 0 011.06-1.06l2.47 2.47 5.47-5.47a.75.75 0 011.06 1.06z"/></svg>`;
+const RT_SVG  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 1l4 4-4 4M21 5H9a4 4 0 000 8h1M7 23l-4-4 4-4M3 19h12a4 4 0 000-8h-1"/></svg>`;
+const LIKE_SVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
+
 function loadTwitter(handle, btn) {
   document.querySelectorAll('.tw-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  const c = document.getElementById('twitterContainer');
-  c.innerHTML = '<p class="tw-loading">불러오는 중...</p>';
-  c.innerHTML = `<a class="twitter-timeline"
-    data-height="360"
-    data-theme="light"
-    data-chrome="noheader nofooter noborders transparent"
-    data-tweet-limit="5"
-    href="https://twitter.com/${handle}"></a>`;
-  if (window.twttr && window.twttr.widgets) {
-    window.twttr.widgets.load(c);
-  }
+  const p = PROFILES[handle];
+  const tweets = TWEETS[handle] || [];
+  document.getElementById('twitterContainer').innerHTML =
+    `<div class="tweet-list">${tweets.map(t => `
+      <div class="tweet-item">
+        <div class="tweet-header">
+          <div class="tweet-avatar" style="background:${p.color}">${p.i}</div>
+          <div class="tweet-name-wrap">
+            <div class="tweet-name">${p.name}&nbsp;${VERIFIED_SVG}</div>
+            <div class="tweet-handle">${p.handle}</div>
+          </div>
+          <div class="tweet-time">${t.time}</div>
+        </div>
+        <div class="tweet-body">${t.text}</div>
+        <div class="tweet-stats">
+          <span class="tweet-stat">${RT_SVG}&nbsp;${t.rt}</span>
+          <span class="tweet-stat">${LIKE_SVG}&nbsp;${t.likes}</span>
+        </div>
+      </div>`).join('')}</div>`;
 }
 
-// Twitter 스크립트 동적 로드
-(function() {
-  const s = document.createElement('script');
-  s.src = 'https://platform.twitter.com/widgets.js';
-  s.async = true;
-  s.onload = () => loadTwitter('realDonaldTrump', null);
-  document.body.appendChild(s);
-})();
+loadTwitter('realDonaldTrump', null);
 </script>
 </body>
 </html>

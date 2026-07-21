@@ -51,7 +51,7 @@ source = source.replace("'", "\\'")
 
 new_block = f"""  {{
     category: '정치', catClass: 'cat-politics', emoji: '🇺🇸',
-    img: 'https://images.unsplash.com/photo-1580128660010-fd027e1e587a?w=800&h=420&fit=crop&auto=format',
+    img: 'https://images.unsplash.com/photo-1580128660010-fd027e1e587a?w=500&h=600&fit=crop&crop=faces&auto=format',
     title: '[트럼프] {title}',
     excerpt: '{desc}',
     time: '{time_str}', author: 'N. Silver', prob: 62, featured: true,
