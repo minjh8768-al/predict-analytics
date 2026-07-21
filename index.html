@@ -403,8 +403,47 @@
 
   .news-card-featured {
     grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    padding: 0;
     background: linear-gradient(135deg, #f5f3ff, #ede9fe);
     border-color: var(--purple);
+    overflow: hidden;
+  }
+
+  .news-card-featured .featured-img-wrap {
+    width: 42%;
+    flex-shrink: 0;
+    min-height: 280px;
+    overflow: hidden;
+    border-radius: 0;
+  }
+
+  .news-card-featured .featured-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .news-card-featured .featured-img-wrap .featured-emoji-fallback {
+    width: 100%;
+    height: 100%;
+    min-height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 72px;
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+  }
+
+  .news-card-featured .featured-content {
+    flex: 1;
+    padding: 22px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
   }
 
   .news-meta {
@@ -1322,31 +1361,37 @@ function renderNews(filter = '전체') {
   const filtered = filter === '전체' ? newsData : newsData.filter(n => n.category === filter);
   const html = filtered.map((n, i) => n.featured && i === 0 ? `
     <div class="news-card news-card-featured">
-      <div>
-        <div class="news-img-featured">
-          ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='${n.emoji}'">` : n.emoji}
-        </div>
-        <div class="news-meta">
-          <span class="news-category ${n.catClass}">${n.category}</span>
-          <span class="news-time">${n.time}</span>
-        </div>
-        <div class="news-title">${n.title}</div>
-        <div class="news-excerpt">${n.excerpt}</div>
-        <div class="probability-bar">
-          <span class="prob-label">예측 확률</span>
-          <div class="prob-bar-wrap">
-            <div class="prob-bar-fill" style="width:${n.prob}%"></div>
+      <div class="featured-img-wrap">
+        ${n.img
+          ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='<div class=featured-emoji-fallback>${n.emoji}</div>'">`
+          : `<div class="featured-emoji-fallback">${n.emoji}</div>`}
+      </div>
+      <div class="featured-content">
+        <div>
+          <div class="news-meta">
+            <span class="news-category ${n.catClass}">${n.category}</span>
+            <span class="news-time">${n.time}</span>
           </div>
-          <span class="prob-value">${n.prob}%</span>
+          <div class="news-title" style="font-size:17px;margin-bottom:10px">${n.title}</div>
+          <div class="news-excerpt" style="-webkit-line-clamp:4">${n.excerpt}</div>
         </div>
-        <div class="news-footer">
-          <div class="news-author">
-            <div class="author-dot">${n.author[0]}</div>
-            ${n.author}${n.source ? `<span style="color:var(--text-muted);margin-left:6px">· ${n.source}</span>` : ''}
+        <div>
+          <div class="probability-bar" style="margin-top:14px">
+            <span class="prob-label">예측 확률</span>
+            <div class="prob-bar-wrap">
+              <div class="prob-bar-fill" style="width:${n.prob}%"></div>
+            </div>
+            <span class="prob-value">${n.prob}%</span>
           </div>
-          <div class="news-stats">
-            <span class="news-stat">👁 ${n.views}</span>
-            <span class="news-stat">💬 ${n.comments}</span>
+          <div class="news-footer" style="margin-top:10px">
+            <div class="news-author">
+              <div class="author-dot">${n.author[0]}</div>
+              ${n.author}${n.source ? `<span style="color:var(--text-muted);margin-left:6px">· ${n.source}</span>` : ''}
+            </div>
+            <div class="news-stats">
+              <span class="news-stat">👁 ${n.views}</span>
+              <span class="news-stat">💬 ${n.comments}</span>
+            </div>
           </div>
         </div>
       </div>
