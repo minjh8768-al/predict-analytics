@@ -990,6 +990,69 @@
   .tweet-stats { display: flex; gap: 14px; font-size: 11px; color: var(--text-muted); }
   .tweet-stat { display: flex; align-items: center; gap: 3px; }
 
+  /* ─── CATEGORY SECTIONS ─── */
+  .cat-section { margin-bottom: 18px; }
+  .cat-section-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0 10px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 10px;
+  }
+  .cat-section-icon { font-size: 15px; }
+  .cat-section-label { font-size: 13px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.2px; }
+
+  .cat-top-card {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+    margin-bottom: 8px;
+    transition: box-shadow 0.2s;
+  }
+  .cat-top-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.09); }
+  .cat-top-img {
+    width: 36%; flex-shrink: 0;
+    min-height: 165px;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-secondary);
+  }
+  .cat-top-img img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    display: block;
+  }
+  .cat-top-emoji {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px; background: var(--bg-secondary);
+  }
+  .cat-top-content {
+    flex: 1; padding: 14px 16px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+
+  .more-btn {
+    width: 100%; padding: 9px 0;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 8px; cursor: pointer;
+    font-size: 12px; color: var(--text-muted); font-weight: 600;
+    margin-bottom: 6px; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .more-btn:hover, .more-btn.open {
+    border-color: var(--purple); color: var(--purple);
+    background: #f5f3ff; border-style: solid;
+  }
+  .more-list {
+    max-height: 0; opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.38s ease, opacity 0.25s ease;
+  }
+
   /* ─── RESPONSIVE ─── */
   @media (max-width: 1200px) {
     .main-layout { grid-template-columns: 240px 1fr 260px; }
@@ -1312,6 +1375,62 @@ const newsData = [
     time: '7시간 전', author: 'D. Lee', prob: 58,
     views: '7.8k', comments: 214
   },
+  {
+    category: '암호화폐', catClass: 'cat-crypto', emoji: '🟡',
+    img: 'https://images.unsplash.com/photo-1622630998477-20aa696ecb05?w=400&h=240&fit=crop&auto=format',
+    title: '솔라나 현물 ETF 승인 가능성 71% — SEC 최종 결정 D-14',
+    excerpt: '미국 증권거래위원회의 솔라나 현물 ETF 심사 기한이 2주 앞으로 다가오며 예측 시장에서 승인 확률이 71%까지 치솟았다. SOL 가격도 연고점을 경신했다.',
+    time: '5시간 전', author: 'D. Lee', prob: 71,
+    views: '6.3k', comments: 178
+  },
+  {
+    category: '경제', catClass: 'cat-economy', emoji: '🏦',
+    img: 'https://images.unsplash.com/photo-1559526324-593bc073d938?w=400&h=240&fit=crop&auto=format',
+    title: '미국 실업률 4.1% 소폭 상승 — 연착륙 논쟁 재점화',
+    excerpt: '6월 고용보고서에서 실업률이 4.1%로 소폭 오르며 연준 금리 정책에 새 변수가 등장했다. 예측 시장은 연착륙 성공 가능성을 68%로 책정하고 있다.',
+    time: '3시간 전', author: 'A. Chen', prob: 68,
+    views: '4.2k', comments: 89
+  },
+  {
+    category: '경제', catClass: 'cat-economy', emoji: '🛢️',
+    img: 'https://images.unsplash.com/photo-1466611653911-95081537e5b7?w=400&h=240&fit=crop&auto=format',
+    title: '국제유가 배럴당 $80 재돌파 — OPEC+ 감산 연장 결정',
+    excerpt: 'OPEC+ 산유국들이 하루 110만 배럴 추가 감산을 2분기까지 연장하기로 합의하며 브렌트유가 배럴당 80달러를 재돌파했다. 인플레이션 재점화 우려도 커지고 있다.',
+    time: '8시간 전', author: 'A. Chen', prob: 45,
+    views: '3.8k', comments: 72
+  },
+  {
+    category: '스포츠', catClass: 'cat-sports', emoji: '🏀',
+    img: 'https://images.unsplash.com/photo-1546519638405-a9f01cfc0bd8?w=400&h=240&fit=crop&auto=format',
+    title: 'NBA 파이널: 보스턴 셀틱스 우승 확률 64% — 황금 시대 재현',
+    excerpt: '2025-26 NBA 파이널에서 보스턴 셀틱스가 64%의 우승 확률로 선두를 달리고 있다. 야니스 아데토쿤보의 밀워키도 다크호스로 급부상 중이다.',
+    time: '5시간 전', author: 'J. Kim', prob: 64,
+    views: '9.1k', comments: 284
+  },
+  {
+    category: '스포츠', catClass: 'cat-sports', emoji: '🎾',
+    img: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=400&h=240&fit=crop&auto=format',
+    title: '윔블던 2026 — 알카라스 vs 신네르 양강 구도, 우승 확률 공개',
+    excerpt: '알카라스(38%)와 신네르(31%)가 윔블던 우승 예측 시장을 양분하고 있다. 정현·권순우 등 한국 선수들의 본선 진출 가능성도 예측 시장에 등장했다.',
+    time: '6시간 전', author: 'J. Kim', prob: 38,
+    views: '5.8k', comments: 143
+  },
+  {
+    category: '세계', catClass: 'cat-world', emoji: '🕊️',
+    img: 'https://images.unsplash.com/photo-1591368292866-04f72a68c98f?w=400&h=240&fit=crop&auto=format',
+    title: '러시아-우크라이나 2026년 내 휴전 합의 가능성 28%',
+    excerpt: '트럼프 행정부의 중재 노력에도 전선 교착이 지속되며 예측 시장은 2026년 내 공식 휴전 합의 가능성을 28%로 평가했다. 키이우는 나토 가입 보장을 요구하고 있다.',
+    time: '4시간 전', author: 'K. Park', prob: 28,
+    views: '8.7k', comments: 234
+  },
+  {
+    category: '세계', catClass: 'cat-world', emoji: '💴',
+    img: 'https://images.unsplash.com/photo-1536257104079-aa99c6460a5a?w=400&h=240&fit=crop&auto=format',
+    title: '엔화 150엔 재돌파 — 일본은행 개입 가능성 52%로 상승',
+    excerpt: '달러-엔 환율이 150엔을 재돌파하며 일본은행의 시장 개입 여부가 주목받고 있다. 예측 시장은 연내 BOJ 개입 가능성을 52%로 책정했다.',
+    time: '7시간 전', author: 'K. Park', prob: 52,
+    views: '6.4k', comments: 167
+  },
 ];
 
 const traderData = [
@@ -1387,62 +1506,62 @@ function renderTicker() {
   document.getElementById('tickerTrack').innerHTML = html;
 }
 
-function renderNews(filter = '전체') {
-  const filtered = filter === '전체' ? newsData : newsData.filter(n => n.category === filter);
-  const html = filtered.map((n, i) => n.featured && i === 0 ? `
-    <div class="news-card news-card-featured">
-      <div class="featured-img-wrap">
-        ${n.img
-          ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='<div class=featured-emoji-fallback>${n.emoji}</div>'">`
-          : `<div class="featured-emoji-fallback">${n.emoji}</div>`}
-      </div>
-      <div class="featured-content">
-        <div>
-          <div class="news-meta">
-            <span class="news-category ${n.catClass}">${n.category}</span>
-            <span class="news-time">${n.time}</span>
-          </div>
-          <div class="news-title" style="font-size:17px;margin-bottom:10px">${n.title}</div>
-          <div class="news-excerpt" style="-webkit-line-clamp:4">${n.excerpt}</div>
-        </div>
-        <div>
-          <div class="probability-bar" style="margin-top:14px">
-            <span class="prob-label">예측 확률</span>
-            <div class="prob-bar-wrap">
-              <div class="prob-bar-fill" style="width:${n.prob}%"></div>
-            </div>
-            <span class="prob-value">${n.prob}%</span>
-          </div>
-          <div class="news-footer" style="margin-top:10px">
-            <div class="news-author">
-              <div class="author-dot">${n.author[0]}</div>
-              ${n.author}${n.source ? `<span style="color:var(--text-muted);margin-left:6px">· ${n.source}</span>` : ''}
-            </div>
-            <div class="news-stats">
-              <span class="news-stat">👁 ${n.views}</span>
-              <span class="news-stat">💬 ${n.comments}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+function cardFeatured(n) {
+  return `<div class="news-card news-card-featured">
+    <div class="featured-img-wrap">
+      ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='<div class=featured-emoji-fallback>${n.emoji}</div>'">` : `<div class="featured-emoji-fallback">${n.emoji}</div>`}
     </div>
-  ` : `
-    <div class="news-card">
+    <div class="featured-content">
       <div>
         <div class="news-meta">
           <span class="news-category ${n.catClass}">${n.category}</span>
           <span class="news-time">${n.time}</span>
         </div>
-        <div class="news-title">${n.title}</div>
-        <div class="news-excerpt">${n.excerpt}</div>
-        <div class="probability-bar">
+        <div class="news-title" style="font-size:17px;margin-bottom:10px">${n.title}</div>
+        <div class="news-excerpt" style="-webkit-line-clamp:4">${n.excerpt}</div>
+      </div>
+      <div>
+        <div class="probability-bar" style="margin-top:14px">
           <span class="prob-label">예측 확률</span>
-          <div class="prob-bar-wrap">
-            <div class="prob-bar-fill" style="width:${n.prob}%"></div>
-          </div>
+          <div class="prob-bar-wrap"><div class="prob-bar-fill" style="width:${n.prob}%"></div></div>
           <span class="prob-value">${n.prob}%</span>
         </div>
-        <div class="news-footer">
+        <div class="news-footer" style="margin-top:10px">
+          <div class="news-author">
+            <div class="author-dot">${n.author[0]}</div>
+            ${n.author}${n.source ? `<span style="color:var(--text-muted);margin-left:6px">· ${n.source}</span>` : ''}
+          </div>
+          <div class="news-stats">
+            <span class="news-stat">👁 ${n.views}</span>
+            <span class="news-stat">💬 ${n.comments}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function cardCatTop(n) {
+  return `<div class="news-card cat-top-card">
+    <div class="cat-top-img">
+      ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='<div class=cat-top-emoji>${n.emoji}</div>'">` : `<div class="cat-top-emoji">${n.emoji}</div>`}
+    </div>
+    <div class="cat-top-content">
+      <div>
+        <div class="news-meta">
+          <span class="news-category ${n.catClass}">${n.category}</span>
+          <span class="news-time">${n.time}</span>
+        </div>
+        <div class="news-title" style="font-size:15px;margin-bottom:8px">${n.title}</div>
+        <div class="news-excerpt" style="-webkit-line-clamp:3">${n.excerpt}</div>
+      </div>
+      <div>
+        <div class="probability-bar" style="margin-top:10px">
+          <span class="prob-label">예측 확률</span>
+          <div class="prob-bar-wrap"><div class="prob-bar-fill" style="width:${n.prob}%"></div></div>
+          <span class="prob-value">${n.prob}%</span>
+        </div>
+        <div class="news-footer" style="margin-top:8px">
           <div class="news-author">
             <div class="author-dot">${n.author[0]}</div>
             ${n.author}
@@ -1453,12 +1572,92 @@ function renderNews(filter = '전체') {
           </div>
         </div>
       </div>
-      <div class="news-img">
-        ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='${n.emoji}'">` : n.emoji}
+    </div>
+  </div>`;
+}
+
+function cardRegular(n) {
+  return `<div class="news-card">
+    <div>
+      <div class="news-meta">
+        <span class="news-category ${n.catClass}">${n.category}</span>
+        <span class="news-time">${n.time}</span>
+      </div>
+      <div class="news-title">${n.title}</div>
+      <div class="news-excerpt">${n.excerpt}</div>
+      <div class="probability-bar">
+        <span class="prob-label">예측 확률</span>
+        <div class="prob-bar-wrap"><div class="prob-bar-fill" style="width:${n.prob}%"></div></div>
+        <span class="prob-value">${n.prob}%</span>
+      </div>
+      <div class="news-footer">
+        <div class="news-author">
+          <div class="author-dot">${n.author[0]}</div>
+          ${n.author}
+        </div>
+        <div class="news-stats">
+          <span class="news-stat">👁 ${n.views}</span>
+          <span class="news-stat">💬 ${n.comments}</span>
+        </div>
       </div>
     </div>
-  `).join('');
-  document.getElementById('newsList').innerHTML = html;
+    <div class="news-img">
+      ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='${n.emoji}'">` : n.emoji}
+    </div>
+  </div>`;
+}
+
+function toggleMore(btn) {
+  const list = btn.nextElementSibling;
+  const isOpen = btn.classList.contains('open');
+  btn.classList.toggle('open', !isOpen);
+  if (isOpen) {
+    list.style.maxHeight = '0';
+    list.style.opacity = '0';
+    btn.innerHTML = btn.dataset.label;
+  } else {
+    list.style.maxHeight = list.scrollHeight + 'px';
+    list.style.opacity = '1';
+    btn.innerHTML = '접기 ▲';
+  }
+}
+
+function renderNews(filter = '전체') {
+  const container = document.getElementById('newsList');
+
+  if (filter !== '전체') {
+    const filtered = newsData.filter(n => n.category === filter);
+    container.innerHTML = filtered.map((n, i) =>
+      n.featured && i === 0 ? cardFeatured(n) : cardRegular(n)
+    ).join('');
+    return;
+  }
+
+  const CAT_ORDER = ['경제', '암호화폐', '스포츠', '세계'];
+  const CAT_ICONS = { '경제': '📈', '암호화폐': '₿', '스포츠': '⚽', '세계': '🌏' };
+
+  const featured = newsData.find(n => n.featured);
+  let html = featured ? cardFeatured(featured) : '';
+
+  CAT_ORDER.forEach(cat => {
+    const articles = newsData.filter(n => !n.featured && n.category === cat);
+    if (!articles.length) return;
+    const [top, ...rest] = articles;
+    const label = `더보기 ${rest.length}개 더 ▼`;
+    html += `<div class="cat-section">
+      <div class="cat-section-header">
+        <span class="cat-section-icon">${CAT_ICONS[cat]}</span>
+        <span class="cat-section-label">${cat} 주요 뉴스</span>
+      </div>
+      ${cardCatTop(top)}
+      ${rest.length > 0 ? `
+        <button class="more-btn" data-label="${label}" onclick="toggleMore(this)">${label}</button>
+        <div class="more-list">${rest.map(cardRegular).join('')}</div>
+      ` : ''}
+    </div>`;
+  });
+
+  container.innerHTML = html;
 }
 
 function renderTraders() {
