@@ -1109,12 +1109,13 @@ const tickerData = [
 
 const newsData = [
   {
-    category: '정치', catClass: 'cat-politics', emoji: '🗳️',
-    img: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800&h=420&fit=crop&auto=format',
-    title: '2028년 미국 대선 경선: 민주당 후보 지지율 최신 분석',
-    excerpt: '예측 시장 데이터와 여론조사를 종합하면 민주당 경선은 여전히 혼전 양상이다. 가빈 뉴섬 캘리포니아 주지사가 20% 내외의 지지율로 선두를 유지하고 있지만 아직 확정적이지 않다.',
-    time: '37분 전', author: 'N. Silver', prob: 20, featured: true,
-    views: '4.2k', comments: 128
+    category: '정치', catClass: 'cat-politics', emoji: '🇺🇸',
+    img: 'https://images.unsplash.com/photo-1580128660010-fd027e1e587a?w=800&h=420&fit=crop&auto=format',
+    title: '트럼프, 대국민 연설서 "선거 인프라 충격적 취약점" 폭로 예고 — 선거 조작 의혹 재점화',
+    excerpt: '트럼프 대통령이 7월 16일 백악관 이스트룸에서 대국민 연설을 통해 "중국이 2020년 선거 데이터를 해킹했다"는 기밀 정보를 공개하겠다고 밝혔다. 예측 시장은 이번 발표가 2026년 중간선거에 미칠 영향을 주목하고 있다. 동시에 캐나다 산불 연기 문제로 캐나다에 관세 위협을 가하고 미국-이란 충돌이 격화되는 등 트럼프 행정부를 둘러싼 긴장이 고조되고 있다.',
+    time: '2시간 전', author: 'N. Silver', prob: 62, featured: true,
+    views: '38.4k', comments: 1240,
+    source: 'ABC News / Washington Post'
   },
   {
     category: '암호화폐', catClass: 'cat-crypto', emoji: '₿',
@@ -1271,7 +1272,7 @@ function renderNews(filter = '전체') {
         <div class="news-footer">
           <div class="news-author">
             <div class="author-dot">${n.author[0]}</div>
-            ${n.author}
+            ${n.author}${n.source ? `<span style="color:var(--text-muted);margin-left:6px">· ${n.source}</span>` : ''}
           </div>
           <div class="news-stats">
             <span class="news-stat">👁 ${n.views}</span>
