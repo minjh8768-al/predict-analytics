@@ -870,6 +870,57 @@
   ::-webkit-scrollbar-thumb { background: #d1d5e8; border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: #9aa0b8; }
 
+  /* ─── TWITTER WIDGET ─── */
+  .twitter-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 14px;
+  }
+  .twitter-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .twitter-card-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tw-tabs { display: flex; gap: 4px; }
+  .tw-tab {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tw-tab:hover { border-color: #1d9bf0; color: #1d9bf0; }
+  .tw-tab.active { background: #1d9bf0; border-color: #1d9bf0; color: white; }
+  #twitterContainer {
+    border-radius: 8px;
+    overflow: hidden;
+    min-height: 180px;
+    background: #f7f9fc;
+  }
+  .tw-loading {
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: center;
+    padding: 30px 0;
+  }
+
   /* ─── RESPONSIVE ─── */
   @media (max-width: 1200px) {
     .main-layout { grid-template-columns: 240px 1fr 260px; }
@@ -977,6 +1028,23 @@
         <span class="tag">경제</span>
         <span class="tag">스포츠</span>
         <span class="tag">기술</span>
+      </div>
+    </div>
+    <!-- Twitter Widget -->
+    <div class="twitter-card">
+      <div class="twitter-card-header">
+        <div class="twitter-card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.259 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          소셜 피드
+        </div>
+        <div class="tw-tabs">
+          <button class="tw-tab active" onclick="loadTwitter('realDonaldTrump',this)">트럼프</button>
+          <button class="tw-tab" onclick="loadTwitter('elonmusk',this)">머스크</button>
+          <button class="tw-tab" onclick="loadTwitter('JDVance',this)">밴스</button>
+        </div>
+      </div>
+      <div id="twitterContainer">
+        <p class="tw-loading">불러오는 중...</p>
       </div>
     </div>
   </aside>
@@ -1108,6 +1176,7 @@ const tickerData = [
 ];
 
 const newsData = [
+  // FEATURED_START
   {
     category: '정치', catClass: 'cat-politics', emoji: '🇺🇸',
     img: 'https://images.unsplash.com/photo-1580128660010-fd027e1e587a?w=800&h=420&fit=crop&auto=format',
@@ -1117,6 +1186,7 @@ const newsData = [
     views: '38.4k', comments: 1240,
     source: 'ABC News / Washington Post'
   },
+  // FEATURED_END
   {
     category: '암호화폐', catClass: 'cat-crypto', emoji: '₿',
     img: 'https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=400&h=240&fit=crop&auto=format',
@@ -1436,6 +1506,32 @@ renderTicker();
 renderNews();
 renderTraders();
 renderMarkets();
+
+// ─── TWITTER WIDGET ───────────────────────────────────────────────────
+function loadTwitter(handle, btn) {
+  document.querySelectorAll('.tw-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const c = document.getElementById('twitterContainer');
+  c.innerHTML = '<p class="tw-loading">불러오는 중...</p>';
+  c.innerHTML = `<a class="twitter-timeline"
+    data-height="360"
+    data-theme="light"
+    data-chrome="noheader nofooter noborders transparent"
+    data-tweet-limit="5"
+    href="https://twitter.com/${handle}"></a>`;
+  if (window.twttr && window.twttr.widgets) {
+    window.twttr.widgets.load(c);
+  }
+}
+
+// Twitter 스크립트 동적 로드
+(function() {
+  const s = document.createElement('script');
+  s.src = 'https://platform.twitter.com/widgets.js';
+  s.async = true;
+  s.onload = () => loadTwitter('realDonaldTrump', null);
+  document.body.appendChild(s);
+})();
 </script>
 </body>
 </html>
