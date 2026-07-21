@@ -500,29 +500,44 @@
   }
 
   .news-img {
-    width: 90px;
-    height: 70px;
+    width: 120px;
+    height: 90px;
     border-radius: 8px;
-    object-fit: cover;
     flex-shrink: 0;
-    background: var(--bg-secondary);
+    background: #f0f2ff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 28px;
     color: var(--text-muted);
+    overflow: hidden;
+  }
+
+  .news-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
   }
 
   .news-img-featured {
     width: 100%;
-    height: 180px;
-    border-radius: 8px;
-    margin-bottom: 12px;
+    height: 240px;
+    border-radius: 10px;
+    margin-bottom: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 52px;
     background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    overflow: hidden;
+  }
+
+  .news-img-featured img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
   }
 
   .probability-bar {
@@ -1095,6 +1110,7 @@ const tickerData = [
 const newsData = [
   {
     category: '정치', catClass: 'cat-politics', emoji: '🗳️',
+    img: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800&h=420&fit=crop&auto=format',
     title: '2028년 미국 대선 경선: 민주당 후보 지지율 최신 분석',
     excerpt: '예측 시장 데이터와 여론조사를 종합하면 민주당 경선은 여전히 혼전 양상이다. 가빈 뉴섬 캘리포니아 주지사가 20% 내외의 지지율로 선두를 유지하고 있지만 아직 확정적이지 않다.',
     time: '37분 전', author: 'N. Silver', prob: 20, featured: true,
@@ -1102,6 +1118,7 @@ const newsData = [
   },
   {
     category: '암호화폐', catClass: 'cat-crypto', emoji: '₿',
+    img: 'https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=400&h=240&fit=crop&auto=format',
     title: '비트코인 $120,000 돌파 가능성: 옵션 시장이 말하는 것',
     excerpt: '7월 내 비트코인의 $120,000 돌파 가능성이 예측 시장에서 34%로 책정되었다. 기관 매수세가 지속되면서 강세론자들의 근거가 강화되고 있다.',
     time: '1시간 전', author: 'M. Kopas', prob: 34,
@@ -1109,6 +1126,7 @@ const newsData = [
   },
   {
     category: '경제', catClass: 'cat-economy', emoji: '📈',
+    img: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=240&fit=crop&auto=format',
     title: 'Fed 2026년 금리 인하 횟수: 예측 시장 vs 월가 전망',
     excerpt: '연방준비제도의 올해 금리 인하 횟수를 놓고 예측 시장(1.8회)과 월스트리트 컨센서스(2.1회) 간에 의미 있는 괴리가 나타나고 있다.',
     time: '2시간 전', author: 'A. Chen', prob: 62,
@@ -1116,6 +1134,7 @@ const newsData = [
   },
   {
     category: '세계', catClass: 'cat-world', emoji: '🌏',
+    img: 'https://images.unsplash.com/photo-1462831457188-d432e75f81f4?w=400&h=240&fit=crop&auto=format',
     title: '중국의 2026년 대만 침공 시나리오: 위험 확률 업데이트',
     excerpt: '최근 남중국해 군사 훈련 증가에도 불구하고 예측 시장은 2026년 내 대규모 군사 충돌 가능성을 여전히 낮게(4%) 평가하고 있다.',
     time: '3시간 전', author: 'K. Park', prob: 4,
@@ -1123,6 +1142,7 @@ const newsData = [
   },
   {
     category: '스포츠', catClass: 'cat-sports', emoji: '⚽',
+    img: 'https://images.unsplash.com/photo-1579952363873-27d3bfad9c0d?w=400&h=240&fit=crop&auto=format',
     title: '2026 FIFA 월드컵 우승 확률: 브라질 vs 프랑스 빅매치',
     excerpt: '토너먼트가 진행되면서 브라질과 프랑스가 예측 시장에서 공동 선두로 올라섰다. 한국의 16강 진출 확률은 현재 67%로 집계된다.',
     time: '4시간 전', author: 'J. Kim', prob: 67,
@@ -1130,6 +1150,7 @@ const newsData = [
   },
   {
     category: '정치', catClass: 'cat-politics', emoji: '🏛️',
+    img: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400&h=240&fit=crop&auto=format',
     title: 'JD 밴스 2028년 공화당 후보 확정 가능성 49%로 상승',
     excerpt: '현직 부통령 JD 밴스가 예측 시장에서 공화당 2028년 대선 후보로 지목될 확률이 49%까지 치솟았다. 로버트 F. 케네디 주니어는 소수 후보로 평가된다.',
     time: '5시간 전', author: 'N. Silver', prob: 49,
@@ -1137,6 +1158,7 @@ const newsData = [
   },
   {
     category: '경제', catClass: 'cat-economy', emoji: '🤖',
+    img: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=400&h=240&fit=crop&auto=format',
     title: 'AI가 2026년 내 인간 일자리 대체 본격화되나',
     excerpt: '골드만삭스 보고서에 따르면 생성형 AI로 인해 2026년 미국 내 약 30만 개의 화이트칼라 직종이 자동화될 것으로 전망된다. 예측 시장의 반응은 엇갈린다.',
     time: '6시간 전', author: 'T. Yoo', prob: 41,
@@ -1144,6 +1166,7 @@ const newsData = [
   },
   {
     category: '암호화폐', catClass: 'cat-crypto', emoji: '🔷',
+    img: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400&h=240&fit=crop&auto=format',
     title: '이더리움 ETF 순매수 지속: 기관 수요 분석',
     excerpt: '이더리움 현물 ETF 출시 이후 기관 투자자들의 순매수가 3주 연속 이어지며 ETH 가격 $5,000 돌파에 대한 기대감이 높아지고 있다.',
     time: '7시간 전', author: 'D. Lee', prob: 58,
@@ -1229,7 +1252,9 @@ function renderNews(filter = '전체') {
   const html = filtered.map((n, i) => n.featured && i === 0 ? `
     <div class="news-card news-card-featured">
       <div>
-        <div class="news-img-featured">${n.emoji}</div>
+        <div class="news-img-featured">
+          ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='${n.emoji}'">` : n.emoji}
+        </div>
         <div class="news-meta">
           <span class="news-category ${n.catClass}">${n.category}</span>
           <span class="news-time">${n.time}</span>
@@ -1282,7 +1307,9 @@ function renderNews(filter = '전체') {
           </div>
         </div>
       </div>
-      <div class="news-img">${n.emoji}</div>
+      <div class="news-img">
+        ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='${n.emoji}'">` : n.emoji}
+      </div>
     </div>
   `).join('');
   document.getElementById('newsList').innerHTML = html;
