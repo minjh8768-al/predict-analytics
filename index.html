@@ -1639,23 +1639,26 @@ function renderNews(filter = '전체') {
   const featured = newsData.find(n => n.featured);
   let html = featured ? cardFeatured(featured) : '';
 
+  const allRest = [];
   CAT_ORDER.forEach(cat => {
     const articles = newsData.filter(n => !n.featured && n.category === cat);
     if (!articles.length) return;
     const [top, ...rest] = articles;
-    const label = `더보기 ${rest.length}개 더 ▼`;
     html += `<div class="cat-section">
       <div class="cat-section-header">
         <span class="cat-section-icon">${CAT_ICONS[cat]}</span>
         <span class="cat-section-label">${cat} 주요 뉴스</span>
       </div>
       ${cardCatTop(top)}
-      ${rest.length > 0 ? `
-        <button class="more-btn" data-label="${label}" onclick="toggleMore(this)">${label}</button>
-        <div class="more-list">${rest.map(cardRegular).join('')}</div>
-      ` : ''}
     </div>`;
+    allRest.push(...rest);
   });
+
+  if (allRest.length > 0) {
+    const label = `더보기 ${allRest.length}개 ▼`;
+    html += `<button class="more-btn" data-label="${label}" onclick="toggleMore(this)">${label}</button>
+    <div class="more-list">${allRest.map(cardRegular).join('')}</div>`;
+  }
 
   container.innerHTML = html;
 }
