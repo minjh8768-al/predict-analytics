@@ -891,31 +891,37 @@
 
   /* ── Polymarket Featured Nav bar ── */
   .pm-feat-nav {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 9px 16px 8px;
+    display: flex; align-items: center;
+    padding: 8px 14px 8px;
     background: var(--bg-card);
     border: 1px solid var(--border); border-top: none;
     border-radius: 0 0 16px 16px;
     margin-top: -2px;
     gap: 10px;
   }
-  .pm-nav-arrow {
-    background: none; border: 1px solid var(--border);
-    border-radius: 8px; padding: 5px 11px;
-    font-size: 12px; color: var(--text-secondary);
-    cursor: pointer; display: flex; align-items: center; gap: 5px;
-    transition: all 0.15s; flex: 1; max-width: 180px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .pm-nav-arrow:hover { border-color: var(--purple); color: var(--purple); }
-  .pm-nav-arrow.right { justify-content: flex-end; }
-  .pm-nav-dots { display: flex; gap: 5px; align-items: center; justify-content: center; flex: 1; }
+  .pm-nav-dots { display: flex; gap: 5px; align-items: center; flex: 1; }
   .pm-nav-dot {
     width: 7px; height: 7px; border-radius: 50%;
     background: var(--border); cursor: pointer;
-    transition: all 0.25s; border: none; padding: 0; outline: none;
+    transition: all 0.25s; border: none; padding: 0; outline: none; flex-shrink: 0;
   }
-  .pm-nav-dot.active { background: var(--purple); width: 20px; border-radius: 4px; }
+  .pm-nav-dot.active { background: var(--text-primary); width: 18px; border-radius: 4px; }
+  .pm-nav-prev {
+    background: none; border: none; padding: 4px 6px;
+    font-size: 12px; color: var(--text-secondary); cursor: pointer;
+    display: flex; align-items: center; gap: 4px; white-space: nowrap;
+    max-width: 160px; overflow: hidden; text-overflow: ellipsis;
+    transition: color 0.15s;
+  }
+  .pm-nav-prev:hover { color: var(--text-primary); }
+  .pm-nav-next {
+    background: none; border: 1.5px solid var(--border);
+    border-radius: 20px; padding: 4px 14px;
+    font-size: 12px; color: var(--text-secondary); font-weight: 500;
+    cursor: pointer; display: flex; align-items: center; gap: 5px;
+    white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
+  }
+  .pm-nav-next:hover { border-color: var(--text-primary); color: var(--text-primary); }
 
   /* ── 구독 모달 ── */
   .sub-overlay {
@@ -2954,9 +2960,9 @@ function renderPolyFeatured(m, outcomes, prices, histories) {
     </div>
   </div>
   <div class="pm-feat-nav">
-    <button class="pm-nav-arrow" onclick="navFeat(-1)">‹ <span id="pmNavPrev" style="overflow:hidden;text-overflow:ellipsis;max-width:120px"></span></button>
     <div class="pm-nav-dots" id="pmNavDots"></div>
-    <button class="pm-nav-arrow right" onclick="navFeat(1)"><span id="pmNavNext" style="overflow:hidden;text-overflow:ellipsis;max-width:120px"></span> ›</button>
+    <button class="pm-nav-prev" onclick="navFeat(-1)">‹ <span id="pmNavPrev"></span></button>
+    <button class="pm-nav-next" onclick="navFeat(1)"><span id="pmNavNext"></span> ›</button>
   </div>`;
 
   const sec = document.getElementById('polyFeaturedSection');
@@ -2979,8 +2985,10 @@ function updateNavUI() {
   const nextM = pmFeatPool[(pmFeatIdx+1)%len];
   const pe = document.getElementById('pmNavPrev');
   const ne = document.getElementById('pmNavNext');
-  if (pe) pe.textContent = (prevM?.question||'').slice(0,16);
-  if (ne) ne.textContent = (nextM?.question||'').slice(0,16);
+  // Left: previous market's short title
+  if (pe) pe.textContent = (prevM?.question||'').slice(0, 24);
+  // Right pill: next market's category (short) or truncated title
+  if (ne) ne.textContent = nextM?.category || (nextM?.question||'').slice(0, 14) || 'Next';
 }
 
 // ── fetch price history for one market ─────────────────────────────────
