@@ -822,6 +822,126 @@
   }
   .pm-dot-live { animation: livePulse 1.4s infinite; background: #0ea968 !important; }
 
+  /* ── 구독 모달 ── */
+  .sub-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    align-items: center; justify-content: center;
+  }
+  .sub-overlay.open { display: flex; }
+
+  .sub-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 90%; max-width: 680px;
+    padding: 36px 36px 32px;
+    position: relative;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.22);
+    animation: subPop 0.22s ease;
+  }
+  @keyframes subPop {
+    from { transform: scale(0.93) translateY(12px); opacity: 0; }
+    to   { transform: scale(1) translateY(0);       opacity: 1; }
+  }
+
+  .sub-close {
+    position: absolute; top: 16px; right: 18px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 50%; width: 32px; height: 32px;
+    font-size: 17px; color: var(--text-muted);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .sub-close:hover { background: var(--border); color: var(--text-primary); }
+
+  .sub-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: linear-gradient(135deg,#7c3aed22,#4f46e522);
+    border: 1px solid #7c3aed44;
+    border-radius: 20px; padding: 4px 12px;
+    font-size: 11px; font-weight: 700;
+    color: var(--purple); text-transform: uppercase; letter-spacing: .05em;
+    margin-bottom: 12px;
+  }
+
+  .sub-title {
+    font-size: 22px; font-weight: 800;
+    color: var(--text-primary); margin-bottom: 6px; line-height: 1.3;
+  }
+  .sub-title span { color: var(--purple); }
+
+  .sub-desc {
+    font-size: 13.5px; color: var(--text-secondary); margin-bottom: 24px; line-height: 1.6;
+  }
+
+  .sub-plans {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 12px;
+    margin-bottom: 20px;
+  }
+  @media(max-width:520px) { .sub-plans { grid-template-columns: 1fr; } }
+
+  .sub-plan {
+    border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 18px 16px; cursor: pointer;
+    transition: all 0.18s; position: relative;
+    background: var(--bg-secondary);
+  }
+  .sub-plan:hover { border-color: var(--purple); box-shadow: 0 4px 16px #7c3aed18; transform: translateY(-2px); }
+  .sub-plan.popular {
+    border-color: var(--purple);
+    background: linear-gradient(145deg,#7c3aed0a,#4f46e508);
+  }
+
+  .plan-badge {
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    background: var(--purple); color: white;
+    font-size: 10px; font-weight: 700; letter-spacing: .05em;
+    padding: 2px 10px; border-radius: 10px; white-space: nowrap;
+  }
+
+  .plan-name {
+    font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;
+  }
+  .plan-price {
+    font-size: 24px; font-weight: 800; color: var(--text-primary); line-height: 1;
+    margin-bottom: 2px;
+  }
+  .plan-price sub { font-size: 12px; font-weight: 500; color: var(--text-muted); vertical-align: bottom; }
+  .plan-period { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+
+  .plan-features { list-style: none; padding: 0; margin: 0; }
+  .plan-features li {
+    font-size: 12px; color: var(--text-secondary);
+    padding: 3px 0; display: flex; align-items: flex-start; gap: 6px;
+  }
+  .plan-features li::before { content: '✓'; color: #0ea968; font-weight: 700; flex-shrink: 0; }
+
+  .sub-cta-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .sub-cta-main {
+    flex: 1; min-width: 180px;
+    background: linear-gradient(135deg,#7c3aed,#4f46e5);
+    color: white; border: none; border-radius: 10px;
+    padding: 13px 24px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.15s; letter-spacing: .02em;
+  }
+  .sub-cta-main:hover { opacity: 0.88; }
+  .sub-cta-free {
+    background: var(--bg-secondary); color: var(--text-secondary);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 13px 18px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .sub-cta-free:hover { border-color: var(--purple); color: var(--purple); }
+
+  .sub-note {
+    font-size: 11px; color: var(--text-muted); margin-top: 12px; text-align: center;
+  }
+
   .tab-group {
     display: flex;
     gap: 0;
@@ -1420,14 +1540,75 @@
     </div>
   </div>
   <div class="tab-group">
-    <button class="tab-btn active">전체</button>
-    <button class="tab-btn">정치</button>
-    <button class="tab-btn">경제</button>
-    <button class="tab-btn">암호화폐</button>
-    <button class="tab-btn">스포츠</button>
-    <button class="tab-btn">세계</button>
+    <button class="tab-btn active" onclick="marketTabClick(this,'전체')">전체</button>
+    <button class="tab-btn" onclick="marketTabClick(this,'정치')">정치</button>
+    <button class="tab-btn" onclick="marketTabClick(this,'경제')">경제</button>
+    <button class="tab-btn" onclick="marketTabClick(this,'암호화폐')">암호화폐</button>
+    <button class="tab-btn" onclick="marketTabClick(this,'스포츠')">스포츠</button>
+    <button class="tab-btn" onclick="marketTabClick(this,'세계')">세계</button>
   </div>
   <div class="market-grid" id="marketGrid"></div>
+</div>
+
+<!-- ─── 구독 모달 ─── -->
+<div class="sub-overlay" id="subOverlay" onclick="subOverlayClick(event)">
+  <div class="sub-modal">
+    <button class="sub-close" onclick="closeSubModal()">✕</button>
+    <div class="sub-badge">🔒 프리미엄 전용</div>
+    <div class="sub-title">카테고리별 <span id="subTabName">정치</span> 분석 데이터<br>구독이 필요합니다</div>
+    <div class="sub-desc">
+      실시간 예측 확률, 거래량 추이, 고급 필터링 등 전문 분석 정보를<br>
+      구독 플랜을 통해 이용하실 수 있습니다.
+    </div>
+
+    <div class="sub-plans">
+      <!-- 기본 -->
+      <div class="sub-plan" onclick="selectPlan(this,'기본')">
+        <div class="plan-name">기본</div>
+        <div class="plan-price">₩9,900<sub>/월</sub></div>
+        <div class="plan-period">월 단위 결제</div>
+        <ul class="plan-features">
+          <li>카테고리 1개 선택</li>
+          <li>실시간 예측 확률</li>
+          <li>일간 분석 리포트</li>
+          <li>이메일 알림</li>
+        </ul>
+      </div>
+      <!-- 스탠다드 (인기) -->
+      <div class="sub-plan popular" onclick="selectPlan(this,'스탠다드')">
+        <div class="plan-badge">가장 인기</div>
+        <div class="plan-name">스탠다드</div>
+        <div class="plan-price">₩19,900<sub>/월</sub></div>
+        <div class="plan-period">월 단위 결제</div>
+        <ul class="plan-features">
+          <li>전체 카테고리 무제한</li>
+          <li>실시간 예측 확률</li>
+          <li>고급 필터 &amp; 정렬</li>
+          <li>주간 심층 리포트</li>
+          <li>카카오톡 알림</li>
+        </ul>
+      </div>
+      <!-- 프로 -->
+      <div class="sub-plan" onclick="selectPlan(this,'프로')">
+        <div class="plan-name">프로</div>
+        <div class="plan-price">₩39,900<sub>/월</sub></div>
+        <div class="plan-period">월 단위 결제</div>
+        <ul class="plan-features">
+          <li>스탠다드 전체 포함</li>
+          <li>API 접근권</li>
+          <li>포트폴리오 트래킹</li>
+          <li>전용 분석 대시보드</li>
+          <li>1:1 전문가 상담</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sub-cta-row">
+      <button class="sub-cta-main" id="subCtaMain" onclick="handleSubCTA()">스탠다드 구독 시작하기 →</button>
+      <button class="sub-cta-free" onclick="handleFreeTrial()">7일 무료 체험</button>
+    </div>
+    <div class="sub-note">언제든지 취소 가능 · 신용카드 불필요(체험) · 연간 결제 시 20% 할인</div>
+  </div>
 </div>
 
 <script>
@@ -2329,6 +2510,57 @@ function loadTwitter(handle, btn) {
 }
 
 loadTwitter('realDonaldTrump', null);
+
+// ─── 구독 모달 ──────────────────────────────────────────────────────
+let _selectedPlan = '스탠다드';
+let _pendingTab   = null;   // 구독 확정 후 활성화할 탭 버튼
+
+function marketTabClick(btn, cat) {
+  if (cat === '전체') {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    return;
+  }
+  // 비-전체 탭: 구독 팝업
+  _pendingTab = btn;
+  document.getElementById('subTabName').textContent = cat;
+  _selectedPlan = '스탠다드';
+  document.querySelectorAll('.sub-plan').forEach(p => {
+    p.style.outline = p.classList.contains('popular') ? '2px solid var(--purple)' : 'none';
+  });
+  document.getElementById('subCtaMain').textContent = `스탠다드 구독 시작하기 →`;
+  document.getElementById('subOverlay').classList.add('open');
+}
+
+function selectPlan(el, name) {
+  _selectedPlan = name;
+  document.querySelectorAll('.sub-plan').forEach(p => p.style.outline = 'none');
+  el.style.outline = '2.5px solid var(--purple)';
+  document.getElementById('subCtaMain').textContent = `${name} 구독 시작하기 →`;
+}
+
+function closeSubModal() {
+  document.getElementById('subOverlay').classList.remove('open');
+  _pendingTab = null;
+}
+
+function subOverlayClick(e) {
+  if (e.target === document.getElementById('subOverlay')) closeSubModal();
+}
+
+function handleSubCTA() {
+  alert(`[${_selectedPlan}] 플랜 구독 페이지로 이동합니다.\n(결제 시스템 연동 후 활성화됩니다)`);
+  closeSubModal();
+}
+
+function handleFreeTrial() {
+  alert('7일 무료 체험을 시작합니다!\n이메일로 인증 링크가 발송됩니다.\n(이메일 인증 시스템 연동 후 활성화됩니다)');
+  closeSubModal();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSubModal();
+});
 </script>
 <!-- ─── ARTICLE MODAL ─── -->
 <div id="articleModal" class="modal-overlay" onclick="if(event.target===this)closeArticleModal()">
