@@ -1565,7 +1565,7 @@
       <!-- 기본 -->
       <div class="sub-plan" onclick="selectPlan(this,'기본')">
         <div class="plan-name">기본</div>
-        <div class="plan-price">₩9,900<sub>/월</sub></div>
+        <div class="plan-price">$99<sub>/월</sub></div>
         <div class="plan-period">월 단위 결제</div>
         <ul class="plan-features">
           <li>카테고리 1개 선택</li>
@@ -1578,7 +1578,7 @@
       <div class="sub-plan popular" onclick="selectPlan(this,'스탠다드')">
         <div class="plan-badge">가장 인기</div>
         <div class="plan-name">스탠다드</div>
-        <div class="plan-price">₩19,900<sub>/월</sub></div>
+        <div class="plan-price">$199<sub>/월</sub></div>
         <div class="plan-period">월 단위 결제</div>
         <ul class="plan-features">
           <li>전체 카테고리 무제한</li>
@@ -1588,17 +1588,17 @@
           <li>카카오톡 알림</li>
         </ul>
       </div>
-      <!-- 프로 -->
-      <div class="sub-plan" onclick="selectPlan(this,'프로')">
-        <div class="plan-name">프로</div>
-        <div class="plan-price">₩39,900<sub>/월</sub></div>
-        <div class="plan-period">월 단위 결제</div>
+      <!-- 서포터 -->
+      <div class="sub-plan" onclick="selectPlan(this,'서포터')">
+        <div class="plan-name">서포터</div>
+        <div class="plan-price">$999<sub style="font-size:10px">+/월</sub></div>
+        <div class="plan-period">커스텀 계약</div>
         <ul class="plan-features">
           <li>스탠다드 전체 포함</li>
-          <li>API 접근권</li>
+          <li>전용 API + 웹훅</li>
           <li>포트폴리오 트래킹</li>
           <li>전용 분석 대시보드</li>
-          <li>1:1 전문가 상담</li>
+          <li>1:1 전문가 상담 무제한</li>
         </ul>
       </div>
     </div>
@@ -2061,7 +2061,7 @@ function fmtVol(v) {
 }
 
 function pmCard(q, outcomes, prices, vol, imgUrl) {
-  return `<div class="market-card">
+  return `<div class="market-card" onclick="openSubModal('시장 데이터')" style="cursor:pointer">
     <div class="market-card-header">
       <div class="market-icon" style="background:#f0f2ff;overflow:hidden;padding:0">
         ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML='🎯'">` : '🎯'}
@@ -2079,7 +2079,7 @@ function pmCard(q, outcomes, prices, vol, imgUrl) {
     </div>
     <div class="market-footer">
       <span>📊 ${fmtVol(vol)} 거래량</span>
-      <button class="watchlist-btn" onclick="toggleWatchlist(this)">☆ 관심 목록</button>
+      <button class="watchlist-btn" onclick="event.stopPropagation();toggleWatchlist(this)">☆ 관심 목록</button>
     </div>
   </div>`;
 }
@@ -2087,7 +2087,7 @@ function pmCard(q, outcomes, prices, vol, imgUrl) {
 function renderMarkets(liveData) {
   let html = '';
   if (liveData && liveData.length > 0) {
-    html = liveData.slice(0, 8).map(m => {
+    html = liveData.slice(0, 10).map(m => {
       let outcomes = [], prices = [];
       try { outcomes = JSON.parse(m.outcomes || '[]'); } catch(e) {}
       try { prices   = JSON.parse(m.outcomePrices || '[]'); } catch(e) {}
@@ -2095,7 +2095,7 @@ function renderMarkets(liveData) {
     }).join('');
   } else {
     html = marketData.map(m => `
-      <div class="market-card">
+      <div class="market-card" onclick="openSubModal('시장 데이터')" style="cursor:pointer">
         <div class="market-card-header">
           <div class="market-icon" style="background:${m.bg}">${m.icon}</div>
           <div class="market-title">${m.title}</div>
@@ -2111,7 +2111,7 @@ function renderMarkets(liveData) {
         </div>
         <div class="market-footer">
           <span>📊 ${m.volume}</span>
-          <button class="watchlist-btn" onclick="toggleWatchlist(this)">☆ 관심 목록</button>
+          <button class="watchlist-btn" onclick="event.stopPropagation();toggleWatchlist(this)">☆ 관심 목록</button>
         </div>
       </div>`).join('');
   }
@@ -2393,58 +2393,88 @@ async function pollCLOB() {
   }
 }
 
-// ── Init ─────────────────────────────────────────────────────────────
+// ── Init + 30초 종목 교체 ─────────────────────────────────────────────
+let pmAllMarkets  = [];   // 전체 fetched pool (30개)
+let pmWindowStart = 0;    // 현재 표시 중인 슬라이스 시작 인덱스
+let pmRotateTimer = null;
+
+function buildPriceMap(slice) {
+  pmPriceMap = {}; pmGridPrices = {};
+  const allIds = [];
+  slice.forEach((m, mi) => {
+    let tokens = [];
+    if (m.clobTokenIds) try { tokens = JSON.parse(m.clobTokenIds); } catch(e) {}
+    if (!tokens.length && m.tokens) tokens = (Array.isArray(m.tokens) ? m.tokens : []).map(t => t.token_id || t);
+    let prices = [];
+    try { prices = JSON.parse(m.outcomePrices || '[]'); } catch(e) {}
+    tokens.forEach((tid, oi) => {
+      if (!tid) return;
+      const p = parseFloat(prices[oi] || 0);
+      pmPriceMap[tid] = { mktIdx: mi, outcomeIdx: oi, price: p };
+      pmGridPrices[`${mi}_${oi}`] = Math.round(p * 100);
+      allIds.push(tid);
+    });
+    if (tokens.length === 2) {
+      if (pmPriceMap[tokens[0]]) pmPriceMap[tokens[0]].partnerId = tokens[1];
+      if (pmPriceMap[tokens[1]]) pmPriceMap[tokens[1]].partnerId = tokens[0];
+    }
+    if (m.conditionId) allIds.push(m.conditionId);
+  });
+  return allIds;
+}
+
+// 30초마다 pool에서 다음 10개 슬라이스로 로테이션
+function rotateMarkets() {
+  if (pmAllMarkets.length <= 10) return;
+  pmWindowStart = (pmWindowStart + 10) % pmAllMarkets.length;
+  const slice = pmAllMarkets.slice(pmWindowStart, pmWindowStart + 10);
+  // pool 끝에서 모자라면 앞에서 보충
+  const padded = slice.length < 10
+    ? slice.concat(pmAllMarkets.slice(0, 10 - slice.length))
+    : slice;
+  polyLive = padded;
+  renderMarkets(padded);
+  const ids = buildPriceMap(padded);
+  if (ids.length) connectWS(ids);
+  pmUpdateCount = 0;
+  setPMStatus('live', 'LIVE · 종목 교체됨');
+  setTimeout(() => setPMStatus('live'), 2000);
+}
+
 async function fetchPolymarkets() {
   setPMStatus('connecting');
   try {
+    // 상위 거래량 30개 fetch — 가격 변동이 활발한 종목들
     const res = await fetch(
-      'https://gamma-api.polymarket.com/markets?active=true&limit=20&order=volume&ascending=false',
+      'https://gamma-api.polymarket.com/markets?active=true&limit=30&order=volume&ascending=false',
       { headers: { Accept: 'application/json' } }
     );
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
-    polyLive = Array.isArray(data) ? data : (data.markets || []);
-    if (!polyLive.length) throw new Error('empty');
+    pmAllMarkets = Array.isArray(data) ? data : (data.markets || []);
+    if (!pmAllMarkets.length) throw new Error('empty');
 
-    renderMarkets(polyLive);
-
-    // Build price map from every available ID field
-    pmPriceMap = {}; pmGridPrices = {};
-    const allIds = [];
-    polyLive.forEach((m, mi) => {
-      let tokens = [];
-      // try multiple field names (API changes over time)
-      if (m.clobTokenIds)  try { tokens = JSON.parse(m.clobTokenIds); } catch(e) {}
-      if (!tokens.length && m.tokens) tokens = (Array.isArray(m.tokens) ? m.tokens : []).map(t => t.token_id || t);
-      let prices = [];
-      try { prices = JSON.parse(m.outcomePrices || '[]'); } catch(e) {}
-
-      tokens.forEach((tid, oi) => {
-        if (!tid) return;
-        const p = parseFloat(prices[oi] || 0);
-        pmPriceMap[tid] = { mktIdx: mi, outcomeIdx: oi, price: p };
-        pmGridPrices[`${mi}_${oi}`] = Math.round(p * 100);
-        allIds.push(tid);
-      });
-      if (tokens.length === 2) {
-        if (pmPriceMap[tokens[0]]) pmPriceMap[tokens[0]].partnerId = tokens[1];
-        if (pmPriceMap[tokens[1]]) pmPriceMap[tokens[1]].partnerId = tokens[0];
-      }
-      // also map conditionId (for WS subscription fallback)
-      if (m.conditionId) allIds.push(m.conditionId);
-    });
+    // 첫 10개 표시
+    pmWindowStart = 0;
+    const first10 = pmAllMarkets.slice(0, 10);
+    polyLive = first10;
+    renderMarkets(first10);
+    const allIds = buildPriceMap(first10);
 
     if (allIds.length) connectWS(allIds);
 
-    // Start 1-second CLOB REST polling
+    // 1초 CLOB 폴링
     if (pmPollTimer) clearInterval(pmPollTimer);
     pmPollTimer = setInterval(pollCLOB, 1000);
+
+    // 30초마다 다음 10개 종목으로 교체
+    if (pmRotateTimer) clearInterval(pmRotateTimer);
+    pmRotateTimer = setInterval(rotateMarkets, 30000);
 
     setPMStatus('live');
   } catch(e) {
     console.warn('Polymarket 초기화 실패:', e.message);
     setPMStatus('disconnected');
-    // retry in 5s
     setTimeout(fetchPolymarkets, 5000);
   }
 }
@@ -2513,7 +2543,17 @@ loadTwitter('realDonaldTrump', null);
 
 // ─── 구독 모달 ──────────────────────────────────────────────────────
 let _selectedPlan = '스탠다드';
-let _pendingTab   = null;   // 구독 확정 후 활성화할 탭 버튼
+let _pendingTab   = null;
+
+function openSubModal(label) {
+  document.getElementById('subTabName').textContent = label || '프리미엄';
+  _selectedPlan = '스탠다드';
+  document.querySelectorAll('.sub-plan').forEach(p => {
+    p.style.outline = p.classList.contains('popular') ? '2px solid var(--purple)' : 'none';
+  });
+  document.getElementById('subCtaMain').textContent = `스탠다드 구독 시작하기 →`;
+  document.getElementById('subOverlay').classList.add('open');
+}
 
 function marketTabClick(btn, cat) {
   if (cat === '전체') {
@@ -2521,15 +2561,8 @@ function marketTabClick(btn, cat) {
     btn.classList.add('active');
     return;
   }
-  // 비-전체 탭: 구독 팝업
   _pendingTab = btn;
-  document.getElementById('subTabName').textContent = cat;
-  _selectedPlan = '스탠다드';
-  document.querySelectorAll('.sub-plan').forEach(p => {
-    p.style.outline = p.classList.contains('popular') ? '2px solid var(--purple)' : 'none';
-  });
-  document.getElementById('subCtaMain').textContent = `스탠다드 구독 시작하기 →`;
-  document.getElementById('subOverlay').classList.add('open');
+  openSubModal(cat);
 }
 
 function selectPlan(el, name) {
