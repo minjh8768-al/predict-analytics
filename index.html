@@ -884,6 +884,40 @@
   #abcThumbGrid { transition: opacity 0.35s ease; }
   #abcThumbGrid.fading { opacity: 0; pointer-events: none; }
 
+  /* ── Comment slide animation ── */
+  @keyframes cmtSlideIn {
+    from { opacity:0; transform:translateY(14px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* ── Polymarket Featured Nav bar ── */
+  .pm-feat-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 16px 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border); border-top: none;
+    border-radius: 0 0 16px 16px;
+    margin-top: -2px;
+    gap: 10px;
+  }
+  .pm-nav-arrow {
+    background: none; border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 11px;
+    font-size: 12px; color: var(--text-secondary);
+    cursor: pointer; display: flex; align-items: center; gap: 5px;
+    transition: all 0.15s; flex: 1; max-width: 180px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pm-nav-arrow:hover { border-color: var(--purple); color: var(--purple); }
+  .pm-nav-arrow.right { justify-content: flex-end; }
+  .pm-nav-dots { display: flex; gap: 5px; align-items: center; justify-content: center; flex: 1; }
+  .pm-nav-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--border); cursor: pointer;
+    transition: all 0.25s; border: none; padding: 0; outline: none;
+  }
+  .pm-nav-dot.active { background: var(--purple); width: 20px; border-radius: 4px; }
+
   /* ── 구독 모달 ── */
   .sub-overlay {
     display: none;
@@ -2668,18 +2702,97 @@ function startAbcRotation() {
   }, 8000);
 }
 
-// ─── POLYMARKET FEATURED CARD ─────────────────────────────────────────
+// ─── POLYMARKET FEATURED CARD (carousel + live comments) ─────────────
 const PM_COLORS = ['#2196f3','#ff9800','#f44336','#4caf50','#9c27b0','#00bcd4'];
 
+let pmFeatPool  = [];   // pool of 8 markets
+let pmFeatIdx   = 0;
+let pmFeatTimer = null;
+let pmCmtTimer  = null;
+let pmCmtActive = [];
+let pmCmtPoolIdx = 0;
+let pmCmtLines  = [];
+
+const PM_USERS = [
+  {name:'청초보운공무768', color:'#6366f1'},
+  {name:'크나크',         color:'#10b981'},
+  {name:'데이비드세맨',   color:'#f59e0b'},
+  {name:'betmaster99',    color:'#ef4444'},
+  {name:'예측왕🔥',       color:'#8b5cf6'},
+  {name:'trader_pro',     color:'#0ea968'},
+  {name:'시장분석러',     color:'#2196f3'},
+  {name:'폴리킹',         color:'#ff9800'},
+  {name:'분석가Pro',      color:'#e91e63'},
+  {name:'lucky777',       color:'#009688'},
+];
+
+function genCmtLines(outcomes, prices) {
+  const topIdx = prices.indexOf(Math.max(...prices));
+  const top = outcomes[topIdx] || outcomes[0] || '이 마켓';
+  const sec = outcomes[topIdx === 0 ? 1 : 0] || '';
+  return [
+    `${top} 확률이 점점 오르고 있어요. 지금이 진입 타이밍 같은데 ㄷㄷ`,
+    `${sec ? sec + ' 배당률이 너무 높네 ㅋㅋ' : '변동폭 장난 아니다 조심해야겠다'}`,
+    `나는 돈을 잃을 걸 좋아해`,
+    `진입 타이밍 고민 중... 지금이 맞나? 차트 보면 반전 신호`,
+    `이번 주 가장 뜨거운 마켓. 스프레드 고려하면 매력적`,
+    `변동성 높은 것들이 항상 재미있죠 ㅎ`,
+    `리스크 대비 리워드 좋은 것 같은데? 단기 포지션 열어봄`,
+    `${top} 올 거야... 절대적으로 믿음 ㅋㅋ`,
+    `폭스 스포츠: ${top} 우세 전망이지만 시장은 항상 놀라게 만들죠`,
+    `gsw 배당률이 너무 높네 ㅋㅋㅋ`,
+  ];
+}
+
+function renderCmts() {
+  const el = document.getElementById('pmCmtList');
+  if (!el) return;
+  el.innerHTML = pmCmtActive.map(c => `
+    <div class="pm-feat-cmt" style="animation:cmtSlideIn 0.4s ease forwards">
+      <div class="pm-feat-cmt-av" style="background:${c.color}">${c.name.slice(0,2)}</div>
+      <div>
+        <div class="pm-feat-cmt-user">${c.name}</div>
+        <div class="pm-feat-cmt-text">${c.text}</div>
+      </div>
+    </div>`).join('');
+}
+
+function initCmts(outcomes, prices) {
+  pmCmtLines   = genCmtLines(outcomes, prices);
+  pmCmtPoolIdx = 0;
+  pmCmtActive  = PM_USERS.slice(0, 3).map((u, i) => ({...u, text: pmCmtLines[i]}));
+  renderCmts();
+}
+
+function cycleCmt() {
+  const el = document.getElementById('pmCmtList');
+  if (!el) return;
+  const first = el.querySelector('.pm-feat-cmt');
+  if (first) {
+    first.style.cssText = 'opacity:0;transform:translateY(-12px);transition:0.3s';
+  }
+  setTimeout(() => {
+    const user = PM_USERS[pmCmtPoolIdx % PM_USERS.length];
+    pmCmtPoolIdx++;
+    const text = pmCmtLines[(pmCmtPoolIdx + 2) % pmCmtLines.length];
+    pmCmtActive.shift();
+    pmCmtActive.push({...user, text});
+    renderCmts();
+  }, 320);
+}
+
+function startCmtCycle() {
+  if (pmCmtTimer) clearInterval(pmCmtTimer);
+  pmCmtTimer = setInterval(cycleCmt, 3500);
+}
+
+// ── chart helpers ──────────────────────────────────────────────────────
 function fakeHistory(price, points = 80) {
-  // Realistic random walk anchored to current price
-  const arr = [];
-  const now = Date.now() / 1000;
+  const arr = [], now = Date.now() / 1000;
   let p = Math.max(0.04, Math.min(0.96, price + (Math.random() - 0.5) * 0.25));
   for (let i = 0; i < points; i++) {
-    const t = now - (points - i) * 3600 * 2; // every 2h over ~6 days
-    const drift = (price - p) * 0.08;
-    p = Math.max(0.02, Math.min(0.98, p + drift + (Math.random() - 0.5) * 0.035));
+    const t = now - (points - i) * 3600 * 2;
+    p = Math.max(0.02, Math.min(0.98, p + (price - p) * 0.08 + (Math.random() - 0.5) * 0.035));
     arr.push({ t, p });
   }
   arr.push({ t: now, p: price });
@@ -2690,117 +2803,68 @@ function catmullPath(pts) {
   if (pts.length < 2) return '';
   let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
   for (let i = 1; i < pts.length; i++) {
-    const p0 = pts[Math.max(0, i-2)], p1 = pts[i-1], p2 = pts[i], p3 = pts[Math.min(pts.length-1, i+1)];
-    const cx1 = (p1.x + (p2.x-p0.x)/6).toFixed(1), cy1 = (p1.y + (p2.y-p0.y)/6).toFixed(1);
-    const cx2 = (p2.x - (p3.x-p1.x)/6).toFixed(1), cy2 = (p2.y - (p3.y-p1.y)/6).toFixed(1);
-    d += ` C${cx1},${cy1} ${cx2},${cy2} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+    const p0 = pts[Math.max(0,i-2)], p1 = pts[i-1], p2 = pts[i], p3 = pts[Math.min(pts.length-1,i+1)];
+    d += ` C${(p1.x+(p2.x-p0.x)/6).toFixed(1)},${(p1.y+(p2.y-p0.y)/6).toFixed(1)} ${(p2.x-(p3.x-p1.x)/6).toFixed(1)},${(p2.y-(p3.y-p1.y)/6).toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
   }
   return d;
 }
 
 function buildChartSVG(histories, colors) {
-  const W = 480, H = 200;
-  const PL = 30, PR = 8, PT = 8, PB = 16;
-  const cW = W - PL - PR, cH = H - PT - PB;
-  const allTs = histories.flat().map(p => p.t);
-  const minT = Math.min(...allTs), maxT = Math.max(...allTs) || minT + 1;
-  const allPs = histories.flat().map(p => p.p);
-  const maxP  = Math.max(...allPs, 0.12);
-  const xS = t => PL + (t - minT) / (maxT - minT) * cW;
-  const yS = p => PT + cH - (p / Math.min(maxP * 1.15, 1)) * cH;
-
+  const W=480,H=200,PL=30,PR=8,PT=8,PB=16,cW=W-PL-PR,cH=H-PT-PB;
+  const allTs = histories.flat().map(p=>p.t);
+  const minT = Math.min(...allTs), maxT = Math.max(...allTs)||minT+1;
+  const maxP  = Math.max(...histories.flat().map(p=>p.p), 0.12);
+  const xS = t => PL+(t-minT)/(maxT-minT)*cW;
+  const yS = p => PT+cH-(p/Math.min(maxP*1.15,1))*cH;
   let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-  // grid lines
-  [0.2, 0.4, 0.6, 0.8].filter(v => v < maxP * 1.2).forEach(v => {
+  [0.2,0.4,0.6,0.8].filter(v=>v<maxP*1.2).forEach(v => {
     const y = yS(v).toFixed(1);
     svg += `<line x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}" stroke="#e5e7eb" stroke-width="0.8" stroke-dasharray="3,3"/>
-            <text x="${PL-4}" y="${parseFloat(y)+3.5}" font-size="8" fill="#9ca3af" text-anchor="end">${Math.round(v*100)}%</text>`;
+            <text x="${PL-4}" y="${(+y+3.5).toFixed(1)}" font-size="8" fill="#9ca3af" text-anchor="end">${Math.round(v*100)}%</text>`;
   });
-  // lines
-  histories.forEach((hist, ci) => {
+  histories.forEach((hist,ci) => {
     if (!hist.length) return;
-    const step = Math.max(1, Math.floor(hist.length / 60));
-    const sampled = hist.filter((_, i) => i % step === 0 || i === hist.length - 1);
-    const pts = sampled.map(d => ({ x: xS(d.t), y: yS(d.p) }));
+    const step = Math.max(1, Math.floor(hist.length/60));
+    const pts = hist.filter((_,i)=>i%step===0||i===hist.length-1).map(d=>({x:xS(d.t),y:yS(d.p)}));
     svg += `<path d="${catmullPath(pts)}" fill="none" stroke="${colors[ci]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
   });
-  svg += '</svg>';
-  return svg;
+  return svg + '</svg>';
 }
 
 function fmtEndDate(iso) {
-  try {
-    const d = new Date(iso);
-    return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
-  } catch(e) { return ''; }
+  try { const d=new Date(iso); return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`; }
+  catch(e) { return ''; }
 }
-
 function fmtVolumeKR(v) {
-  const n = parseFloat(v) || 0;
-  if (n >= 1e8) return `${(n/1e8).toFixed(1)}억 달러`;
-  if (n >= 1e4) return `${Math.round(n/1e4)}만 달러`;
+  const n=parseFloat(v)||0;
+  if(n>=1e8) return `${(n/1e8).toFixed(1)}억 달러`;
+  if(n>=1e4) return `${Math.round(n/1e4)}만 달러`;
   return `$${Math.round(n).toLocaleString()}`;
 }
 
-const PM_FAKE_USERS = [
-  {name:'청초보운공무768', color:'#6366f1'},
-  {name:'크나크', color:'#10b981'},
-  {name:'데이비드세맨', color:'#f59e0b'},
-  {name:'betmaster99', color:'#ef4444'},
-  {name:'예측왕🔥', color:'#8b5cf6'},
-  {name:'trader_pro', color:'#0ea968'},
-];
-
-function genComments(outcomes, prices) {
-  if (!outcomes.length) return [];
-  const topIdx = prices.indexOf(Math.max(...prices));
-  const topOut = outcomes[topIdx] || outcomes[0];
-  const vol2 = outcomes[Math.min(topIdx + 1, outcomes.length - 1)] || '';
-  const lines = [
-    `${topOut} 확률이 점점 오르고 있어요. 지금이 진입 타이밍 같은데 ㄷㄷ`,
-    `${vol2 ? vol2 + ' 배당률이 너무 높네 ㅋㅋ' : '변동폭 장난 아니다 조심해야겠다'}`,
-    `폭스 스포츠: ${topOut} 우세 전망이지만 시장은 항상 놀라게 만들죠`,
-  ];
-  return PM_FAKE_USERS.slice(0, 3).map((u, i) => ({
-    name: u.name, color: u.color, text: lines[i] || ''
-  }));
-}
-
+// ── render ─────────────────────────────────────────────────────────────
 function renderPolyFeatured(m, outcomes, prices, histories) {
-  const colors  = PM_COLORS;
-  const comments = genComments(outcomes, prices);
   const endDate = m.endDateIso ? fmtEndDate(m.endDateIso) : '';
-  const vol = fmtVolumeKR(m.volume || m.volumeNum || 0);
+  const vol = fmtVolumeKR(m.volume || 0);
 
   const iconHtml = m.image
-    ? `<div class="pm-feat-icon"><img src="${m.image}" onerror="this.parentNode.textContent='🎯'"></div>`
+    ? `<div class="pm-feat-icon"><img src="${m.image}" onerror="this.parentNode.textContent='🎯'" loading="lazy"></div>`
     : `<div class="pm-feat-icon">🎯</div>`;
 
-  const outcomesHtml = outcomes.slice(0, 5).map((o, i) => `
+  const outcomesHtml = outcomes.slice(0,5).map((o,i) => `
     <div class="pm-feat-outcome">
-      <div class="pm-feat-out-dot" style="background:${colors[i]}"></div>
+      <div class="pm-feat-out-dot" style="background:${PM_COLORS[i]}"></div>
       <span class="pm-feat-out-name">${o}</span>
       <span class="pm-feat-out-pct">${Math.round((prices[i]||0)*100)}%</span>
     </div>`).join('');
 
-  const cmtsHtml = comments.map(c => `
-    <div class="pm-feat-cmt">
-      <div class="pm-feat-cmt-av" style="background:${c.color}">${c.name.slice(0,2)}</div>
-      <div>
-        <div class="pm-feat-cmt-user">${c.name}</div>
-        <div class="pm-feat-cmt-text">${c.text}</div>
-      </div>
-    </div>`).join('');
-
-  const legendHtml = outcomes.slice(0, 4).map((o, i) => `
+  const legendHtml = outcomes.slice(0,4).map((o,i) => `
     <div class="pm-legend-item">
-      <div class="pm-legend-dot" style="background:${colors[i]}"></div>
+      <div class="pm-legend-dot" style="background:${PM_COLORS[i]}"></div>
       ${o} ${Math.round((prices[i]||0)*100)}%
     </div>`).join('');
 
-  const chartSVG = buildChartSVG(histories, colors);
-
-  const html = `<div class="pm-feat-card">
+  const cardHtml = `<div class="pm-feat-card">
     <div class="pm-feat-left">
       <div class="pm-feat-hd">
         ${iconHtml}
@@ -2810,89 +2874,118 @@ function renderPolyFeatured(m, outcomes, prices, histories) {
         </div>
       </div>
       <div class="pm-feat-outcomes">${outcomesHtml}</div>
-      <div class="pm-feat-comments">${cmtsHtml}</div>
+      <div class="pm-feat-comments" id="pmCmtList"></div>
       <div class="pm-feat-footer">
         <span>💰 ${vol} 볼륨</span>
-        <span class="pm-feat-pm">
-          ${endDate ? endDate + '에 종료 · ' : ''}
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="margin-right:2px"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="pm-feat-pm">${endDate ? endDate + '에 종료 · ' : ''}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           Polymarket
         </span>
       </div>
     </div>
     <div class="pm-feat-right">
       <div class="pm-feat-legend">${legendHtml}</div>
-      <div class="pm-chart-wrap">${chartSVG}</div>
+      <div class="pm-chart-wrap">${buildChartSVG(histories, PM_COLORS)}</div>
     </div>
+  </div>
+  <div class="pm-feat-nav">
+    <button class="pm-nav-arrow" onclick="navFeat(-1)">‹ <span id="pmNavPrev" style="overflow:hidden;text-overflow:ellipsis;max-width:120px"></span></button>
+    <div class="pm-nav-dots" id="pmNavDots"></div>
+    <button class="pm-nav-arrow right" onclick="navFeat(1)"><span id="pmNavNext" style="overflow:hidden;text-overflow:ellipsis;max-width:120px"></span> ›</button>
   </div>`;
 
   const sec = document.getElementById('polyFeaturedSection');
-  if (sec) sec.innerHTML = html;
+  if (sec) sec.innerHTML = cardHtml;
+
+  // init comments & cycle
+  initCmts(outcomes, prices);
+  startCmtCycle();
 }
 
-let pmFeatTimer = null;
+function updateNavUI() {
+  const len = pmFeatPool.length;
+  const dots = document.getElementById('pmNavDots');
+  if (dots) {
+    dots.innerHTML = Array.from({length: len}, (_,i) =>
+      `<button class="pm-nav-dot${i===pmFeatIdx?' active':''}" onclick="navFeat(${i-pmFeatIdx})"></button>`
+    ).join('');
+  }
+  const prevM = pmFeatPool[(pmFeatIdx-1+len)%len];
+  const nextM = pmFeatPool[(pmFeatIdx+1)%len];
+  const pe = document.getElementById('pmNavPrev');
+  const ne = document.getElementById('pmNavNext');
+  if (pe) pe.textContent = (prevM?.question||'').slice(0,16);
+  if (ne) ne.textContent = (nextM?.question||'').slice(0,16);
+}
 
+// ── fetch price history for one market ─────────────────────────────────
+async function getPriceHistories(m, outcomes, prices) {
+  let histories = [];
+  if (m.conditionId) {
+    try {
+      const weekAgo = Math.floor(Date.now()/1000) - 7*86400;
+      const hRes = await fetch(
+        `https://clob.polymarket.com/prices-history?market=${m.conditionId}&startTs=${weekAgo}&fidelity=60`,
+        { cache:'no-store' }
+      );
+      if (hRes.ok) {
+        const base = (await hRes.json()).history || [];
+        if (base.length > 3) {
+          histories[0] = base;
+          for (let i=1; i<outcomes.length; i++) {
+            histories[i] = outcomes.length===2
+              ? base.map(p=>({t:p.t, p:Math.max(0.01, Math.min(0.99, 1-p.p))}))
+              : fakeHistory(prices[i]||(1/outcomes.length));
+          }
+        }
+      }
+    } catch(e) {}
+  }
+  for (let i=0; i<outcomes.length; i++) {
+    if (!histories[i]?.length) histories[i] = fakeHistory(prices[i]||0.5);
+  }
+  return histories;
+}
+
+// ── navigate carousel ──────────────────────────────────────────────────
+function navFeat(dir) {
+  if (!pmFeatPool.length) return;
+  pmFeatIdx = (pmFeatIdx + dir + pmFeatPool.length) % pmFeatPool.length;
+  showFeatMarket(pmFeatIdx);
+}
+
+async function showFeatMarket(idx) {
+  const m = pmFeatPool[idx];
+  if (!m) return;
+  let outcomes=[], prices=[];
+  try { outcomes = JSON.parse(m.outcomes      || '[]'); } catch(e) {}
+  try { prices   = JSON.parse(m.outcomePrices || '[]').map(parseFloat); } catch(e) {}
+  if (!outcomes.length) { navFeat(1); return; }
+  const histories = await getPriceHistories(m, outcomes, prices);
+  renderPolyFeatured(m, outcomes, prices, histories);
+  updateNavUI();
+}
+
+// ── initial fetch ──────────────────────────────────────────────────────
 async function fetchPolyFeatured() {
   try {
     const res = await fetch(
-      'https://gamma-api.polymarket.com/markets?active=true&limit=5&order=volume&ascending=false',
+      'https://gamma-api.polymarket.com/markets?active=true&limit=12&order=volume&ascending=false',
       { headers: { Accept: 'application/json' } }
     );
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
-    const markets = Array.isArray(data) ? data : (data.markets || []);
-    // Pick the top market that has at least 2 outcomes
-    const m = markets.find(x => {
+    const all = Array.isArray(data) ? data : (data.markets || []);
+    // Keep only markets with ≥ 2 outcomes, max 8
+    pmFeatPool = all.filter(x => {
       try { return JSON.parse(x.outcomes || '[]').length >= 2; } catch(e) { return false; }
-    }) || markets[0];
-    if (!m) return;
-
-    let outcomes = [], prices = [];
-    try { outcomes = JSON.parse(m.outcomes     || '[]'); } catch(e) {}
-    try { prices   = JSON.parse(m.outcomePrices|| '[]').map(parseFloat); } catch(e) {}
-
-    // Try real price history for first token; fall back to fake
-    let histories = [];
-    let tokens = [];
-    try { tokens = JSON.parse(m.clobTokenIds || '[]'); } catch(e) {}
-
-    if (m.conditionId) {
-      try {
-        const weekAgo = Math.floor(Date.now()/1000) - 7*86400;
-        const hRes = await fetch(
-          `https://clob.polymarket.com/prices-history?market=${m.conditionId}&startTs=${weekAgo}&fidelity=60`,
-          { cache: 'no-store' }
-        );
-        if (hRes.ok) {
-          const hData = await hRes.json();
-          const baseHist = hData.history || [];
-          if (baseHist.length > 3) {
-            // Use real history for outcome[0]; derive others
-            histories[0] = baseHist;
-            for (let i = 1; i < outcomes.length; i++) {
-              if (outcomes.length === 2) {
-                histories[i] = baseHist.map(p => ({ t: p.t, p: 1 - p.p }));
-              } else {
-                histories[i] = fakeHistory(prices[i] || (1 / outcomes.length));
-              }
-            }
-          }
-        }
-      } catch(e) {}
-    }
-
-    // Fill any missing histories with fake
-    for (let i = 0; i < outcomes.length; i++) {
-      if (!histories[i] || !histories[i].length) {
-        histories[i] = fakeHistory(prices[i] || 0.5);
-      }
-    }
-
-    renderPolyFeatured(m, outcomes, prices, histories);
-
-    // Refresh every 30 seconds (new market might be hotter)
+    }).slice(0, 8);
+    if (!pmFeatPool.length) return;
+    pmFeatIdx = 0;
+    await showFeatMarket(0);
+    // Refresh pool every 5 minutes
     if (pmFeatTimer) clearInterval(pmFeatTimer);
-    pmFeatTimer = setInterval(fetchPolyFeatured, 30000);
+    pmFeatTimer = setInterval(fetchPolyFeatured, 300000);
   } catch(e) {
     console.warn('Polymarket featured 실패:', e.message);
     setTimeout(fetchPolyFeatured, 8000);
