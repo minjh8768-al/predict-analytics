@@ -2072,104 +2072,149 @@ function closeArticleModal() {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArticleModal(); });
 
 // ─── POLYMARKET REAL-TIME (WebSocket) ────────────────────────────
-let pmPriceMap = {};   // tokenId → { mktIdx, outcomeIdx, price }
-let pmWS = null;
+// ─── POLYMARKET REAL-TIME ENGINE ─────────────────────────────────────
+let pmPriceMap  = {};   // tokenId → { mktIdx, outcomeIdx, price, partnerId }
+let pmGridPrices = {};  // `${mktIdx}_${oi}` → current pct (for poll diffing)
+let pmWS        = null;
 let pmWsRetries = 0;
+let pmPollTimer = null;
+let pmUpdateCount = 0;
 
-function setPMStatus(state) {
+function setPMStatus(state, extra) {
   const dot  = document.getElementById('pmDot');
   const text = document.getElementById('pmStatusText');
   if (!dot || !text) return;
   if (state === 'live') {
+    dot.style.cssText = '';
     dot.className = 'pm-dot-live';
-    text.textContent = 'LIVE';
     text.style.color = '#0ea968';
+    text.textContent = extra || 'LIVE';
   } else if (state === 'connecting') {
     dot.className = '';
     dot.style.background = '#f59e0b';
-    text.textContent = '연결 중…';
     text.style.color = 'var(--text-muted)';
+    text.textContent = '연결 중…';
   } else {
     dot.className = '';
     dot.style.background = '#e03040';
-    text.textContent = '연결 끊김';
     text.style.color = 'var(--red)';
+    text.textContent = '연결 끊김';
   }
 }
 
-function flashCell(card, outcomeIdx, newPct, oldPct) {
-  const opts = card.querySelectorAll('.option-pct');
-  const el = opts[outcomeIdx];
+function flashCell(card, oi, newPct, oldPct) {
+  const el = card.querySelectorAll('.option-pct')[oi];
   if (!el) return;
-  const prev = parseInt(el.textContent) || oldPct;
   el.textContent = newPct + '%';
-  if (newPct === prev) return;
+  if (newPct === oldPct) return;
   el.classList.remove('flash-up', 'flash-down');
-  void el.offsetWidth;                          // force reflow to restart animation
-  el.classList.add(newPct > prev ? 'flash-up' : 'flash-down');
+  void el.offsetWidth;
+  el.classList.add(newPct > oldPct ? 'flash-up' : 'flash-down');
+  pmUpdateCount++;
+  setPMStatus('live', `LIVE · ${pmUpdateCount}건 업데이트`);
 }
 
-function applyPriceUpdate(tokenId, price) {
+function applyPrice(tokenId, price) {
   const info = pmPriceMap[tokenId];
   if (!info) return;
-  const newPct = Math.round(price * 100);
-  const cards  = document.querySelectorAll('#marketGrid .market-card');
-  const card   = cards[info.mktIdx];
-  if (!card) return;
-
-  // Update stored price
+  const newPct = Math.max(1, Math.min(99, Math.round(price * 100)));
   const oldPct = Math.round((info.price || 0) * 100);
+  if (newPct === oldPct) return;
   info.price = price;
-  // Sync complement (Yes + No ≈ 100%) for binary markets
-  const partnerId = info.partnerId;
-  if (partnerId && pmPriceMap[partnerId]) {
-    const compInfo = pmPriceMap[partnerId];
-    const compPct  = 100 - newPct;
-    const compCard = cards[compInfo.mktIdx];
-    if (compCard) flashCell(compCard, compInfo.outcomeIdx, compPct, Math.round((compInfo.price||0)*100));
-    compInfo.price = compPct / 100;
-  }
+  pmGridPrices[`${info.mktIdx}_${info.outcomeIdx}`] = newPct;
 
-  flashCell(card, info.outcomeIdx, newPct, oldPct);
+  const cards = document.querySelectorAll('#marketGrid .market-card');
+  const card  = cards[info.mktIdx];
+  if (card) flashCell(card, info.outcomeIdx, newPct, oldPct);
+
+  // sync binary complement
+  if (info.partnerId && pmPriceMap[info.partnerId]) {
+    const cp = pmPriceMap[info.partnerId];
+    const compPct = 100 - newPct;
+    const compOld = Math.round((cp.price || 0) * 100);
+    cp.price = compPct / 100;
+    pmGridPrices[`${cp.mktIdx}_${cp.outcomeIdx}`] = compPct;
+    const compCard = cards[cp.mktIdx];
+    if (compCard) flashCell(compCard, cp.outcomeIdx, compPct, compOld);
+  }
 }
 
+// ── WebSocket (instant trades) ────────────────────────────────────────
 function handleWSMsg(raw) {
   let msgs;
   try { msgs = JSON.parse(raw); } catch(e) { return; }
   if (!Array.isArray(msgs)) msgs = [msgs];
   msgs.forEach(m => {
-    if (!m || !m.asset_id) return;
-    let price = 0;
-    if (m.event_type === 'book' && m.buys && m.buys.length) {
-      price = parseFloat(m.buys[0].price || 0);   // best bid = current YES price
-    } else if (m.price) {
-      price = parseFloat(m.price);
-    }
-    if (price > 0 && price <= 1) applyPriceUpdate(m.asset_id, price);
+    if (!m?.asset_id) return;
+    let p = 0;
+    if (m.event_type === 'book' && m.buys?.length) p = parseFloat(m.buys[0].price || 0);
+    else if (m.price) p = parseFloat(m.price);
+    if (p > 0 && p <= 1) applyPrice(m.asset_id, p);
   });
 }
 
-function connectPMWebSocket(tokenIds) {
+function connectWS(tokenIds) {
   if (pmWS && pmWS.readyState < 2) pmWS.close();
-  setPMStatus('connecting');
   const ws = new WebSocket('wss://ws-subscriptions-clob.polymarket.com/ws/market');
   pmWS = ws;
-
   ws.onopen = () => {
     pmWsRetries = 0;
+    // subscribe both by token ID and by conditionId
     ws.send(JSON.stringify({ type: 'market', assets_ids: tokenIds }));
-    setPMStatus('live');
   };
   ws.onmessage = e => handleWSMsg(e.data);
-  ws.onerror   = () => setPMStatus('disconnected');
   ws.onclose   = () => {
-    setPMStatus('disconnected');
-    const delay = Math.min(3000 * Math.pow(1.5, pmWsRetries++), 30000);
-    setTimeout(() => connectPMWebSocket(tokenIds), delay);
+    const delay = Math.min(2000 * Math.pow(1.4, pmWsRetries++), 20000);
+    setTimeout(() => connectWS(tokenIds), delay);
   };
 }
 
+// ── CLOB REST polling (1-second fallback) ────────────────────────────
+async function pollCLOB() {
+  const tokenIds = Object.keys(pmPriceMap);
+  if (!tokenIds.length) return;
+  try {
+    // Batch midpoint fetch from CLOB API
+    const ids = tokenIds.slice(0, 50).join(',');
+    const res = await fetch(`https://clob.polymarket.com/midpoints?token_ids=${ids}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    const mid  = data.midpoints || data;
+    Object.entries(mid).forEach(([tid, val]) => {
+      const p = parseFloat(val);
+      if (p > 0 && p <= 1) applyPrice(tid, p);
+    });
+  } catch(e) {
+    // fallback: Gamma API prices (updated ~every few seconds)
+    try {
+      const res2 = await fetch(
+        `https://gamma-api.polymarket.com/markets?active=true&limit=20&order=volume&ascending=false&_=${Date.now()}`,
+        { cache: 'no-store' }
+      );
+      if (!res2.ok) return;
+      const d2 = await res2.json();
+      const fresh = Array.isArray(d2) ? d2 : (d2.markets || []);
+      fresh.forEach((m, mi) => {
+        let prices = [];
+        try { prices = JSON.parse(m.outcomePrices || '[]'); } catch(e) {}
+        prices.forEach((p, oi) => {
+          const key = `${mi}_${oi}`;
+          const newPct = Math.round(parseFloat(p) * 100);
+          const oldPct = pmGridPrices[key] ?? newPct;
+          if (newPct !== oldPct) {
+            const cards = document.querySelectorAll('#marketGrid .market-card');
+            if (cards[mi]) flashCell(cards[mi], oi, newPct, oldPct);
+          }
+          pmGridPrices[key] = newPct;
+        });
+      });
+    } catch(e2) {}
+  }
+}
+
+// ── Init ─────────────────────────────────────────────────────────────
 async function fetchPolymarkets() {
+  setPMStatus('connecting');
   try {
     const res = await fetch(
       'https://gamma-api.polymarket.com/markets?active=true&limit=20&order=volume&ascending=false',
@@ -2178,33 +2223,48 @@ async function fetchPolymarkets() {
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
     polyLive = Array.isArray(data) ? data : (data.markets || []);
-    if (!polyLive.length) return;
+    if (!polyLive.length) throw new Error('empty');
 
     renderMarkets(polyLive);
 
-    // Build token→card index map for surgical DOM updates
-    pmPriceMap = {};
-    const allTokens = [];
+    // Build price map from every available ID field
+    pmPriceMap = {}; pmGridPrices = {};
+    const allIds = [];
     polyLive.forEach((m, mi) => {
       let tokens = [];
-      try { tokens = JSON.parse(m.clobTokenIds || '[]'); } catch(e) {}
+      // try multiple field names (API changes over time)
+      if (m.clobTokenIds)  try { tokens = JSON.parse(m.clobTokenIds); } catch(e) {}
+      if (!tokens.length && m.tokens) tokens = (Array.isArray(m.tokens) ? m.tokens : []).map(t => t.token_id || t);
       let prices = [];
       try { prices = JSON.parse(m.outcomePrices || '[]'); } catch(e) {}
+
       tokens.forEach((tid, oi) => {
-        pmPriceMap[tid] = { mktIdx: mi, outcomeIdx: oi, price: parseFloat(prices[oi] || 0) };
-        allTokens.push(tid);
+        if (!tid) return;
+        const p = parseFloat(prices[oi] || 0);
+        pmPriceMap[tid] = { mktIdx: mi, outcomeIdx: oi, price: p };
+        pmGridPrices[`${mi}_${oi}`] = Math.round(p * 100);
+        allIds.push(tid);
       });
-      // link Yes↔No partners for complement sync
       if (tokens.length === 2) {
-        pmPriceMap[tokens[0]].partnerId = tokens[1];
-        pmPriceMap[tokens[1]].partnerId = tokens[0];
+        if (pmPriceMap[tokens[0]]) pmPriceMap[tokens[0]].partnerId = tokens[1];
+        if (pmPriceMap[tokens[1]]) pmPriceMap[tokens[1]].partnerId = tokens[0];
       }
+      // also map conditionId (for WS subscription fallback)
+      if (m.conditionId) allIds.push(m.conditionId);
     });
 
-    if (allTokens.length) connectPMWebSocket(allTokens);
+    if (allIds.length) connectWS(allIds);
+
+    // Start 1-second CLOB REST polling
+    if (pmPollTimer) clearInterval(pmPollTimer);
+    pmPollTimer = setInterval(pollCLOB, 1000);
+
+    setPMStatus('live');
   } catch(e) {
     console.warn('Polymarket 초기화 실패:', e.message);
     setPMStatus('disconnected');
+    // retry in 5s
+    setTimeout(fetchPolymarkets, 5000);
   }
 }
 
