@@ -855,8 +855,13 @@
   .pm-feat-out-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .pm-feat-out-name { font-size: 12.5px; color: var(--text-primary); flex: 1; }
   .pm-feat-out-pct { font-size: 16px; font-weight: 800; color: var(--text-primary); }
-  .pm-feat-comments { flex: 1; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
-  .pm-feat-cmt { display: flex; gap: 7px; }
+  .pm-feat-comments {
+    flex: 1; overflow: hidden; min-height: 108px; position: relative;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 18%, black 82%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, black 18%, black 82%, transparent 100%);
+  }
+  .pm-cmt-inner { display: flex; flex-direction: column; gap: 6px; transition: transform 0.52s cubic-bezier(0.4,0,0.2,1); will-change: transform; }
+  .pm-feat-cmt { display: flex; gap: 7px; flex-shrink: 0; }
   .pm-feat-cmt-av {
     width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
@@ -883,12 +888,6 @@
   /* ── Thumb Rotation ── */
   #abcThumbGrid { transition: opacity 0.35s ease; }
   #abcThumbGrid.fading { opacity: 0; pointer-events: none; }
-
-  /* ── Comment slide animation ── */
-  @keyframes cmtSlideIn {
-    from { opacity:0; transform:translateY(14px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
 
   /* ── Polymarket Featured Nav bar ── */
   .pm-feat-nav {
@@ -2705,13 +2704,12 @@ function startAbcRotation() {
 // ─── POLYMARKET FEATURED CARD (carousel + live comments) ─────────────
 const PM_COLORS = ['#2196f3','#ff9800','#f44336','#4caf50','#9c27b0','#00bcd4'];
 
-let pmFeatPool  = [];   // pool of 8 markets
-let pmFeatIdx   = 0;
-let pmFeatTimer = null;
-let pmCmtTimer  = null;
-let pmCmtActive = [];
+let pmFeatPool   = [];
+let pmFeatIdx    = 0;
+let pmFeatTimer  = null;
+let pmCmtTimer   = null;
 let pmCmtPoolIdx = 0;
-let pmCmtLines  = [];
+let pmCmtLines   = [];  // current market's comment pool (alias for pmCmtPool)
 
 const PM_USERS = [
   {name:'청초보운공무768', color:'#6366f1'},
@@ -2726,64 +2724,131 @@ const PM_USERS = [
   {name:'lucky777',       color:'#009688'},
 ];
 
-function genCmtLines(outcomes, prices) {
-  const topIdx = prices.indexOf(Math.max(...prices));
-  const top = outcomes[topIdx] || outcomes[0] || '이 마켓';
-  const sec = outcomes[topIdx === 0 ? 1 : 0] || '';
-  return [
-    `${top} 확률이 점점 오르고 있어요. 지금이 진입 타이밍 같은데 ㄷㄷ`,
-    `${sec ? sec + ' 배당률이 너무 높네 ㅋㅋ' : '변동폭 장난 아니다 조심해야겠다'}`,
-    `나는 돈을 잃을 걸 좋아해`,
-    `진입 타이밍 고민 중... 지금이 맞나? 차트 보면 반전 신호`,
-    `이번 주 가장 뜨거운 마켓. 스프레드 고려하면 매력적`,
-    `변동성 높은 것들이 항상 재미있죠 ㅎ`,
-    `리스크 대비 리워드 좋은 것 같은데? 단기 포지션 열어봄`,
-    `${top} 올 거야... 절대적으로 믿음 ㅋㅋ`,
-    `폭스 스포츠: ${top} 우세 전망이지만 시장은 항상 놀라게 만들죠`,
-    `gsw 배당률이 너무 높네 ㅋㅋㅋ`,
+function genCmtPool(outcomes, prices, trades) {
+  const topIdx = prices.length ? prices.indexOf(Math.max(...prices)) : 0;
+  const top  = outcomes[topIdx]  || outcomes[0] || '이 마켓';
+  const sec  = outcomes[topIdx === 0 ? 1 : 0] || '';
+  const topPct = Math.round((prices[topIdx] || 0) * 100);
+
+  const pool = [
+    `${top} 확실히 갈 것 같아서 진입했음`,
+    `${top} ${topPct}%면 아직 저평가 아닌가?`,
+    `${top} 올인 ㅋㅋ 틀리면 그냥 은퇴`,
+    sec ? `${sec} 반전 기회 아닌가... 시장 과신 같음` : `너무 확실한 거 아닌가 의심스럽;;`,
+    `차트 보니 지지선에서 반등 중. 단기 과매수 주의`,
+    `7일 봐도 변동성이 엄청나네. 포지션 작게 가야겠다`,
+    `스프레드 계산하면 실제 수익 별로 안 될 듯...`,
+    `이거 틀리면 예측 은퇴 공약 ㅋㅋ`,
+    `와이프한테 비밀로 포지션 잡음 ㄷㄷ`,
+    `이미 손실 복구 포지션임... 제발 ${top}`,
+    `방금 뉴스 보고 진입했는데 시장 반응 느리네`,
+    `기관들이 이미 포지션 잡은 거 아닌가?`,
+    `리스크 대비 리워드 괜찮은 것 같은데`,
+    `볼륨 보니 고래들 많이 들어온 듯`,
+    `단기는 ${top}, 장기는 솔직히 모르겠음`,
+    sec ? `${sec} 배당 너무 좋아서 역배당 전략 고려 중` : `역베팅 전략도 고려해볼만 함`,
+    `폴리마켓 이런 마켓이 제일 재미있지`,
+    `$100만 걸었는데 불안 ㅋㅋ 더 넣을까`,
+    `분산투자 원칙 지키면서 조금만 넣음`,
+    `진짜 50:50 느낌인데 결과 모르겠다`,
+    `오늘 뉴스 아직 반영 안 된 것 같은데?`,
+    `헷징으로 양쪽 다 걸어봄. 수수료 날리겠지만`,
+    `${top} 쪽 유동성 좋네. 대형 포지션 잡기 좋음`,
+    `단기 트레이딩 vs 장기 홀드... 어떻게 가야 하지`,
+    `${topPct}%에서 더 오를 수 있을까? 한계인가`,
+    `이 마켓 오래 봐왔는데 드디어 진입 타이밍`,
+    `폴리마켓 수수료 아까운데 그래도 여기가 제일 정확함`,
+    `이 예측시장 결과 맞추면 진짜 실력자임`,
+    `${top} 진영 집결하는 모양새. 롱 포지션 유지`,
+    sec ? `${sec} 쪽이 갑자기 오르면 대박이겠지만 리스크 크다` : `역방향 시나리오도 배제 못함`,
+    `뉴스 흐름 보면 ${top} 쪽 유리한 거 맞는 것 같음`,
   ];
+
+  // Augment with real trade activity if available
+  if (trades && trades.length) {
+    trades.forEach(t => {
+      const addr = (t.maker_address || t.taker_address || '').slice(0, 8);
+      const shortId = addr ? addr + '...' : '익명';
+      const oc = t.outcome || outcomes[0] || '';
+      const sz = parseFloat(t.size || t.amount || 0);
+      const pr = parseFloat(t.price || 0);
+      if (sz > 1 && pr > 0) {
+        const amtStr = sz >= 1000 ? `$${(sz/1000).toFixed(1)}k` : `$${Math.round(sz)}`;
+        pool.push(`${oc} ${amtStr} 포지션 진입 @ ${Math.round(pr*100)}¢`);
+      }
+    });
+  }
+
+  // Fisher-Yates shuffle
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool;
 }
 
-function renderCmts() {
-  const el = document.getElementById('pmCmtList');
-  if (!el) return;
-  el.innerHTML = pmCmtActive.map(c => `
-    <div class="pm-feat-cmt" style="animation:cmtSlideIn 0.4s ease forwards">
-      <div class="pm-feat-cmt-av" style="background:${c.color}">${c.name.slice(0,2)}</div>
-      <div>
-        <div class="pm-feat-cmt-user">${c.name}</div>
-        <div class="pm-feat-cmt-text">${c.text}</div>
-      </div>
-    </div>`).join('');
+function _cmtEl(user, text) {
+  const el = document.createElement('div');
+  el.className = 'pm-feat-cmt';
+  el.innerHTML = `<div class="pm-feat-cmt-av" style="background:${user.color}">${user.name.slice(0,2)}</div>
+    <div style="flex:1;min-width:0">
+      <div class="pm-feat-cmt-user">${user.name}</div>
+      <div class="pm-feat-cmt-text">${text}</div>
+    </div>`;
+  return el;
 }
 
 function initCmts(outcomes, prices) {
-  pmCmtLines   = genCmtLines(outcomes, prices);
-  pmCmtPoolIdx = 0;
-  pmCmtActive  = PM_USERS.slice(0, 3).map((u, i) => ({...u, text: pmCmtLines[i]}));
-  renderCmts();
+  const inner = document.querySelector('.pm-cmt-inner');
+  if (!inner) return;
+  inner.style.transition = 'none';
+  inner.style.transform = 'translateY(0)';
+  inner.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const user = PM_USERS[(pmCmtPoolIdx + i) % PM_USERS.length];
+    const text = pmCmtLines[(pmCmtPoolIdx + i) % pmCmtLines.length];
+    inner.appendChild(_cmtEl(user, text));
+  }
+  pmCmtPoolIdx = (pmCmtPoolIdx + 3) % Math.max(pmCmtLines.length, 1);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    inner.style.transition = 'transform 0.52s cubic-bezier(0.4,0,0.2,1)';
+  }));
 }
 
 function cycleCmt() {
-  const el = document.getElementById('pmCmtList');
-  if (!el) return;
-  const first = el.querySelector('.pm-feat-cmt');
-  if (first) {
-    first.style.cssText = 'opacity:0;transform:translateY(-12px);transition:0.3s';
-  }
+  const inner = document.querySelector('.pm-cmt-inner');
+  if (!inner || !pmCmtLines.length) return;
+  const firstEl = inner.firstElementChild;
+  if (!firstEl) return;
+
+  const h = firstEl.offsetHeight + 6;
+  const user = PM_USERS[pmCmtPoolIdx % PM_USERS.length];
+  const text = pmCmtLines[pmCmtPoolIdx % pmCmtLines.length];
+  pmCmtPoolIdx = (pmCmtPoolIdx + 1) % Math.max(pmCmtLines.length, PM_USERS.length);
+
+  const newEl = _cmtEl(user, text);
+  newEl.style.opacity = '0';
+  inner.appendChild(newEl);
+
+  requestAnimationFrame(() => {
+    newEl.style.transition = 'opacity 0.4s';
+    newEl.style.opacity = '1';
+    inner.style.transform = `translateY(-${h}px)`;
+  });
+
   setTimeout(() => {
-    const user = PM_USERS[pmCmtPoolIdx % PM_USERS.length];
-    pmCmtPoolIdx++;
-    const text = pmCmtLines[(pmCmtPoolIdx + 2) % pmCmtLines.length];
-    pmCmtActive.shift();
-    pmCmtActive.push({...user, text});
-    renderCmts();
-  }, 320);
+    if (inner.firstElementChild) inner.removeChild(inner.firstElementChild);
+    inner.style.transition = 'none';
+    inner.style.transform = 'translateY(0)';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      inner.style.transition = 'transform 0.52s cubic-bezier(0.4,0,0.2,1)';
+    }));
+  }, 550);
 }
 
 function startCmtCycle() {
   if (pmCmtTimer) clearInterval(pmCmtTimer);
-  pmCmtTimer = setInterval(cycleCmt, 3500);
+  pmCmtTimer = setInterval(cycleCmt, 3200);
 }
 
 // ── chart helpers ──────────────────────────────────────────────────────
@@ -2869,12 +2934,12 @@ function renderPolyFeatured(m, outcomes, prices, histories) {
       <div class="pm-feat-hd">
         ${iconHtml}
         <div>
-          <div class="pm-feat-cats">🔥 가장 핫한 마켓 · Polymarket</div>
+          <div class="pm-feat-cats">🔥 ${m.category ? m.category + ' · ' : ''}가장 핫한 마켓 · Polymarket</div>
           <div class="pm-feat-q">${m.question}</div>
         </div>
       </div>
       <div class="pm-feat-outcomes">${outcomesHtml}</div>
-      <div class="pm-feat-comments" id="pmCmtList"></div>
+      <div class="pm-feat-comments"><div class="pm-cmt-inner"></div></div>
       <div class="pm-feat-footer">
         <span>💰 ${vol} 볼륨</span>
         <span class="pm-feat-pm">${endDate ? endDate + '에 종료 · ' : ''}
@@ -2897,7 +2962,7 @@ function renderPolyFeatured(m, outcomes, prices, histories) {
   const sec = document.getElementById('polyFeaturedSection');
   if (sec) sec.innerHTML = cardHtml;
 
-  // init comments & cycle
+  // pool already built in showFeatMarket; just seed DOM and start cycle
   initCmts(outcomes, prices);
   startCmtCycle();
 }
@@ -2954,6 +3019,19 @@ function navFeat(dir) {
   showFeatMarket(pmFeatIdx);
 }
 
+async function fetchPmTrades(conditionId) {
+  if (!conditionId) return [];
+  try {
+    const r = await fetch(
+      `https://clob.polymarket.com/trades?market=${conditionId}&limit=20`,
+      { cache: 'no-store' }
+    );
+    if (!r.ok) return [];
+    const d = await r.json();
+    return (Array.isArray(d) ? d : (d.data || [])).slice(0, 15);
+  } catch(e) { return []; }
+}
+
 async function showFeatMarket(idx) {
   const m = pmFeatPool[idx];
   if (!m) return;
@@ -2961,7 +3039,16 @@ async function showFeatMarket(idx) {
   try { outcomes = JSON.parse(m.outcomes      || '[]'); } catch(e) {}
   try { prices   = JSON.parse(m.outcomePrices || '[]').map(parseFloat); } catch(e) {}
   if (!outcomes.length) { navFeat(1); return; }
-  const histories = await getPriceHistories(m, outcomes, prices);
+
+  const [histories, trades] = await Promise.all([
+    getPriceHistories(m, outcomes, prices),
+    fetchPmTrades(m.conditionId)
+  ]);
+
+  // Build comment pool for this market (trades augment the fake pool)
+  pmCmtLines   = genCmtPool(outcomes, prices, trades);
+  pmCmtPoolIdx = 0;
+
   renderPolyFeatured(m, outcomes, prices, histories);
   updateNavUI();
 }
