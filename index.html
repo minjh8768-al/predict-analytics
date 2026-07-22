@@ -1835,10 +1835,13 @@ function _reg(n) { articleCache.push(n); return articleCache.length - 1; }
 // Featured card: text LEFT, photo RIGHT (ABC News style)
 function cardFeatured(n) {
   const i = _reg(n);
-  const esc = s => s.replace(/`/g, '&#96;').replace(/'/g, '&#39;');
-  const imgHtml = n.img
-    ? `<img src="${esc(n.img)}" alt="" loading="eager"
-         onerror="this.style.display='none';var fb=document.getElementById('ffb${i}');if(fb)fb.style.display='flex';">`
+  // Emoji layer is ALWAYS visible (z-index:1). Image loads on top (z-index:2).
+  // If image fails → opacity:0 via onerror → emoji shows through.
+  const imgLayer = n.img
+    ? `<img src="${n.img}" alt="" loading="eager"
+           style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;z-index:2;display:block;opacity:0;transition:opacity .4s"
+           onload="this.style.opacity=1"
+           onerror="this.style.opacity=0">`
     : '';
   return `<div class="news-card news-card-featured" onclick="openArticle(${i})">
     <div class="feat-text">
@@ -1858,8 +1861,8 @@ function cardFeatured(n) {
       </div>
     </div>
     <div class="feat-photo">
-      ${imgHtml}
-      <div id="ffb${i}" class="feat-photo-emoji" style="${n.img ? 'display:none' : ''}">${n.emoji || '📰'}</div>
+      <div class="feat-photo-emoji" style="z-index:1;display:flex">${n.emoji || '📰'}</div>
+      ${imgLayer}
     </div>
   </div>`;
 }
@@ -1867,10 +1870,15 @@ function cardFeatured(n) {
 // Thumbnail card: image TOP, category + title BELOW
 function cardThumb(n) {
   const i = _reg(n);
+  const imgLayer = n.img
+    ? `<img src="${n.img}" alt="" loading="lazy"
+           style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:block"
+           onerror="this.style.opacity=0">`
+    : '';
   return `<div class="thumb-card" onclick="openArticle(${i})">
     <div class="thumb-img">
-      ${n.img ? `<img src="${n.img}" alt="" loading="lazy" onerror="this.style.display='none';var e=document.getElementById('te${i}');if(e)e.style.display='flex';">` : ''}
-      <div id="te${i}" class="thumb-emoji" style="${n.img ? 'display:none' : ''}">${n.emoji || '📰'}</div>
+      <div class="thumb-emoji" style="z-index:1;display:flex">${n.emoji || '📰'}</div>
+      ${imgLayer}
     </div>
     <div class="thumb-body">
       <div class="thumb-cat">${n.category}</div>
@@ -2011,8 +2019,9 @@ async function fetchABCNews() {
         const mapped = abcCatMap(rawCat);
         // Extract image URL from serialized XML (media:thumbnail, enclosure, etc.)
         const str = new XMLSerializer().serializeToString(item);
-        const imgM = str.match(/url="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i);
-        const imgUrl = imgM ? imgM[1].split('?')[0] : '';
+        const imgM = str.match(/url="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp|gif)[^"]*?)"/i)
+                  || str.match(/(https?:\/\/[^\s"<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"<>]*)?)/i);
+        const imgUrl = imgM ? (imgM[1] || '').replace(/&amp;/g, '&') : '';
         const title = g('title').replace(/^CDATA\[|\]$/g, '').trim();
         const desc = g('description').replace(/<[^>]+>/g, '').replace(/\s+/g,' ').trim().slice(0, 220);
         return {
