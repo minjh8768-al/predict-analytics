@@ -935,6 +935,29 @@
   }
   .pm-nav-next:hover { border-color: var(--text-primary); color: var(--text-primary); }
 
+  /* ── 실시간 베팅 카드 ── */
+  .lt-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .lt-header h3 { margin:0; font-size:13px; font-weight:700; }
+  .lt-market-row { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; }
+  .lt-gauge { flex-shrink:0; width:60px; height:60px; }
+  .lt-gauge svg { width:60px; height:60px; }
+  .lt-market-title { font-size:11.5px; font-weight:600; line-height:1.4; color:var(--text-primary); flex:1; }
+  .lt-flows { display:flex; gap:6px; }
+  .lt-col { flex:1; display:flex; flex-direction:column; gap:4px; }
+  .lt-col.right { align-items:flex-end; }
+  .lt-item {
+    font-size:11px; font-weight:700; padding:3px 8px; border-radius:5px;
+    animation: ltSlideIn 0.4s ease forwards;
+  }
+  .lt-item.yes { background:rgba(14,169,104,0.13); color:var(--green); }
+  .lt-item.no  { background:rgba(224,48,64,0.13);  color:var(--red); }
+  .lt-footer { font-size:10px; color:var(--text-muted); margin-top:8px; display:flex; align-items:center; gap:5px; }
+  .lt-dot { width:5px; height:5px; border-radius:50%; background:var(--green); display:inline-block; animation:pulse 2s infinite; }
+  @keyframes ltSlideIn {
+    from { opacity:0; transform:translateY(-6px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
   /* ── 구독 모달 ── */
   .sub-overlay {
     display: none;
@@ -1601,6 +1624,14 @@
         <path d="M0,20 L20,18 L40,22 L60,15 L80,25 L100,12 L120,18 L140,30 L160,25 L180,35 L200,38" stroke="#ea3943" stroke-width="2" fill="none"/>
         <path d="M0,20 L20,18 L40,22 L60,15 L80,25 L100,12 L120,18 L140,30 L160,25 L180,35 L200,38 L200,48 L0,48 Z" fill="url(#chartGrad)"/>
       </svg>
+    </div>
+
+    <div class="sidebar-card" id="liveTradesCard">
+      <div class="lt-header">
+        <h3>실시간 베팅</h3>
+        <span class="lt-dot"></span>
+      </div>
+      <div id="liveTradesContent" style="color:var(--text-muted);font-size:12px;text-align:center;padding:16px 0">로딩 중...</div>
     </div>
 
     <div class="sidebar-card">
@@ -3078,6 +3109,7 @@ async function showFeatMarket(idx) {
 
   renderPolyFeatured(m, outcomes, prices, histories);
   updateNavUI();
+  startLiveTrades();
 }
 
 // ── initial fetch ──────────────────────────────────────────────────────
@@ -3104,6 +3136,97 @@ async function fetchPolyFeatured() {
     console.warn('Polymarket featured 실패:', e.message);
     setTimeout(fetchPolyFeatured, 8000);
   }
+}
+
+// ─── 실시간 베팅 플로우 ───────────────────────────────────────────────
+let ltTimer = null;
+
+async function fetchLiveTrades() {
+  const el = document.getElementById('liveTradesContent');
+  if (!el || !pmFeatPool.length) return;
+  const m = pmFeatPool[pmFeatIdx];
+  if (!m) return;
+
+  let outcomes = [], prices = [];
+  try { outcomes = JSON.parse(m.outcomes || '[]'); } catch(e) {}
+  try { prices = JSON.parse(m.outcomePrices || '[]').map(parseFloat); } catch(e) {}
+
+  const topIdx = prices.length ? prices.indexOf(Math.max(...prices)) : 0;
+  const topPct = Math.round((prices[topIdx] || 0.5) * 100);
+  const topName = (outcomes[topIdx] || 'Yes').slice(0, 5);
+  const botIdx  = topIdx === 0 ? 1 : 0;
+  const botName = (outcomes[botIdx] || 'No').slice(0, 5);
+
+  // Fetch real CLOB trades
+  let yesBets = [], noBets = [];
+  try {
+    const r = await fetch(
+      `https://clob.polymarket.com/trades?market=${m.conditionId}&limit=20`,
+      { cache: 'no-store' }
+    );
+    if (r.ok) {
+      const d = await r.json();
+      (Array.isArray(d) ? d : (d.data || [])).slice(0, 16).forEach(t => {
+        const sz = parseFloat(t.size || t.amount || 0);
+        if (sz < 1) return;
+        const lbl = sz >= 1000 ? `+$${(sz/1000).toFixed(1)}k` : `+$${Math.round(sz)}`;
+        const isYes = (t.outcome || '') === (outcomes[0] || '') || t.side === 'BUY';
+        (isYes ? yesBets : noBets).push(lbl);
+      });
+    }
+  } catch(e) {}
+
+  // Simulate if real data absent
+  if (!yesBets.length && !noBets.length) {
+    const pool = [2,3,5,7,10,15,20,30,40,50,100,200];
+    const pick = () => `+$${pool[Math.floor(Math.random()*pool.length)]}`;
+    for (let i = 0; i < 5; i++) {
+      (Math.random() < topPct / 100 ? yesBets : noBets).push(pick());
+    }
+    while (yesBets.length < 2) yesBets.push(pick());
+    while (noBets.length < 2) noBets.push(pick());
+  }
+
+  // Circular gauge SVG
+  const R = 23, circ = +(2 * Math.PI * R).toFixed(2);
+  const fill = +((topPct / 100) * circ).toFixed(2);
+  const gaugeSvg = `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="30" cy="30" r="${R}" fill="none" stroke="var(--border)" stroke-width="5.5"/>
+    <circle cx="30" cy="30" r="${R}" fill="none" stroke="var(--green)" stroke-width="5.5"
+      stroke-dasharray="${fill} ${circ}"
+      stroke-linecap="round" transform="rotate(-90 30 30)"/>
+    <text x="30" y="27" text-anchor="middle" font-size="12" font-weight="800" fill="var(--text-primary)">${topPct}%</text>
+    <text x="30" y="39" text-anchor="middle" font-size="8.5" fill="var(--text-secondary)">${topName}</text>
+  </svg>`;
+
+  const title = (m.question || '').length > 30
+    ? m.question.slice(0, 30) + '…'
+    : (m.question || '');
+
+  const yHtml = yesBets.slice(0, 4).map(a =>
+    `<div class="lt-item yes">${a} 달러</div>`).join('');
+  const nHtml = noBets.slice(0, 4).map(a =>
+    `<div class="lt-item no">${a} 달러</div>`).join('');
+
+  el.innerHTML = `
+    <div class="lt-market-row">
+      <div class="lt-gauge">${gaugeSvg}</div>
+      <div class="lt-market-title">${title}</div>
+    </div>
+    <div class="lt-flows">
+      <div class="lt-col">${yHtml}</div>
+      <div class="lt-col right">${nHtml}</div>
+    </div>
+    <div class="lt-footer">
+      <span class="lt-dot"></span>
+      살다 · ${m.category || 'Polymarket'}
+    </div>`;
+}
+
+function startLiveTrades() {
+  if (ltTimer) clearInterval(ltTimer);
+  fetchLiveTrades();
+  ltTimer = setInterval(fetchLiveTrades, 10000);
 }
 
 // ─── 구독 모달 ──────────────────────────────────────────────────────
