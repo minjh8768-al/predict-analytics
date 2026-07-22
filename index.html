@@ -791,7 +791,36 @@
     padding-top: 8px;
     border-top: 1px solid var(--border);
     margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
+
+  /* ─── LIVE PRICE FLASH ─── */
+  .option-pct {
+    transition: color 0.3s;
+    border-radius: 4px;
+    padding: 1px 3px;
+  }
+  @keyframes flashUp {
+    0%   { background: rgba(14,169,104,0.35); color: #0ea968; transform: scale(1.12); }
+    60%  { background: rgba(14,169,104,0.15); }
+    100% { background: transparent; transform: scale(1); }
+  }
+  @keyframes flashDown {
+    0%   { background: rgba(224,48,64,0.35); color: #e03040; transform: scale(1.12); }
+    60%  { background: rgba(224,48,64,0.15); }
+    100% { background: transparent; transform: scale(1); }
+  }
+  .flash-up   { animation: flashUp   0.75s ease forwards; }
+  .flash-down { animation: flashDown 0.75s ease forwards; }
+
+  /* LIVE dot pulse */
+  @keyframes livePulse {
+    0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(14,169,104,0.5); }
+    50%      { opacity: 0.7; box-shadow: 0 0 0 5px rgba(14,169,104,0); }
+  }
+  .pm-dot-live { animation: livePulse 1.4s infinite; background: #0ea968 !important; }
 
   .tab-group {
     display: flex;
@@ -1385,6 +1414,10 @@
 <div class="market-section">
   <div class="section-header">
     <div class="section-title">시장 | 거래자</div>
+    <div id="pmLiveStatus" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)">
+      <span id="pmDot" style="width:7px;height:7px;border-radius:50%;background:#ccc;flex-shrink:0"></span>
+      <span id="pmStatusText">연결 중...</span>
+    </div>
   </div>
   <div class="tab-group">
     <button class="tab-btn active">전체</button>
@@ -2038,19 +2071,140 @@ function closeArticleModal() {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArticleModal(); });
 
-// ─── POLYMARKET LIVE API ──────────────────────────────────────────
+// ─── POLYMARKET REAL-TIME (WebSocket) ────────────────────────────
+let pmPriceMap = {};   // tokenId → { mktIdx, outcomeIdx, price }
+let pmWS = null;
+let pmWsRetries = 0;
+
+function setPMStatus(state) {
+  const dot  = document.getElementById('pmDot');
+  const text = document.getElementById('pmStatusText');
+  if (!dot || !text) return;
+  if (state === 'live') {
+    dot.className = 'pm-dot-live';
+    text.textContent = 'LIVE';
+    text.style.color = '#0ea968';
+  } else if (state === 'connecting') {
+    dot.className = '';
+    dot.style.background = '#f59e0b';
+    text.textContent = '연결 중…';
+    text.style.color = 'var(--text-muted)';
+  } else {
+    dot.className = '';
+    dot.style.background = '#e03040';
+    text.textContent = '연결 끊김';
+    text.style.color = 'var(--red)';
+  }
+}
+
+function flashCell(card, outcomeIdx, newPct, oldPct) {
+  const opts = card.querySelectorAll('.option-pct');
+  const el = opts[outcomeIdx];
+  if (!el) return;
+  const prev = parseInt(el.textContent) || oldPct;
+  el.textContent = newPct + '%';
+  if (newPct === prev) return;
+  el.classList.remove('flash-up', 'flash-down');
+  void el.offsetWidth;                          // force reflow to restart animation
+  el.classList.add(newPct > prev ? 'flash-up' : 'flash-down');
+}
+
+function applyPriceUpdate(tokenId, price) {
+  const info = pmPriceMap[tokenId];
+  if (!info) return;
+  const newPct = Math.round(price * 100);
+  const cards  = document.querySelectorAll('#marketGrid .market-card');
+  const card   = cards[info.mktIdx];
+  if (!card) return;
+
+  // Update stored price
+  const oldPct = Math.round((info.price || 0) * 100);
+  info.price = price;
+  // Sync complement (Yes + No ≈ 100%) for binary markets
+  const partnerId = info.partnerId;
+  if (partnerId && pmPriceMap[partnerId]) {
+    const compInfo = pmPriceMap[partnerId];
+    const compPct  = 100 - newPct;
+    const compCard = cards[compInfo.mktIdx];
+    if (compCard) flashCell(compCard, compInfo.outcomeIdx, compPct, Math.round((compInfo.price||0)*100));
+    compInfo.price = compPct / 100;
+  }
+
+  flashCell(card, info.outcomeIdx, newPct, oldPct);
+}
+
+function handleWSMsg(raw) {
+  let msgs;
+  try { msgs = JSON.parse(raw); } catch(e) { return; }
+  if (!Array.isArray(msgs)) msgs = [msgs];
+  msgs.forEach(m => {
+    if (!m || !m.asset_id) return;
+    let price = 0;
+    if (m.event_type === 'book' && m.buys && m.buys.length) {
+      price = parseFloat(m.buys[0].price || 0);   // best bid = current YES price
+    } else if (m.price) {
+      price = parseFloat(m.price);
+    }
+    if (price > 0 && price <= 1) applyPriceUpdate(m.asset_id, price);
+  });
+}
+
+function connectPMWebSocket(tokenIds) {
+  if (pmWS && pmWS.readyState < 2) pmWS.close();
+  setPMStatus('connecting');
+  const ws = new WebSocket('wss://ws-subscriptions-clob.polymarket.com/ws/market');
+  pmWS = ws;
+
+  ws.onopen = () => {
+    pmWsRetries = 0;
+    ws.send(JSON.stringify({ type: 'market', assets_ids: tokenIds }));
+    setPMStatus('live');
+  };
+  ws.onmessage = e => handleWSMsg(e.data);
+  ws.onerror   = () => setPMStatus('disconnected');
+  ws.onclose   = () => {
+    setPMStatus('disconnected');
+    const delay = Math.min(3000 * Math.pow(1.5, pmWsRetries++), 30000);
+    setTimeout(() => connectPMWebSocket(tokenIds), delay);
+  };
+}
+
 async function fetchPolymarkets() {
   try {
     const res = await fetch(
       'https://gamma-api.polymarket.com/markets?active=true&limit=20&order=volume&ascending=false',
-      { headers: { 'Accept': 'application/json' } }
+      { headers: { Accept: 'application/json' } }
     );
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
     polyLive = Array.isArray(data) ? data : (data.markets || []);
-    if (polyLive.length > 0) renderMarkets(polyLive);
+    if (!polyLive.length) return;
+
+    renderMarkets(polyLive);
+
+    // Build token→card index map for surgical DOM updates
+    pmPriceMap = {};
+    const allTokens = [];
+    polyLive.forEach((m, mi) => {
+      let tokens = [];
+      try { tokens = JSON.parse(m.clobTokenIds || '[]'); } catch(e) {}
+      let prices = [];
+      try { prices = JSON.parse(m.outcomePrices || '[]'); } catch(e) {}
+      tokens.forEach((tid, oi) => {
+        pmPriceMap[tid] = { mktIdx: mi, outcomeIdx: oi, price: parseFloat(prices[oi] || 0) };
+        allTokens.push(tid);
+      });
+      // link Yes↔No partners for complement sync
+      if (tokens.length === 2) {
+        pmPriceMap[tokens[0]].partnerId = tokens[1];
+        pmPriceMap[tokens[1]].partnerId = tokens[0];
+      }
+    });
+
+    if (allTokens.length) connectPMWebSocket(allTokens);
   } catch(e) {
-    console.warn('Polymarket API 연결 실패 (정적 데이터 유지):', e.message);
+    console.warn('Polymarket 초기화 실패:', e.message);
+    setPMStatus('disconnected');
   }
 }
 
