@@ -990,6 +990,84 @@
   .tweet-stats { display: flex; gap: 14px; font-size: 11px; color: var(--text-muted); }
   .tweet-stat { display: flex; align-items: center; gap: 3px; }
 
+  /* ─── ARTICLE MODAL ─── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(10,10,20,0.55);
+    z-index: 2000;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(5px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-content {
+    background: var(--bg-card);
+    border-radius: 18px;
+    max-width: 680px; width: 92vw;
+    max-height: 88vh; overflow-y: auto;
+    position: relative;
+    box-shadow: 0 28px 72px rgba(0,0,0,0.22);
+    animation: modalIn 0.22s ease;
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform:scale(0.96) translateY(10px); }
+    to   { opacity:1; transform:scale(1) translateY(0); }
+  }
+  .modal-close-wrap {
+    position: sticky; top: 0; z-index: 1;
+    display: flex; justify-content: flex-end;
+    padding: 12px 12px 0;
+  }
+  .modal-close {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    width: 30px; height: 30px; border-radius: 50%;
+    cursor: pointer; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .modal-close:hover { background: var(--border); }
+  .modal-img { width: 100%; height: 220px; overflow: hidden; margin-top: -30px; }
+  .modal-img img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+  .modal-body-inner { padding: 18px 24px 28px; }
+  .modal-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .modal-source { font-size: 11px; color: var(--text-muted); }
+  .modal-title { font-size: 20px; font-weight: 800; color: var(--text-primary); line-height: 1.4; margin-bottom: 12px; }
+  .modal-excerpt { font-size: 14px; color: var(--text-secondary); line-height: 1.75; margin-bottom: 16px; }
+  .modal-prob { margin-bottom: 14px; }
+  .modal-author-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; color: var(--text-secondary);
+    padding-bottom: 18px; border-bottom: 1px solid var(--border);
+  }
+  .modal-pm-section { margin-top: 20px; }
+  .modal-pm-header {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 11px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.7px;
+    margin-bottom: 12px;
+  }
+  .pm-live-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #e03040; flex-shrink: 0;
+    animation: pmPulse 1.6s infinite;
+  }
+  @keyframes pmPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(224,48,64,0.5); }
+    70%  { box-shadow: 0 0 0 7px rgba(224,48,64,0); }
+    100% { box-shadow: 0 0 0 0 rgba(224,48,64,0); }
+  }
+  .modal-pm-card {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+  }
+  .modal-pm-question { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; line-height: 1.4; }
+  .modal-pm-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 5px; }
+  .modal-pm-fill { height: 100%; background: var(--green); border-radius: 3px; }
+  .modal-pm-footer { display: flex; justify-content: space-between; font-size: 11px; }
+  .modal-pm-pct { font-weight: 700; color: var(--green); }
+  .modal-pm-vol { color: var(--text-muted); }
+  .news-card { cursor: pointer; }
+  .cat-top-card { cursor: pointer; }
+  .news-card-featured { cursor: pointer; }
+
   /* ─── CATEGORY SECTIONS ─── */
   .cat-section { margin-bottom: 18px; }
   .cat-section-header {
@@ -1506,8 +1584,14 @@ function renderTicker() {
   document.getElementById('tickerTrack').innerHTML = html;
 }
 
+// ─── ARTICLE CACHE (for modal lookup) ───────────────────────────────
+let articleCache = [];
+function _reg(n) { articleCache.push(n); return articleCache.length - 1; }
+
 function cardFeatured(n) {
-  return `<div class="news-card news-card-featured">
+  const i = _reg(n);
+  return `<div class="news-card news-card-featured" onclick="openArticle(${i})">`+`
+    <div class="featured-img-wrap">
     <div class="featured-img-wrap">
       ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='<div class=featured-emoji-fallback>${n.emoji}</div>'">` : `<div class="featured-emoji-fallback">${n.emoji}</div>`}
     </div>
@@ -1542,7 +1626,8 @@ function cardFeatured(n) {
 }
 
 function cardCatTop(n) {
-  return `<div class="news-card cat-top-card">
+  const i = _reg(n);
+  return `<div class="news-card cat-top-card" onclick="openArticle(${i})">`+`
     <div class="cat-top-img">
       ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='<div class=cat-top-emoji>${n.emoji}</div>'">` : `<div class="cat-top-emoji">${n.emoji}</div>`}
     </div>
@@ -1577,7 +1662,8 @@ function cardCatTop(n) {
 }
 
 function cardRegular(n) {
-  return `<div class="news-card">
+  const i = _reg(n);
+  return `<div class="news-card" onclick="openArticle(${i})">`+`
     <div>
       <div class="news-meta">
         <span class="news-category ${n.catClass}">${n.category}</span>
@@ -1623,6 +1709,7 @@ function toggleMore(btn) {
 }
 
 function renderNews(filter = '전체') {
+  articleCache = [];
   const container = document.getElementById('newsList');
 
   if (filter !== '전체') {
@@ -1678,29 +1765,68 @@ function renderTraders() {
   document.getElementById('traderList').innerHTML = html;
 }
 
-function renderMarkets() {
-  const html = marketData.map(m => `
-    <div class="market-card">
-      <div class="market-card-header">
-        <div class="market-icon" style="background:${m.bg}">${m.icon}</div>
-        <div class="market-title">${m.title}</div>
+function fmtVol(v) {
+  const n = parseFloat(v) || 0;
+  return n >= 1e9 ? `$${(n/1e9).toFixed(1)}B` :
+         n >= 1e6 ? `$${(n/1e6).toFixed(1)}M` :
+         n >= 1e3 ? `$${(n/1e3).toFixed(0)}K` : `$${n.toFixed(0)}`;
+}
+
+function pmCard(q, outcomes, prices, vol, imgUrl) {
+  return `<div class="market-card">
+    <div class="market-card-header">
+      <div class="market-icon" style="background:#f0f2ff;overflow:hidden;padding:0">
+        ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML='🎯'">` : '🎯'}
       </div>
-      <div class="market-options">
-        ${m.options.map(o => `
-          <div class="market-option">
-            <span class="option-label">${o.label}</span>
-            <span class="option-pct">${o.pct}%</span>
-            <button class="btn-yes">예</button>
-            <button class="btn-no">아니요</button>
-          </div>
-        `).join('')}
-      </div>
-      <div class="market-footer">
-        <span>📊 ${m.volume}</span>
-        <button class="watchlist-btn" onclick="toggleWatchlist(this)">☆ 관심 목록</button>
-      </div>
+      <div class="market-title">${q}</div>
     </div>
-  `).join('');
+    <div class="market-options">
+      ${outcomes.slice(0,2).map((label,i) => `
+        <div class="market-option">
+          <span class="option-label">${label}</span>
+          <span class="option-pct">${Math.round((prices[i]||0)*100)}%</span>
+          <button class="btn-yes">예</button>
+          <button class="btn-no">아니요</button>
+        </div>`).join('')}
+    </div>
+    <div class="market-footer">
+      <span>📊 ${fmtVol(vol)} 거래량</span>
+      <button class="watchlist-btn" onclick="toggleWatchlist(this)">☆ 관심 목록</button>
+    </div>
+  </div>`;
+}
+
+function renderMarkets(liveData) {
+  let html = '';
+  if (liveData && liveData.length > 0) {
+    html = liveData.slice(0, 8).map(m => {
+      let outcomes = [], prices = [];
+      try { outcomes = JSON.parse(m.outcomes || '[]'); } catch(e) {}
+      try { prices   = JSON.parse(m.outcomePrices || '[]'); } catch(e) {}
+      return pmCard(m.question, outcomes, prices, m.volume, m.image);
+    }).join('');
+  } else {
+    html = marketData.map(m => `
+      <div class="market-card">
+        <div class="market-card-header">
+          <div class="market-icon" style="background:${m.bg}">${m.icon}</div>
+          <div class="market-title">${m.title}</div>
+        </div>
+        <div class="market-options">
+          ${m.options.map(o => `
+            <div class="market-option">
+              <span class="option-label">${o.label}</span>
+              <span class="option-pct">${o.pct}%</span>
+              <button class="btn-yes">예</button>
+              <button class="btn-no">아니요</button>
+            </div>`).join('')}
+        </div>
+        <div class="market-footer">
+          <span>📊 ${m.volume}</span>
+          <button class="watchlist-btn" onclick="toggleWatchlist(this)">☆ 관심 목록</button>
+        </div>
+      </div>`).join('');
+  }
   document.getElementById('marketGrid').innerHTML = html;
 }
 
@@ -1778,11 +1904,87 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+// ─── ARTICLE MODAL ───────────────────────────────────────────────
+let polyLive = [];
+
+function openArticle(idx) {
+  const n = articleCache[idx];
+  if (!n) return;
+  const pmHtml = polyLive.length > 0 ? `
+    <div class="modal-pm-section">
+      <div class="modal-pm-header">
+        <span class="pm-live-dot"></span>
+        LIVE &nbsp;·&nbsp; Polymarket 실시간 예측 마켓
+      </div>
+      ${polyLive.slice(0, 4).map(m => {
+        let outcomes = [], prices = [];
+        try { outcomes = JSON.parse(m.outcomes || '[]'); } catch(e) {}
+        try { prices   = JSON.parse(m.outcomePrices || '[]'); } catch(e) {}
+        const pct = Math.round((prices[0] || 0) * 100);
+        return `<div class="modal-pm-card">
+          <div class="modal-pm-question">${m.question}</div>
+          <div class="modal-pm-bar"><div class="modal-pm-fill" style="width:${pct}%"></div></div>
+          <div class="modal-pm-footer">
+            <span class="modal-pm-pct">${outcomes[0]||'Yes'} ${pct}%</span>
+            <span class="modal-pm-vol">${fmtVol(m.volume)} 거래량</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  document.getElementById('modalBody').innerHTML = `
+    ${n.img ? `<div class="modal-img"><img src="${n.img}" alt="${n.title}"></div>` : ''}
+    <div class="modal-meta">
+      <span class="news-category ${n.catClass}">${n.category}</span>
+      <span class="news-time">${n.time}</span>
+      ${n.source ? `<span class="modal-source">· ${n.source}</span>` : ''}
+    </div>
+    <div class="modal-title">${n.title}</div>
+    <div class="modal-excerpt">${n.excerpt}</div>
+    <div class="probability-bar modal-prob">
+      <span class="prob-label">예측 확률</span>
+      <div class="prob-bar-wrap"><div class="prob-bar-fill" style="width:${n.prob}%"></div></div>
+      <span class="prob-value">${n.prob}%</span>
+    </div>
+    <div class="modal-author-row">
+      <div class="author-dot">${n.author[0]}</div>
+      <span>${n.author}</span>
+      <span style="color:var(--text-muted)">· 👁 ${n.views} · 💬 ${n.comments}</span>
+    </div>
+    ${pmHtml}`;
+
+  document.getElementById('articleModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeArticleModal() {
+  document.getElementById('articleModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArticleModal(); });
+
+// ─── POLYMARKET LIVE API ──────────────────────────────────────────
+async function fetchPolymarkets() {
+  try {
+    const res = await fetch(
+      'https://gamma-api.polymarket.com/markets?active=true&limit=20&order=volume&ascending=false',
+      { headers: { 'Accept': 'application/json' } }
+    );
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    polyLive = Array.isArray(data) ? data : (data.markets || []);
+    if (polyLive.length > 0) renderMarkets(polyLive);
+  } catch(e) {
+    console.warn('Polymarket API 연결 실패 (정적 데이터 유지):', e.message);
+  }
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────
 renderTicker();
 renderNews();
 renderTraders();
 renderMarkets();
+fetchPolymarkets();
 
 // ─── TWITTER / X 소셜 피드 (정적) ────────────────────────────────────
 const PROFILES = {
@@ -1838,5 +2040,14 @@ function loadTwitter(handle, btn) {
 
 loadTwitter('realDonaldTrump', null);
 </script>
+<!-- ─── ARTICLE MODAL ─── -->
+<div id="articleModal" class="modal-overlay" onclick="if(event.target===this)closeArticleModal()">
+  <div class="modal-content">
+    <div class="modal-close-wrap">
+      <button class="modal-close" onclick="closeArticleModal()">✕</button>
+    </div>
+    <div id="modalBody" class="modal-body-inner"></div>
+  </div>
+</div>
 </body>
 </html>
