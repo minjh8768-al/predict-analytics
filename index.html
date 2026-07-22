@@ -1835,8 +1835,10 @@ function _reg(n) { articleCache.push(n); return articleCache.length - 1; }
 // Featured card: text LEFT, photo RIGHT (ABC News style)
 function cardFeatured(n) {
   const i = _reg(n);
+  const esc = s => s.replace(/`/g, '&#96;').replace(/'/g, '&#39;');
   const imgHtml = n.img
-    ? `<img src="${n.img}" alt="${n.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    ? `<img src="${esc(n.img)}" alt="" loading="eager"
+         onerror="this.style.display='none';var fb=document.getElementById('ffb${i}');if(fb)fb.style.display='flex';">`
     : '';
   return `<div class="news-card news-card-featured" onclick="openArticle(${i})">
     <div class="feat-text">
@@ -1857,7 +1859,7 @@ function cardFeatured(n) {
     </div>
     <div class="feat-photo">
       ${imgHtml}
-      <div class="feat-photo-emoji" style="${n.img ? 'display:none' : ''}">${n.emoji}</div>
+      <div id="ffb${i}" class="feat-photo-emoji" style="${n.img ? 'display:none' : ''}">${n.emoji || '📰'}</div>
     </div>
   </div>`;
 }
@@ -1867,8 +1869,8 @@ function cardThumb(n) {
   const i = _reg(n);
   return `<div class="thumb-card" onclick="openArticle(${i})">
     <div class="thumb-img">
-      ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
-      <div class="thumb-emoji" style="${n.img ? 'display:none' : ''}">${n.emoji}</div>
+      ${n.img ? `<img src="${n.img}" alt="" loading="lazy" onerror="this.style.display='none';var e=document.getElementById('te${i}');if(e)e.style.display='flex';">` : ''}
+      <div id="te${i}" class="thumb-emoji" style="${n.img ? 'display:none' : ''}">${n.emoji || '📰'}</div>
     </div>
     <div class="thumb-body">
       <div class="thumb-cat">${n.category}</div>
@@ -2025,11 +2027,22 @@ async function fetchABCNews() {
 
       if (!articles.length) continue;
 
-      // Featured: keep Trump card from newsData; ABC articles fill the thumbnail grid
+      // Featured 선택: 이미지가 있는 첫 번째 기사를 우선, 없으면 첫 번째 기사
+      const featIdx = articles.findIndex(a => a.img);
+      const featuredArt = featIdx >= 0 ? articles[featIdx] : articles[0];
+      featuredArt.featured = true;
+      featuredArt.prob = Math.floor(Math.random() * 25) + 50;
+
+      // featured 기사를 제외한 나머지 최대 9개
+      const rest = articles.filter((_, i) => i !== (featIdx >= 0 ? featIdx : 0));
+
+      // Trump 메타 카드(출처·확률 표시용)가 있으면 관련기사 소스로 활용
       const trump = newsData.find(n => n.featured);
+      if (trump) featuredArt.source = trump.source || 'ABC News';
+
       const container = document.getElementById('newsList');
-      container.innerHTML = buildNewsHTML(trump, articles.slice(0, 4), articles.slice(4));
-      console.info(`ABC News: ${articles.length}개 기사 로드됨`);
+      container.innerHTML = buildNewsHTML(featuredArt, rest.slice(0, 4), rest.slice(4));
+      console.info(`ABC News: ${articles.length}개 기사 로드됨 (featured: ${featuredArt.title.slice(0,30)})`);
       return;
     } catch(e) {
       console.warn('프록시 실패:', e.message);
