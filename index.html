@@ -1778,7 +1778,7 @@ const newsData = [
   },
   {
     category: '세계', catClass: 'cat-world', emoji: '🌏',
-    img: 'https://images.unsplash.com/photo-1462831457188-d432e75f81f4?w=400&h=240&fit=crop&auto=format',
+    img: 'https://images.unsplash.com/photo-1526614180703-827d23e7c8f2?w=400&h=240&fit=crop&auto=format',
     title: '중국의 2026년 대만 침공 시나리오: 위험 확률 업데이트',
     excerpt: '최근 남중국해 군사 훈련 증가에도 불구하고 예측 시장은 2026년 내 대규모 군사 충돌 가능성을 여전히 낮게(4%) 평가하고 있다.',
     time: '3시간 전', author: 'K. Park', prob: 4,
@@ -1786,7 +1786,7 @@ const newsData = [
   },
   {
     category: '스포츠', catClass: 'cat-sports', emoji: '⚽',
-    img: 'https://images.unsplash.com/photo-1579952363873-27d3bfad9c0d?w=400&h=240&fit=crop&auto=format',
+    img: 'https://images.unsplash.com/photo-1551958219-acbc595b300c?w=400&h=240&fit=crop&auto=format',
     title: '2026 FIFA 월드컵 우승 확률: 브라질 vs 프랑스 빅매치',
     excerpt: '토너먼트가 진행되면서 브라질과 프랑스가 예측 시장에서 공동 선두로 올라섰다. 한국의 16강 진출 확률은 현재 67%로 집계된다.',
     time: '4시간 전', author: 'J. Kim', prob: 67,
@@ -1991,7 +1991,8 @@ function cardThumb(n) {
   const i = _reg(n);
   const imgLayer = n.img
     ? `<img src="${n.img}" alt="" loading="lazy"
-           style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:block"
+           style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:block;opacity:0;transition:opacity .35s"
+           onload="this.style.opacity=1"
            onerror="this.style.opacity=0">`
     : '';
   return `<div class="thumb-card" onclick="openArticle(${i})">
@@ -2657,9 +2658,10 @@ function loadTwitter(handle, btn) {
   if (btn) btn.classList.add('active');
   const p = PROFILES[handle];
   const tweets = TWEETS[handle] || [];
+  const profileUrl = `https://x.com/${handle}`;
   document.getElementById('twitterContainer').innerHTML =
     `<div class="tweet-list">${tweets.map(t => `
-      <div class="tweet-item">
+      <div class="tweet-item" style="cursor:pointer" onclick="window.open('${profileUrl}','_blank')">
         <div class="tweet-header">
           <div class="tweet-avatar" style="background:${p.color}">${p.i}</div>
           <div class="tweet-name-wrap">
