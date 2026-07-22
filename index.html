@@ -401,55 +401,85 @@
     transform: translateY(-1px);
   }
 
+  /* ─── FEATURED CARD (text LEFT, photo RIGHT — ABC News style) ─── */
   .news-card-featured {
-    grid-template-columns: 1fr;
-    display: flex;
-    flex-direction: row;
+    display: flex !important;
+    flex-direction: row !important;
+    grid-template-columns: none !important;
     gap: 0;
     padding: 0;
-    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
-    border-color: var(--purple);
+    background: var(--bg-card);
+    border-color: var(--border);
     overflow: hidden;
-  }
-
-  .news-card-featured .featured-img-wrap {
-    width: 42%;
-    flex-shrink: 0;
-    min-height: 280px;
-    position: relative;
-    overflow: hidden;
-    border-radius: 0;
-  }
-
-  .news-card-featured .featured-img-wrap img {
-    position: absolute;
-    top: 0;
-    left: 0;
+    min-height: 290px;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: top center;
-    display: block;
+    box-sizing: border-box;
   }
-
-  .news-card-featured .featured-img-wrap .featured-emoji-fallback {
-    width: 100%;
-    height: 100%;
-    min-height: 280px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 72px;
-    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
-  }
-
-  .news-card-featured .featured-content {
+  .feat-text {
     flex: 1;
-    padding: 22px 22px 18px;
+    min-width: 0;
+    padding: 24px 24px 20px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    order: 1;
   }
+  .feat-photo {
+    width: 44%;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    order: 2;
+    background: var(--bg-secondary);
+  }
+  .feat-photo img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: top center;
+    display: block;
+  }
+  .feat-photo-emoji {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 72px; background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+  }
+  .feat-related {
+    font-size: 11.5px; color: var(--text-muted); margin-top: 10px;
+  }
+  .feat-related strong { color: var(--blue); }
+
+  /* ─── THUMBNAIL GRID ─── */
+  .thumb-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .thumb-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.18s, transform 0.15s;
+    display: block;
+  }
+  .thumb-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-2px); }
+  .thumb-img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    overflow: hidden;
+    background: var(--bg-secondary);
+    position: relative;
+  }
+  .thumb-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .thumb-emoji {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 32px;
+  }
+  .thumb-body { padding: 10px 10px 12px; }
+  .thumb-cat { font-size: 10px; font-weight: 700; color: var(--purple); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 5px; }
+  .thumb-title { font-size: 12.5px; font-weight: 600; color: var(--text-primary); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .thumb-time { font-size: 10px; color: var(--text-muted); margin-top: 5px; }
 
   .news-meta {
     display: flex;
@@ -1584,86 +1614,60 @@ function renderTicker() {
   document.getElementById('tickerTrack').innerHTML = html;
 }
 
-// ─── ARTICLE CACHE (for modal lookup) ───────────────────────────────
+// ─── ARTICLE CACHE ───────────────────────────────────────────────────
 let articleCache = [];
 function _reg(n) { articleCache.push(n); return articleCache.length - 1; }
 
+// Featured card: text LEFT, photo RIGHT (ABC News style)
 function cardFeatured(n) {
   const i = _reg(n);
-  return `<div class="news-card news-card-featured" onclick="openArticle(${i})">`+`
-    <div class="featured-img-wrap">
-    <div class="featured-img-wrap">
-      ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='<div class=featured-emoji-fallback>${n.emoji}</div>'">` : `<div class="featured-emoji-fallback">${n.emoji}</div>`}
-    </div>
-    <div class="featured-content">
+  const imgHtml = n.img
+    ? `<img src="${n.img}" alt="${n.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    : '';
+  return `<div class="news-card news-card-featured" onclick="openArticle(${i})">
+    <div class="feat-text">
       <div>
         <div class="news-meta">
           <span class="news-category ${n.catClass}">${n.category}</span>
           <span class="news-time">${n.time}</span>
         </div>
-        <div class="news-title" style="font-size:17px;margin-bottom:10px">${n.title}</div>
+        <div class="news-title" style="font-size:21px;line-height:1.35;margin-bottom:11px">${n.title}</div>
         <div class="news-excerpt" style="-webkit-line-clamp:4">${n.excerpt}</div>
+        ${n.source ? `<div class="feat-related">관련 기사: <strong>${n.source}</strong></div>` : ''}
       </div>
-      <div>
-        <div class="probability-bar" style="margin-top:14px">
-          <span class="prob-label">예측 확률</span>
-          <div class="prob-bar-wrap"><div class="prob-bar-fill" style="width:${n.prob}%"></div></div>
-          <span class="prob-value">${n.prob}%</span>
-        </div>
-        <div class="news-footer" style="margin-top:10px">
-          <div class="news-author">
-            <div class="author-dot">${n.author[0]}</div>
-            ${n.author}${n.source ? `<span style="color:var(--text-muted);margin-left:6px">· ${n.source}</span>` : ''}
-          </div>
-          <div class="news-stats">
-            <span class="news-stat">👁 ${n.views}</span>
-            <span class="news-stat">💬 ${n.comments}</span>
-          </div>
-        </div>
+      <div class="probability-bar" style="margin-top:14px">
+        <span class="prob-label">예측 확률</span>
+        <div class="prob-bar-wrap"><div class="prob-bar-fill" style="width:${n.prob}%"></div></div>
+        <span class="prob-value">${n.prob}%</span>
       </div>
+    </div>
+    <div class="feat-photo">
+      ${imgHtml}
+      <div class="feat-photo-emoji" style="${n.img ? 'display:none' : ''}">${n.emoji}</div>
     </div>
   </div>`;
 }
 
-function cardCatTop(n) {
+// Thumbnail card: image TOP, category + title BELOW
+function cardThumb(n) {
   const i = _reg(n);
-  return `<div class="news-card cat-top-card" onclick="openArticle(${i})">`+`
-    <div class="cat-top-img">
-      ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.parentNode.innerHTML='<div class=cat-top-emoji>${n.emoji}</div>'">` : `<div class="cat-top-emoji">${n.emoji}</div>`}
+  return `<div class="thumb-card" onclick="openArticle(${i})">
+    <div class="thumb-img">
+      ${n.img ? `<img src="${n.img}" alt="${n.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
+      <div class="thumb-emoji" style="${n.img ? 'display:none' : ''}">${n.emoji}</div>
     </div>
-    <div class="cat-top-content">
-      <div>
-        <div class="news-meta">
-          <span class="news-category ${n.catClass}">${n.category}</span>
-          <span class="news-time">${n.time}</span>
-        </div>
-        <div class="news-title" style="font-size:15px;margin-bottom:8px">${n.title}</div>
-        <div class="news-excerpt" style="-webkit-line-clamp:3">${n.excerpt}</div>
-      </div>
-      <div>
-        <div class="probability-bar" style="margin-top:10px">
-          <span class="prob-label">예측 확률</span>
-          <div class="prob-bar-wrap"><div class="prob-bar-fill" style="width:${n.prob}%"></div></div>
-          <span class="prob-value">${n.prob}%</span>
-        </div>
-        <div class="news-footer" style="margin-top:8px">
-          <div class="news-author">
-            <div class="author-dot">${n.author[0]}</div>
-            ${n.author}
-          </div>
-          <div class="news-stats">
-            <span class="news-stat">👁 ${n.views}</span>
-            <span class="news-stat">💬 ${n.comments}</span>
-          </div>
-        </div>
-      </div>
+    <div class="thumb-body">
+      <div class="thumb-cat">${n.category}</div>
+      <div class="thumb-title">${n.title}</div>
+      <div class="thumb-time">${n.time}</div>
     </div>
   </div>`;
 }
 
+// Regular card (더보기 section): text left, small image right
 function cardRegular(n) {
   const i = _reg(n);
-  return `<div class="news-card" onclick="openArticle(${i})">`+`
+  return `<div class="news-card" onclick="openArticle(${i})">
     <div>
       <div class="news-meta">
         <span class="news-category ${n.catClass}">${n.category}</span>
@@ -1698,56 +1702,126 @@ function toggleMore(btn) {
   const isOpen = btn.classList.contains('open');
   btn.classList.toggle('open', !isOpen);
   if (isOpen) {
-    list.style.maxHeight = '0';
-    list.style.opacity = '0';
+    list.style.maxHeight = '0'; list.style.opacity = '0';
     btn.innerHTML = btn.dataset.label;
   } else {
-    list.style.maxHeight = list.scrollHeight + 'px';
-    list.style.opacity = '1';
+    list.style.maxHeight = list.scrollHeight + 'px'; list.style.opacity = '1';
     btn.innerHTML = '접기 ▲';
   }
 }
 
-function renderNews(filter = '전체') {
+// ─── BUILD NEWS LAYOUT ───────────────────────────────────────────────
+// featured: 1 big card (text-left, photo-right)
+// thumbs:   4-column thumbnail grid
+// more:     collapsible at bottom
+function buildNewsHTML(featured, thumbArr, moreArr) {
   articleCache = [];
-  const container = document.getElementById('newsList');
+  let html = featured ? cardFeatured(featured) : '';
+  if (thumbArr.length > 0) {
+    html += `<div class="thumb-grid">${thumbArr.map(cardThumb).join('')}</div>`;
+  }
+  if (moreArr.length > 0) {
+    const label = `더보기 ${moreArr.length}개 ▼`;
+    html += `<button class="more-btn" data-label="${label}" onclick="toggleMore(this)">${label}</button>
+    <div class="more-list">${moreArr.map(cardRegular).join('')}</div>`;
+  }
+  return html;
+}
 
+function renderNews(filter = '전체') {
+  const container = document.getElementById('newsList');
   if (filter !== '전체') {
+    articleCache = [];
     const filtered = newsData.filter(n => n.category === filter);
-    container.innerHTML = filtered.map((n, i) =>
-      n.featured && i === 0 ? cardFeatured(n) : cardRegular(n)
+    container.innerHTML = filtered.map((n, idx) =>
+      n.featured && idx === 0 ? cardFeatured(n) : cardRegular(n)
     ).join('');
     return;
   }
-
-  const CAT_ORDER = ['경제', '암호화폐', '스포츠', '세계'];
-  const CAT_ICONS = { '경제': '📈', '암호화폐': '₿', '스포츠': '⚽', '세계': '🌏' };
-
   const featured = newsData.find(n => n.featured);
-  let html = featured ? cardFeatured(featured) : '';
+  const rest = newsData.filter(n => !n.featured);
+  container.innerHTML = buildNewsHTML(featured, rest.slice(0, 4), rest.slice(4));
+}
 
-  const allRest = [];
-  CAT_ORDER.forEach(cat => {
-    const articles = newsData.filter(n => !n.featured && n.category === cat);
-    if (!articles.length) return;
-    const [top, ...rest] = articles;
-    html += `<div class="cat-section">
-      <div class="cat-section-header">
-        <span class="cat-section-icon">${CAT_ICONS[cat]}</span>
-        <span class="cat-section-label">${cat} 주요 뉴스</span>
-      </div>
-      ${cardCatTop(top)}
-    </div>`;
-    allRest.push(...rest);
-  });
+// ─── ABC NEWS REAL-TIME FETCH ────────────────────────────────────────
+const CAT_MAP = {
+  politics: { cat: '정치', cls: 'cat-politics', emoji: '🏛️' },
+  business: { cat: '경제', cls: 'cat-economy', emoji: '📈' },
+  health:   { cat: '건강', cls: 'cat-politics', emoji: '🏥' },
+  world:    { cat: '세계', cls: 'cat-world', emoji: '🌏' },
+  international: { cat: '세계', cls: 'cat-world', emoji: '🌏' },
+  sports:   { cat: '스포츠', cls: 'cat-sports', emoji: '⚽' },
+  technology: { cat: '기술', cls: 'cat-crypto', emoji: '💻' },
+  entertainment: { cat: '연예', cls: 'cat-world', emoji: '🎬' },
+};
 
-  if (allRest.length > 0) {
-    const label = `더보기 ${allRest.length}개 ▼`;
-    html += `<button class="more-btn" data-label="${label}" onclick="toggleMore(this)">${label}</button>
-    <div class="more-list">${allRest.map(cardRegular).join('')}</div>`;
+function abcCatMap(rawCat) {
+  const key = (rawCat || '').toLowerCase();
+  for (const [k, v] of Object.entries(CAT_MAP)) {
+    if (key.includes(k)) return v;
   }
+  return { cat: '뉴스', cls: 'cat-world', emoji: '📰' };
+}
 
-  container.innerHTML = html;
+function relativeTime(dateStr) {
+  try {
+    const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
+    if (diff < 1) return '방금 전';
+    if (diff < 60) return `${diff}분 전`;
+    if (diff < 1440) return `${Math.floor(diff/60)}시간 전`;
+    return `${Math.floor(diff/1440)}일 전`;
+  } catch(e) { return ''; }
+}
+
+async function fetchABCNews() {
+  const PROXIES = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
+  ];
+  const RSS = 'https://abcnews.go.com/abcnews/topstories';
+
+  for (const proxy of PROXIES) {
+    try {
+      const res = await fetch(proxy + encodeURIComponent(RSS), { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) continue;
+      const text = await res.text();
+      const xml = new DOMParser().parseFromString(text, 'text/xml');
+      const items = Array.from(xml.querySelectorAll('item'));
+      if (!items.length) continue;
+
+      const articles = items.slice(0, 10).map(item => {
+        const g = tag => item.querySelector(tag)?.textContent?.trim() || '';
+        const rawCat = g('category');
+        const mapped = abcCatMap(rawCat);
+        // Extract image URL from serialized XML (media:thumbnail, enclosure, etc.)
+        const str = new XMLSerializer().serializeToString(item);
+        const imgM = str.match(/url="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i);
+        const imgUrl = imgM ? imgM[1].split('?')[0] : '';
+        const title = g('title').replace(/^CDATA\[|\]$/g, '').trim();
+        const desc = g('description').replace(/<[^>]+>/g, '').replace(/\s+/g,' ').trim().slice(0, 220);
+        return {
+          category: mapped.cat, catClass: mapped.cls, emoji: mapped.emoji,
+          img: imgUrl, title, excerpt: desc || title,
+          time: relativeTime(g('pubDate')), author: 'ABC News',
+          prob: Math.floor(Math.random() * 30) + 45, // 45~74% as illustrative
+          views: '-', comments: '-',
+          source: 'ABC News', link: g('link'), featured: false,
+        };
+      }).filter(a => a.title);
+
+      if (!articles.length) continue;
+
+      // Featured: keep Trump card from newsData; ABC articles fill the thumbnail grid
+      const trump = newsData.find(n => n.featured);
+      const container = document.getElementById('newsList');
+      container.innerHTML = buildNewsHTML(trump, articles.slice(0, 4), articles.slice(4));
+      console.info(`ABC News: ${articles.length}개 기사 로드됨`);
+      return;
+    } catch(e) {
+      console.warn('프록시 실패:', e.message);
+    }
+  }
+  console.warn('ABC News 로드 실패 — 정적 데이터 유지');
 }
 
 function renderTraders() {
@@ -1949,7 +2023,8 @@ function openArticle(idx) {
     <div class="modal-author-row">
       <div class="author-dot">${n.author[0]}</div>
       <span>${n.author}</span>
-      <span style="color:var(--text-muted)">· 👁 ${n.views} · 💬 ${n.comments}</span>
+      ${n.views !== '-' ? `<span style="color:var(--text-muted)">· 👁 ${n.views} · 💬 ${n.comments}</span>` : ''}
+      ${n.link ? `<a href="${n.link}" target="_blank" rel="noopener" style="margin-left:auto;font-size:11.5px;color:var(--blue);font-weight:600;text-decoration:none">원문 보기 →</a>` : ''}
     </div>
     ${pmHtml}`;
 
@@ -1985,6 +2060,7 @@ renderNews();
 renderTraders();
 renderMarkets();
 fetchPolymarkets();
+fetchABCNews();
 
 // ─── TWITTER / X 소셜 피드 (정적) ────────────────────────────────────
 const PROFILES = {
