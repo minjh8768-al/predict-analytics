@@ -822,6 +822,68 @@
   }
   .pm-dot-live { animation: livePulse 1.4s infinite; background: #0ea968 !important; }
 
+  /* ── Polymarket Featured Card ── */
+  .pm-feat-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 16px; display: flex; overflow: hidden;
+    min-height: 290px; margin-bottom: 16px;
+  }
+  .pm-feat-left {
+    width: 36%; min-width: 240px; flex-shrink: 0;
+    padding: 18px 18px 14px; border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .pm-feat-right {
+    flex: 1; padding: 14px 18px 12px;
+    display: flex; flex-direction: column; min-width: 0;
+  }
+  .pm-feat-hd { display: flex; align-items: flex-start; gap: 10px; }
+  .pm-feat-icon {
+    width: 44px; height: 44px; border-radius: 8px; flex-shrink: 0;
+    background: var(--bg-secondary); display: flex; align-items: center;
+    justify-content: center; font-size: 22px; overflow: hidden;
+  }
+  .pm-feat-icon img { width: 100%; height: 100%; object-fit: cover; }
+  .pm-feat-cats { font-size: 10.5px; color: var(--text-muted); margin-bottom: 3px; }
+  .pm-feat-q { font-size: 15px; font-weight: 800; color: var(--text-primary); line-height: 1.35; }
+  .pm-feat-outcomes { display: flex; flex-direction: column; }
+  .pm-feat-outcome {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 0; border-bottom: 1px solid var(--border);
+  }
+  .pm-feat-outcome:last-child { border-bottom: none; }
+  .pm-feat-out-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .pm-feat-out-name { font-size: 12.5px; color: var(--text-primary); flex: 1; }
+  .pm-feat-out-pct { font-size: 16px; font-weight: 800; color: var(--text-primary); }
+  .pm-feat-comments { flex: 1; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+  .pm-feat-cmt { display: flex; gap: 7px; }
+  .pm-feat-cmt-av {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: white;
+  }
+  .pm-feat-cmt-user { font-size: 11px; font-weight: 700; color: var(--text-primary); }
+  .pm-feat-cmt-text {
+    font-size: 11px; color: var(--text-secondary); line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .pm-feat-footer {
+    font-size: 11px; color: var(--text-muted);
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 8px; border-top: 1px solid var(--border); margin-top: auto;
+  }
+  .pm-feat-pm { display: flex; align-items: center; gap: 4px; color: var(--purple); font-weight: 600; }
+  /* Right: legend + chart */
+  .pm-feat-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 8px; }
+  .pm-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
+  .pm-legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .pm-chart-wrap { flex: 1; position: relative; min-height: 160px; }
+  .pm-chart-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* ── Thumb Rotation ── */
+  #abcThumbGrid { transition: opacity 0.35s ease; }
+  #abcThumbGrid.fading { opacity: 0; pointer-events: none; }
+
   /* ── 구독 모달 ── */
   .sub-overlay {
     display: none;
@@ -1449,7 +1511,13 @@
         <span style="color:var(--text-muted);font-size:12px">2026년 7월 20일 업데이트</span>
       </div>
 
-      <div class="filter-tabs">
+      <!-- Polymarket 핫 마켓 featured card -->
+      <div id="polyFeaturedSection"></div>
+
+      <!-- Rotating ABC News thumbnails -->
+      <div id="abcThumbGrid" class="thumb-grid"></div>
+
+      <div class="filter-tabs" style="margin-top:14px">
         <button class="filter-tab active" onclick="filterNews('전체')">전체</button>
         <button class="filter-tab" onclick="filterNews('정치')">정치</button>
         <button class="filter-tab" onclick="filterNews('경제')">경제</button>
@@ -2036,22 +2104,12 @@ async function fetchABCNews() {
 
       if (!articles.length) continue;
 
-      // Featured 선택: 이미지가 있는 첫 번째 기사를 우선, 없으면 첫 번째 기사
-      const featIdx = articles.findIndex(a => a.img);
-      const featuredArt = featIdx >= 0 ? articles[featIdx] : articles[0];
-      featuredArt.featured = true;
-      featuredArt.prob = Math.floor(Math.random() * 25) + 50;
-
-      // featured 기사를 제외한 나머지 최대 9개
-      const rest = articles.filter((_, i) => i !== (featIdx >= 0 ? featIdx : 0));
-
-      // Trump 메타 카드(출처·확률 표시용)가 있으면 관련기사 소스로 활용
-      const trump = newsData.find(n => n.featured);
-      if (trump) featuredArt.source = trump.source || 'ABC News';
-
-      const container = document.getElementById('newsList');
-      container.innerHTML = buildNewsHTML(featuredArt, rest.slice(0, 4), rest.slice(4));
-      console.info(`ABC News: ${articles.length}개 기사 로드됨 (featured: ${featuredArt.title.slice(0,30)})`);
+      // Store pool and start rotation
+      abcArticlePool = articles;
+      abcRotatePage  = 0;
+      showAbcPage(0);
+      startAbcRotation();
+      console.info(`ABC News: ${articles.length}개 기사 로드됨`);
       return;
     } catch(e) {
       console.warn('프록시 실패:', e.message);
@@ -2507,6 +2565,7 @@ renderNews();
 renderTraders();
 renderMarkets();
 fetchPolymarkets();
+fetchPolyFeatured();
 fetchABCNews();
 
 // ─── TWITTER / X 소셜 피드 (정적) ────────────────────────────────────
@@ -2562,6 +2621,283 @@ function loadTwitter(handle, btn) {
 }
 
 loadTwitter('realDonaldTrump', null);
+
+// ─── ABC THUMB ROTATION ───────────────────────────────────────────────
+let abcArticlePool = [];
+let abcRotatePage  = 0;
+let abcRotateTimer = null;
+
+function showAbcPage(pageIdx) {
+  const grid = document.getElementById('abcThumbGrid');
+  if (!grid || !abcArticlePool.length) return;
+  const total = abcArticlePool.length;
+  const items = [];
+  for (let i = 0; i < 4; i++) {
+    items.push(abcArticlePool[(pageIdx * 4 + i) % total]);
+  }
+  grid.classList.add('fading');
+  setTimeout(() => {
+    grid.innerHTML = items.map(n => {
+      const link = n.link || '#';
+      const imgLayer = n.img
+        ? `<img src="${n.img}" alt="" loading="lazy"
+               style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:block;opacity:0"
+               onload="this.style.opacity=1" onerror="this.style.opacity=0">`
+        : '';
+      return `<div class="thumb-card" onclick="window.open('${link}','_blank')">
+        <div class="thumb-img">
+          <div class="thumb-emoji" style="z-index:1;display:flex">${n.emoji || '📰'}</div>
+          ${imgLayer}
+        </div>
+        <div class="thumb-body">
+          <div class="thumb-cat">${n.category}</div>
+          <div class="thumb-title">${n.title}</div>
+          <div class="thumb-time">${n.time}</div>
+        </div>
+      </div>`;
+    }).join('');
+    grid.classList.remove('fading');
+  }, 350);
+}
+
+function startAbcRotation() {
+  if (abcRotateTimer) clearInterval(abcRotateTimer);
+  abcRotateTimer = setInterval(() => {
+    abcRotatePage = (abcRotatePage + 1) % Math.ceil(abcArticlePool.length / 4);
+    showAbcPage(abcRotatePage);
+  }, 8000);
+}
+
+// ─── POLYMARKET FEATURED CARD ─────────────────────────────────────────
+const PM_COLORS = ['#2196f3','#ff9800','#f44336','#4caf50','#9c27b0','#00bcd4'];
+
+function fakeHistory(price, points = 80) {
+  // Realistic random walk anchored to current price
+  const arr = [];
+  const now = Date.now() / 1000;
+  let p = Math.max(0.04, Math.min(0.96, price + (Math.random() - 0.5) * 0.25));
+  for (let i = 0; i < points; i++) {
+    const t = now - (points - i) * 3600 * 2; // every 2h over ~6 days
+    const drift = (price - p) * 0.08;
+    p = Math.max(0.02, Math.min(0.98, p + drift + (Math.random() - 0.5) * 0.035));
+    arr.push({ t, p });
+  }
+  arr.push({ t: now, p: price });
+  return arr;
+}
+
+function catmullPath(pts) {
+  if (pts.length < 2) return '';
+  let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  for (let i = 1; i < pts.length; i++) {
+    const p0 = pts[Math.max(0, i-2)], p1 = pts[i-1], p2 = pts[i], p3 = pts[Math.min(pts.length-1, i+1)];
+    const cx1 = (p1.x + (p2.x-p0.x)/6).toFixed(1), cy1 = (p1.y + (p2.y-p0.y)/6).toFixed(1);
+    const cx2 = (p2.x - (p3.x-p1.x)/6).toFixed(1), cy2 = (p2.y - (p3.y-p1.y)/6).toFixed(1);
+    d += ` C${cx1},${cy1} ${cx2},${cy2} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
+function buildChartSVG(histories, colors) {
+  const W = 480, H = 200;
+  const PL = 30, PR = 8, PT = 8, PB = 16;
+  const cW = W - PL - PR, cH = H - PT - PB;
+  const allTs = histories.flat().map(p => p.t);
+  const minT = Math.min(...allTs), maxT = Math.max(...allTs) || minT + 1;
+  const allPs = histories.flat().map(p => p.p);
+  const maxP  = Math.max(...allPs, 0.12);
+  const xS = t => PL + (t - minT) / (maxT - minT) * cW;
+  const yS = p => PT + cH - (p / Math.min(maxP * 1.15, 1)) * cH;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  // grid lines
+  [0.2, 0.4, 0.6, 0.8].filter(v => v < maxP * 1.2).forEach(v => {
+    const y = yS(v).toFixed(1);
+    svg += `<line x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}" stroke="#e5e7eb" stroke-width="0.8" stroke-dasharray="3,3"/>
+            <text x="${PL-4}" y="${parseFloat(y)+3.5}" font-size="8" fill="#9ca3af" text-anchor="end">${Math.round(v*100)}%</text>`;
+  });
+  // lines
+  histories.forEach((hist, ci) => {
+    if (!hist.length) return;
+    const step = Math.max(1, Math.floor(hist.length / 60));
+    const sampled = hist.filter((_, i) => i % step === 0 || i === hist.length - 1);
+    const pts = sampled.map(d => ({ x: xS(d.t), y: yS(d.p) }));
+    svg += `<path d="${catmullPath(pts)}" fill="none" stroke="${colors[ci]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  });
+  svg += '</svg>';
+  return svg;
+}
+
+function fmtEndDate(iso) {
+  try {
+    const d = new Date(iso);
+    return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+  } catch(e) { return ''; }
+}
+
+function fmtVolumeKR(v) {
+  const n = parseFloat(v) || 0;
+  if (n >= 1e8) return `${(n/1e8).toFixed(1)}억 달러`;
+  if (n >= 1e4) return `${Math.round(n/1e4)}만 달러`;
+  return `$${Math.round(n).toLocaleString()}`;
+}
+
+const PM_FAKE_USERS = [
+  {name:'청초보운공무768', color:'#6366f1'},
+  {name:'크나크', color:'#10b981'},
+  {name:'데이비드세맨', color:'#f59e0b'},
+  {name:'betmaster99', color:'#ef4444'},
+  {name:'예측왕🔥', color:'#8b5cf6'},
+  {name:'trader_pro', color:'#0ea968'},
+];
+
+function genComments(outcomes, prices) {
+  if (!outcomes.length) return [];
+  const topIdx = prices.indexOf(Math.max(...prices));
+  const topOut = outcomes[topIdx] || outcomes[0];
+  const vol2 = outcomes[Math.min(topIdx + 1, outcomes.length - 1)] || '';
+  const lines = [
+    `${topOut} 확률이 점점 오르고 있어요. 지금이 진입 타이밍 같은데 ㄷㄷ`,
+    `${vol2 ? vol2 + ' 배당률이 너무 높네 ㅋㅋ' : '변동폭 장난 아니다 조심해야겠다'}`,
+    `폭스 스포츠: ${topOut} 우세 전망이지만 시장은 항상 놀라게 만들죠`,
+  ];
+  return PM_FAKE_USERS.slice(0, 3).map((u, i) => ({
+    name: u.name, color: u.color, text: lines[i] || ''
+  }));
+}
+
+function renderPolyFeatured(m, outcomes, prices, histories) {
+  const colors  = PM_COLORS;
+  const comments = genComments(outcomes, prices);
+  const endDate = m.endDateIso ? fmtEndDate(m.endDateIso) : '';
+  const vol = fmtVolumeKR(m.volume || m.volumeNum || 0);
+
+  const iconHtml = m.image
+    ? `<div class="pm-feat-icon"><img src="${m.image}" onerror="this.parentNode.textContent='🎯'"></div>`
+    : `<div class="pm-feat-icon">🎯</div>`;
+
+  const outcomesHtml = outcomes.slice(0, 5).map((o, i) => `
+    <div class="pm-feat-outcome">
+      <div class="pm-feat-out-dot" style="background:${colors[i]}"></div>
+      <span class="pm-feat-out-name">${o}</span>
+      <span class="pm-feat-out-pct">${Math.round((prices[i]||0)*100)}%</span>
+    </div>`).join('');
+
+  const cmtsHtml = comments.map(c => `
+    <div class="pm-feat-cmt">
+      <div class="pm-feat-cmt-av" style="background:${c.color}">${c.name.slice(0,2)}</div>
+      <div>
+        <div class="pm-feat-cmt-user">${c.name}</div>
+        <div class="pm-feat-cmt-text">${c.text}</div>
+      </div>
+    </div>`).join('');
+
+  const legendHtml = outcomes.slice(0, 4).map((o, i) => `
+    <div class="pm-legend-item">
+      <div class="pm-legend-dot" style="background:${colors[i]}"></div>
+      ${o} ${Math.round((prices[i]||0)*100)}%
+    </div>`).join('');
+
+  const chartSVG = buildChartSVG(histories, colors);
+
+  const html = `<div class="pm-feat-card">
+    <div class="pm-feat-left">
+      <div class="pm-feat-hd">
+        ${iconHtml}
+        <div>
+          <div class="pm-feat-cats">🔥 가장 핫한 마켓 · Polymarket</div>
+          <div class="pm-feat-q">${m.question}</div>
+        </div>
+      </div>
+      <div class="pm-feat-outcomes">${outcomesHtml}</div>
+      <div class="pm-feat-comments">${cmtsHtml}</div>
+      <div class="pm-feat-footer">
+        <span>💰 ${vol} 볼륨</span>
+        <span class="pm-feat-pm">
+          ${endDate ? endDate + '에 종료 · ' : ''}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="margin-right:2px"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Polymarket
+        </span>
+      </div>
+    </div>
+    <div class="pm-feat-right">
+      <div class="pm-feat-legend">${legendHtml}</div>
+      <div class="pm-chart-wrap">${chartSVG}</div>
+    </div>
+  </div>`;
+
+  const sec = document.getElementById('polyFeaturedSection');
+  if (sec) sec.innerHTML = html;
+}
+
+let pmFeatTimer = null;
+
+async function fetchPolyFeatured() {
+  try {
+    const res = await fetch(
+      'https://gamma-api.polymarket.com/markets?active=true&limit=5&order=volume&ascending=false',
+      { headers: { Accept: 'application/json' } }
+    );
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    const markets = Array.isArray(data) ? data : (data.markets || []);
+    // Pick the top market that has at least 2 outcomes
+    const m = markets.find(x => {
+      try { return JSON.parse(x.outcomes || '[]').length >= 2; } catch(e) { return false; }
+    }) || markets[0];
+    if (!m) return;
+
+    let outcomes = [], prices = [];
+    try { outcomes = JSON.parse(m.outcomes     || '[]'); } catch(e) {}
+    try { prices   = JSON.parse(m.outcomePrices|| '[]').map(parseFloat); } catch(e) {}
+
+    // Try real price history for first token; fall back to fake
+    let histories = [];
+    let tokens = [];
+    try { tokens = JSON.parse(m.clobTokenIds || '[]'); } catch(e) {}
+
+    if (m.conditionId) {
+      try {
+        const weekAgo = Math.floor(Date.now()/1000) - 7*86400;
+        const hRes = await fetch(
+          `https://clob.polymarket.com/prices-history?market=${m.conditionId}&startTs=${weekAgo}&fidelity=60`,
+          { cache: 'no-store' }
+        );
+        if (hRes.ok) {
+          const hData = await hRes.json();
+          const baseHist = hData.history || [];
+          if (baseHist.length > 3) {
+            // Use real history for outcome[0]; derive others
+            histories[0] = baseHist;
+            for (let i = 1; i < outcomes.length; i++) {
+              if (outcomes.length === 2) {
+                histories[i] = baseHist.map(p => ({ t: p.t, p: 1 - p.p }));
+              } else {
+                histories[i] = fakeHistory(prices[i] || (1 / outcomes.length));
+              }
+            }
+          }
+        }
+      } catch(e) {}
+    }
+
+    // Fill any missing histories with fake
+    for (let i = 0; i < outcomes.length; i++) {
+      if (!histories[i] || !histories[i].length) {
+        histories[i] = fakeHistory(prices[i] || 0.5);
+      }
+    }
+
+    renderPolyFeatured(m, outcomes, prices, histories);
+
+    // Refresh every 30 seconds (new market might be hotter)
+    if (pmFeatTimer) clearInterval(pmFeatTimer);
+    pmFeatTimer = setInterval(fetchPolyFeatured, 30000);
+  } catch(e) {
+    console.warn('Polymarket featured 실패:', e.message);
+    setTimeout(fetchPolyFeatured, 8000);
+  }
+}
 
 // ─── 구독 모달 ──────────────────────────────────────────────────────
 let _selectedPlan = '스탠다드';
