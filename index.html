@@ -2788,11 +2788,26 @@ async function sendChatMsg() {
     return { question: m.question, prob: Math.round((prices[0]||0)*100), volume: m.volume };
   });
 
+  let cryptoData = null;
+  try {
+    const [cgRes, fngRes] = await Promise.all([
+      fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true&include_market_cap=true'),
+      fetch('https://api.alternative.me/fng/?limit=1')
+    ]);
+    const cg = await cgRes.json();
+    const fng = await fngRes.json();
+    cryptoData = {
+      btc: { price: cg.bitcoin?.usd, change24h: cg.bitcoin?.usd_24h_change?.toFixed(2), marketCap: cg.bitcoin?.usd_market_cap },
+      eth: { price: cg.ethereum?.usd, change24h: cg.ethereum?.usd_24h_change?.toFixed(2) },
+      fearGreed: { value: fng.data?.[0]?.value, label: fng.data?.[0]?.value_classification }
+    };
+  } catch(e) {}
+
   try {
     const res = await fetch(`${AI_API}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: chatHistory, markets })
+      body: JSON.stringify({ messages: chatHistory, markets, cryptoData })
     });
     const data = await res.json();
     typing.remove();
