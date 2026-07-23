@@ -2870,6 +2870,7 @@ function appendChatMsg(role, text) {
 }
 
 async function sendChatMsg() {
+  if (!checkAIAccess()) return;
   const input = document.getElementById('chatInput');
   const text = (input?.value || '').trim();
   if (!text) return;
