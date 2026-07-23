@@ -2070,9 +2070,9 @@
     </div>
 
     <div class="sub-plans">
-      <!-- 기본 -->
-      <div class="sub-plan" onclick="selectPlan(this,'기본')">
-        <div class="plan-name">기본</div>
+      <!-- 스탠다드 -->
+      <div class="sub-plan" onclick="selectPlan(this,'스탠다드')">
+        <div class="plan-name">스탠다드</div>
         <div class="plan-price">$99<sub>/월</sub></div>
         <div class="plan-period">월 단위 결제</div>
         <ul class="plan-features">
@@ -2082,10 +2082,10 @@
           <li>이메일 알림</li>
         </ul>
       </div>
-      <!-- 스탠다드 (인기) -->
-      <div class="sub-plan popular" onclick="selectPlan(this,'스탠다드')">
+      <!-- 프리미엄 (인기) -->
+      <div class="sub-plan popular" onclick="selectPlan(this,'프리미엄')">
         <div class="plan-badge">가장 인기</div>
-        <div class="plan-name">스탠다드</div>
+        <div class="plan-name">프리미엄</div>
         <div class="plan-price">$199<sub>/월</sub></div>
         <div class="plan-period">월 단위 결제</div>
         <ul class="plan-features">
@@ -2102,7 +2102,7 @@
         <div class="plan-price">$999<sub style="font-size:10px">+/월</sub></div>
         <div class="plan-period">커스텀 계약</div>
         <ul class="plan-features">
-          <li>스탠다드 전체 포함</li>
+          <li>프리미엄 전체 포함</li>
           <li>전용 API + 웹훅</li>
           <li>포트폴리오 트래킹</li>
           <li>전용 분석 대시보드</li>
@@ -2112,7 +2112,7 @@
     </div>
 
     <div class="sub-cta-row">
-      <button class="sub-cta-main" id="subCtaMain" onclick="handleSubCTA()">스탠다드 구독 시작하기 →</button>
+      <button class="sub-cta-main" id="subCtaMain" onclick="handleSubCTA()">프리미엄 구독 시작하기 →</button>
       <button class="sub-cta-free" onclick="handleFreeTrial()">7일 무료 체험</button>
     </div>
     <div class="sub-note">언제든지 취소 가능 · 신용카드 불필요(체험) · 연간 결제 시 20% 할인</div>
@@ -3859,16 +3859,16 @@ function startLiveTrades() {
 }
 
 // ─── 구독 모달 ──────────────────────────────────────────────────────
-let _selectedPlan = '스탠다드';
+let _selectedPlan = '프리미엄';
 let _pendingTab   = null;
 
 function openSubModal(label) {
   document.getElementById('subTabName').textContent = label || '프리미엄';
-  _selectedPlan = '스탠다드';
+  _selectedPlan = '프리미엄';
   document.querySelectorAll('.sub-plan').forEach(p => {
     p.style.outline = p.classList.contains('popular') ? '2px solid var(--purple)' : 'none';
   });
-  document.getElementById('subCtaMain').textContent = `스탠다드 구독 시작하기 →`;
+  document.getElementById('subCtaMain').textContent = `프리미엄 구독 시작하기 →`;
   document.getElementById('subOverlay').classList.add('open');
 }
 
