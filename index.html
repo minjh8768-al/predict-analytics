@@ -1746,8 +1746,8 @@
         <span style="color:var(--text-muted)">🔍</span>
         <input type="text" placeholder="시장 또는 뉴스를 검색하세요">
       </div>
-      <button class="btn-primary">지원하다</button>
-      <div class="avatar"></div>
+      <button class="btn-primary" id="loginBtn" onclick="showSubscribeModal('login')">로그인</button>
+      <div class="avatar" id="userAvatar" style="display:none;cursor:pointer" onclick="logoutUser()"></div>
     </div>
   </div>
 </header>
@@ -2621,6 +2621,103 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // ─── AI API 설정 (Vercel 배포 후 URL 변경) ────────────────────────
 const AI_API = 'https://polymarket-news.vercel.app';
 
+// ─── 유저 상태 관리 ────────────────────────────────────────────────
+const USER_KEY = 'pa_user';
+const USAGE_KEY = 'pa_ai_usage';
+
+function getUser() {
+  try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch(e) { return null; }
+}
+
+function getUsageToday() {
+  try {
+    const d = JSON.parse(localStorage.getItem(USAGE_KEY) || '{}');
+    const today = new Date().toISOString().slice(0,10);
+    return d.date === today ? (d.count || 0) : 0;
+  } catch(e) { return 0; }
+}
+
+function incUsage() {
+  const today = new Date().toISOString().slice(0,10);
+  const count = getUsageToday() + 1;
+  localStorage.setItem(USAGE_KEY, JSON.stringify({ date: today, count }));
+}
+
+function canUseAI() {
+  const user = getUser();
+  if (!user) return false;
+  if (user.plan === 'premium') return true;
+  return getUsageToday() < 1;
+}
+
+function checkAIAccess() {
+  const user = getUser();
+  if (!user) { showSubscribeModal('nologin'); return false; }
+  if (!canUseAI()) { showSubscribeModal('limit'); return false; }
+  return true;
+}
+
+function showSubscribeModal(type) {
+  const overlay = document.getElementById('subscribeOverlay');
+  const title = document.getElementById('modalTitle');
+  const desc = document.getElementById('modalDesc');
+  const emoji = document.getElementById('modalEmoji');
+  const premBtn = document.getElementById('premiumBtn');
+  const googleBtn = document.getElementById('googleLoginBtn');
+  overlay.style.display = 'flex';
+  if (type === 'nologin' || type === 'login') {
+    emoji.textContent = '✦';
+    title.textContent = '로그인하고 무료로 시작하세요';
+    desc.textContent = 'Google 계정으로 1초 만에 시작. AI 분석, 관심 마켓 저장 등 무료 기능을 이용하세요.';
+    googleBtn.style.display = 'flex';
+    premBtn.style.display = 'none';
+  } else if (type === 'limit') {
+    emoji.textContent = '🔒';
+    title.textContent = '오늘의 무료 AI 분석 1회를 사용했습니다';
+    desc.textContent = '내일 다시 무료로 사용하거나, 프리미엄으로 업그레이드하여 AI를 무제한 이용하세요.';
+    googleBtn.style.display = 'none';
+    premBtn.style.display = 'block';
+  }
+}
+
+function closeSubscribeModal() {
+  document.getElementById('subscribeOverlay').style.display = 'none';
+}
+
+function loginWithGoogle() {
+  // 임시 로그인 (Firebase 연결 전)
+  const user = { name: 'Google 사용자', plan: 'free', email: 'user@gmail.com' };
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  updateAuthUI(user);
+  closeSubscribeModal();
+}
+
+function logoutUser() {
+  if (!confirm('로그아웃 하시겠습니까?')) return;
+  localStorage.removeItem(USER_KEY);
+  updateAuthUI(null);
+}
+
+function updateAuthUI(user) {
+  const loginBtn = document.getElementById('loginBtn');
+  const avatar = document.getElementById('userAvatar');
+  if (user) {
+    loginBtn.style.display = 'none';
+    avatar.style.display = 'flex';
+    avatar.title = `${user.name} (${user.plan === 'premium' ? '프리미엄' : '무료'}) — 클릭시 로그아웃`;
+    avatar.style.background = 'linear-gradient(135deg,#7c3aed,#4f46e5)';
+  } else {
+    loginBtn.style.display = '';
+    avatar.style.display = 'none';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => updateAuthUI(getUser()));
+
+document.getElementById('subscribeOverlay')?.addEventListener('click', function(e) {
+  if (e.target === this) closeSubscribeModal();
+});
+
 // ─── ARTICLE MODAL ───────────────────────────────────────────────
 let polyLive = [];
 
@@ -2689,6 +2786,7 @@ document.addEventListener('keydown', e => {
 
 // ─── Feature 1: 뉴스 AI 요약 ──────────────────────────────────────
 async function loadAISummary(idx) {
+  if (!checkAIAccess()) return;
   const n = articleCache[idx];
   if (!n) return;
   const btn = document.querySelector('.ai-summary-btn');
@@ -2708,6 +2806,7 @@ async function loadAISummary(idx) {
       body: JSON.stringify({ title: n.title, excerpt: n.excerpt, category: n.category, prob: n.prob })
     });
     const data = await res.json();
+    incUsage();
     box.innerHTML = `<div class="ai-result">${(data.summary || data.error || '분석 실패').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>`;
   } catch (e) {
     box.innerHTML = `<div class="ai-result" style="color:var(--red)">API 연결 실패 — Vercel 배포 후 AI_API URL을 업데이트하세요.</div>`;
@@ -2718,6 +2817,7 @@ async function loadAISummary(idx) {
 async function loadMarketAnalysis(btn, question, probability, volume, outcomes) {
   const panel = btn.nextElementSibling;
   if (panel.style.display !== 'none') { panel.style.display = 'none'; btn.innerHTML = '✦ AI 리포트'; return; }
+  if (!checkAIAccess()) return;
 
   panel.style.display = 'block';
   panel.innerHTML = '<div class="ai-loading"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span></div>';
@@ -2730,6 +2830,7 @@ async function loadMarketAnalysis(btn, question, probability, volume, outcomes) 
       body: JSON.stringify({ question, probability, volume, outcomes })
     });
     const data = await res.json();
+    incUsage();
     panel.innerHTML = `<div class="ai-result">${(data.analysis || data.error || '분석 실패').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>`;
   } catch (e) {
     panel.innerHTML = `<div class="ai-result" style="color:var(--red)">API 연결 실패</div>`;
@@ -2743,6 +2844,7 @@ let chatOpen = false;
 function toggleChatbot() { chatOpen ? closeChatbot() : openChatbot(); }
 
 function openChatbot() {
+  if (!checkAIAccess()) return;
   chatOpen = true;
   document.getElementById('chatbotPanel').classList.add('open');
   document.getElementById('chatbotBtn').innerHTML = '✕';
@@ -2811,6 +2913,7 @@ async function sendChatMsg() {
     typing.remove();
     const reply = data.reply || data.error || '응답 실패';
     appendChatMsg('ai', reply);
+    incUsage();
     chatHistory.push({ role: 'assistant', content: reply });
     if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
   } catch (e) {
@@ -3733,6 +3836,33 @@ function mobTab(tab, btn) {
       <button class="modal-close" onclick="closeArticleModal()">✕</button>
     </div>
     <div id="modalBody" class="modal-body-inner"></div>
+  </div>
+</div>
+
+<!-- ─── 구독 모달 ─── -->
+<div id="subscribeOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;">
+  <div id="subscribeModal" style="background:var(--card);border-radius:20px;padding:40px 36px;max-width:400px;width:90%;text-align:center;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <button onclick="closeSubscribeModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)">✕</button>
+    <div style="font-size:40px;margin-bottom:12px" id="modalEmoji">✦</div>
+    <h2 id="modalTitle" style="font-size:20px;font-weight:700;margin-bottom:8px;color:var(--text)"></h2>
+    <p id="modalDesc" style="color:var(--text-muted);font-size:14px;line-height:1.6;margin-bottom:24px"></p>
+    <div style="background:linear-gradient(135deg,#7c3aed18,#4f46e518);border:1px solid #7c3aed40;border-radius:12px;padding:16px;margin-bottom:20px">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">무료 플랜 포함</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.8">
+        ✓ AI 분석 1회/일<br>
+        ✓ 관심 마켓 저장<br>
+        ✓ 실시간 데이터 열람
+      </div>
+    </div>
+    <button id="googleLoginBtn" onclick="loginWithGoogle()" style="width:100%;padding:13px;background:#fff;color:#333;border:1px solid #ddd;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Google로 무료 시작
+    </button>
+    <div id="premiumBtn" style="display:none">
+      <div style="border-top:1px solid var(--border);margin:12px 0"></div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">프리미엄 — AI 무제한 · 고급 분석</div>
+      <button onclick="closeSubscribeModal()" style="width:100%;padding:13px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">프리미엄 구독하기</button>
+    </div>
   </div>
 </div>
 
