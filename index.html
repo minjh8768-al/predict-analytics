@@ -2739,10 +2739,13 @@ function incUsage() {
   localStorage.setItem(USAGE_KEY, JSON.stringify({ date: today, count }));
 }
 
+const ADMIN_LIST = ['minjh8768@gmail.com', 'minjh8768@skycamp.co.kr'];
+
 function canUseAI() {
   const user = getUser();
   if (!user) return false;
   if (user.plan === 'premium') return true;
+  if (ADMIN_LIST.includes(user.email)) return true;
   return getUsageToday() < 1;
 }
 
