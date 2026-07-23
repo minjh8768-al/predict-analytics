@@ -1736,6 +1736,64 @@
     .chatbot-fab { width: 46px; height: 46px; font-size: 18px; }
   }
 </style>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDPnNCfbUSQXfmYhT4g1NMQcfXrVC20Cp0",
+    authDomain: "zenithgate-172ec.firebaseapp.com",
+    projectId: "zenithgate-172ec",
+    storageBucket: "zenithgate-172ec.firebasestorage.app",
+    messagingSenderId: "237160059075",
+    appId: "1:237160059075:web:3cdf8044bf24a7519c1276",
+    measurementId: "G-Y4NE0XETLP"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  window._fbAuth = auth;
+  window._fbProvider = provider;
+  window._fbSignOut = signOut;
+
+  window.loginWithGoogle = async function() {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const u = result.user;
+      const user = { name: u.displayName || 'Google 사용자', email: u.email, photo: u.photoURL, plan: 'free' };
+      localStorage.setItem('pa_user', JSON.stringify(user));
+      updateAuthUI(user);
+      closeSubscribeModal();
+    } catch (e) {
+      console.error('Google 로그인 실패:', e.message);
+      alert('로그인 실패: ' + e.message);
+    }
+  };
+
+  window.logoutUser = async function() {
+    await signOut(auth);
+    localStorage.removeItem('pa_user');
+    updateAuthUI(null);
+    const menu = document.getElementById('userMenu');
+    if (menu) menu.style.display = 'none';
+  };
+
+  onAuthStateChanged(auth, (u) => {
+    if (u) {
+      const stored = JSON.parse(localStorage.getItem('pa_user') || '{}');
+      const user = { name: u.displayName || stored.name || 'Google 사용자', email: u.email, photo: u.photoURL, plan: stored.plan || 'free' };
+      localStorage.setItem('pa_user', JSON.stringify(user));
+      updateAuthUI(user);
+    } else {
+      localStorage.removeItem('pa_user');
+      updateAuthUI(null);
+    }
+  });
+</script>
 </head>
 <body>
 
@@ -2705,24 +2763,14 @@ function closeSubscribeModal() {
   document.getElementById('subscribeOverlay').style.display = 'none';
 }
 
-function loginWithGoogle() {
-  // 임시 로그인 (Firebase 연결 전)
-  const user = { name: 'Google 사용자', plan: 'free', email: 'user@gmail.com' };
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
-  updateAuthUI(user);
-  closeSubscribeModal();
-}
+// loginWithGoogle, logoutUser → Firebase module script에서 정의됨
 
 function toggleUserMenu() {
   const menu = document.getElementById('userMenu');
   menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
 }
 
-function logoutUser() {
-  localStorage.removeItem(USER_KEY);
-  updateAuthUI(null);
-  document.getElementById('userMenu').style.display = 'none';
-}
+// logoutUser → Firebase module script에서 정의됨
 
 function updateAuthUI(user) {
   const loginBtn = document.getElementById('loginBtn');
@@ -2731,7 +2779,13 @@ function updateAuthUI(user) {
   if (user) {
     loginBtn.style.display = 'none';
     wrap.style.display = 'block';
-    avatar.style.background = 'linear-gradient(135deg,#7c3aed,#4f46e5)';
+    if (user.photo) {
+      avatar.style.backgroundImage = `url(${user.photo})`;
+      avatar.style.backgroundSize = 'cover';
+      avatar.style.background = 'none';
+    } else {
+      avatar.style.background = 'linear-gradient(135deg,#7c3aed,#4f46e5)';
+    }
     const used = getUsageToday();
     const limit = user.plan === 'premium' ? '무제한' : `${used}/1회`;
     document.getElementById('menuUserName').textContent = user.name;
@@ -2751,7 +2805,7 @@ document.addEventListener('click', function(e) {
   }
 });
 
-document.addEventListener('DOMContentLoaded', () => updateAuthUI(getUser()));
+// auth 상태는 Firebase onAuthStateChanged가 처리
 
 document.getElementById('subscribeOverlay')?.addEventListener('click', function(e) {
   if (e.target === this) closeSubscribeModal();
