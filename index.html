@@ -1840,7 +1840,7 @@
             <div id="menuUserPlan" style="font-size:12px;color:#a78bfa;margin-top:2px"></div>
             <div id="menuAIUsage" style="font-size:11px;color:#888;margin-top:4px"></div>
           </div>
-          <button onclick="showSubscribeModal('limit');toggleUserMenu()" style="width:100%;text-align:left;padding:9px 12px;background:linear-gradient(135deg,#7c3aed22,#4f46e522);border:none;border-radius:8px;color:#c4b5fd;font-size:13px;cursor:pointer;margin-bottom:4px">✦ 프리미엄 업그레이드</button>
+          <button id="upgradeMenuBtn" onclick="showSubscribeModal('limit');toggleUserMenu()" style="width:100%;text-align:left;padding:9px 12px;background:linear-gradient(135deg,#7c3aed22,#4f46e522);border:none;border-radius:8px;color:#c4b5fd;font-size:13px;cursor:pointer;margin-bottom:4px">✦ 프리미엄 업그레이드</button>
           <button onclick="logoutUser()" style="width:100%;text-align:left;padding:9px 12px;background:none;border:none;border-radius:8px;color:#888;font-size:13px;cursor:pointer">로그아웃</button>
         </div>
       </div>
@@ -2810,6 +2810,9 @@ function updateAuthUI(user) {
     document.getElementById('menuUserName').textContent = user.name;
     document.getElementById('menuUserPlan').textContent = user.plan === 'premium' ? '✦ 프리미엄' : '무료 플랜';
     document.getElementById('menuAIUsage').textContent = `오늘 AI 분석: ${limit}`;
+    const isPremium = user.plan === 'premium' || ADMIN_LIST.includes(user.email);
+    const upgradeBtn = document.getElementById('upgradeMenuBtn');
+    if (upgradeBtn) upgradeBtn.style.display = isPremium ? 'none' : '';
   } else {
     loginBtn.style.display = '';
     wrap.style.display = 'none';
