@@ -2779,12 +2779,15 @@ function updateAuthUI(user) {
   if (user) {
     loginBtn.style.display = 'none';
     wrap.style.display = 'block';
+    avatar.style.background = 'linear-gradient(135deg,#7c3aed,#4f46e5)';
     if (user.photo) {
-      avatar.style.backgroundImage = `url(${user.photo})`;
-      avatar.style.backgroundSize = 'cover';
-      avatar.style.background = 'none';
-    } else {
-      avatar.style.background = 'linear-gradient(135deg,#7c3aed,#4f46e5)';
+      const img = new Image();
+      img.onload = () => {
+        avatar.style.backgroundImage = `url('${user.photo}')`;
+        avatar.style.backgroundSize = 'cover';
+        avatar.style.backgroundPosition = 'center';
+      };
+      img.src = user.photo;
     }
     const used = getUsageToday();
     const limit = user.plan === 'premium' ? '무제한' : `${used}/1회`;
