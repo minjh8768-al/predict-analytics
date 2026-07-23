@@ -6,20 +6,17 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { title, excerpt, category, prob } = req.body;
+  const key = process.env.GEMINI_API_KEY;
+
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 700,
-        messages: [{
-          role: 'user',
-          content: `예측 분석 전문가로서 다음 뉴스를 분석해줘.
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text:
+`예측 분석 전문가로서 다음 뉴스를 분석해줘.
 
 카테고리: ${category}
 제목: ${title}
@@ -39,13 +36,15 @@ export default async function handler(req, res) {
 (예측 시장 참여자가 주목할 포인트 1-2개)
 
 ⚠️ **주요 리스크**
-(변수가 될 수 있는 요인 1가지)`
-        }]
-      })
-    });
+(변수가 될 수 있는 요인 1가지)` }] }],
+          generationConfig: { maxOutputTokens: 700, temperature: 0.7 }
+        })
+      }
+    );
     const data = await r.json();
     if (data.error) return res.status(500).json({ error: data.error.message });
-    res.json({ summary: data.content[0].text });
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '분석 실패';
+    res.json({ summary: text });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
