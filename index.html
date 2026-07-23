@@ -1498,7 +1498,9 @@
   @media (max-width: 767px) {
     /* ─ Header ─ */
     .header-inner { padding: 0 14px; height: 50px; gap: 8px; }
-    nav, .search-bar, .btn-primary { display: none; }
+    nav, .search-bar { display: none; }
+    .btn-primary:not(#loginBtn) { display: none; }
+    #loginBtn { font-size: 12px; padding: 6px 12px; }
     .avatar { width: 30px; height: 30px; }
 
     /* ─ Hero ─ */
