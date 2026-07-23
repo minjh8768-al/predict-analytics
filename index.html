@@ -1455,13 +1455,12 @@
   @media (max-width: 960px) {
     .main-layout { grid-template-columns: 1fr; padding: 12px; }
     .profile-card, .sidebar { position: static; }
-    aside { display: none; }
-    .sidebar { display: block; }
-    .pm-feat-card { flex-direction: column; }
+    aside:first-child { display: none; }
+    .pm-feat-card { flex-direction: column !important; }
     .pm-feat-left { width: 100% !important; min-width: 0 !important; border-right: none; border-bottom: 1px solid var(--border); }
     .pm-feat-right { min-height: 200px; }
     .thumb-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-    .market-grid { grid-template-columns: repeat(3, 1fr); }
+    .market-grid { grid-template-columns: repeat(3,1fr); }
     .sidebar { display: flex; flex-direction: row; overflow-x: auto; gap: 10px; scrollbar-width: none; }
     .sidebar::-webkit-scrollbar { display: none; }
     .sidebar-card { min-width: 190px; flex-shrink: 0; }
@@ -1469,123 +1468,132 @@
 
   /* ── MOBILE (767px) ── */
   @media (max-width: 767px) {
-    /* Header */
+    /* ─ Header ─ */
     .header-inner { padding: 0 14px; height: 50px; gap: 8px; }
-    nav { display: none; }
-    .search-bar { display: none; }
-    .btn-primary { display: none; }
+    nav, .search-bar, .btn-primary { display: none; }
     .avatar { width: 30px; height: 30px; }
 
-    /* Hero */
-    .hero { padding: 14px 0; }
+    /* ─ Hero ─ */
+    .hero { padding: 12px 0; }
     .hero-inner { padding: 0 14px; }
-    .hero-inner h1 { font-size: 18px; margin-bottom: 4px; }
-    .hero-inner p { font-size: 12px; }
+    .hero-inner h1 { font-size: 17px; margin-bottom: 3px; }
+    .hero-inner p { font-size: 12px; line-height: 1.5; }
 
-    /* Layout */
+    /* ─ Main layout: flex column, sidebar strip first ─ */
     .main-layout {
       display: flex; flex-direction: column;
       padding: 10px 12px 72px; gap: 10px;
+      width: 100%; box-sizing: border-box;
     }
-    /* Left panel hidden by default, toggled via profile tab */
     .main-layout > aside:first-child { display: none; order: 10; }
-    .main-layout > aside:first-child.mob-show { display: block; }
-    main { order: 2; min-width: 0; }
-    /* Stats strip: horizontal scroll above main */
+    .main-layout > aside:first-child.mob-show { display: block; order: 10; }
+    main { order: 2; min-width: 0; width: 100%; }
     .sidebar {
-      order: 1;
-      display: flex !important;
-      flex-direction: row;
-      overflow-x: auto; gap: 10px;
-      scrollbar-width: none; -webkit-overflow-scrolling: touch;
-      padding-bottom: 4px;
+      order: 1; display: flex !important; flex-direction: row;
+      overflow-x: auto; gap: 10px; scrollbar-width: none;
+      -webkit-overflow-scrolling: touch; padding-bottom: 2px;
     }
     .sidebar::-webkit-scrollbar { display: none; }
-    .sidebar-card { min-width: 180px; flex-shrink: 0; }
+    .sidebar-card { min-width: 170px; max-width: 200px; flex-shrink: 0; padding: 14px; }
+    .sidebar-card h3 { font-size: 11px; margin-bottom: 6px; }
+    .big-stat { font-size: 18px; }
+    .mini-chart { height: 32px; margin-top: 4px; }
 
-    /* Featured card: stack */
-    .pm-feat-card { flex-direction: column; min-height: auto; margin-bottom: 6px; }
+    /* ─ Featured Polymarket card ─ */
+    .pm-feat-card { flex-direction: column !important; min-height: auto !important; margin-bottom: 4px; }
     .pm-feat-left {
       width: 100% !important; min-width: 0 !important;
-      border-right: none; border-bottom: 1px solid var(--border);
-      padding: 14px 14px 10px;
+      border-right: none !important; border-bottom: 1px solid var(--border) !important;
+      padding: 12px 14px 10px !important;
     }
-    .pm-feat-right { padding: 10px 14px 12px; min-height: 180px; }
-    .pm-feat-legend { gap: 4px 10px; }
-    .pm-feat-hd { gap: 8px; }
-    .pm-feat-q { font-size: 13.5px; }
-    .pm-feat-out-pct { font-size: 14px; }
-    .pm-feat-comments { height: 110px; }
+    .pm-feat-right { padding: 10px 14px 10px !important; min-height: 160px; }
+    .pm-feat-legend { gap: 3px 8px; font-size: 10px; }
+    .pm-feat-q { font-size: 13px !important; }
+    .pm-feat-out-pct { font-size: 13px !important; }
+    .pm-feat-comments { height: 100px !important; }
+    .pm-feat-nav { padding: 4px 8px !important; }
+    .pm-nav-prev, .pm-nav-next { font-size: 10.5px !important; padding: 3px 5px !important; }
+    #pmNavPrev, #pmNavNext { max-width: 56px !important; }
 
-    /* Nav bar: compact */
-    .pm-feat-nav { padding: 5px 10px; gap: 6px; }
-    .pm-nav-prev, .pm-nav-next { font-size: 11px; }
-    #pmNavPrev, #pmNavNext { max-width: 60px; overflow: hidden; text-overflow: ellipsis; }
-
-    /* News header card */
+    /* ─ News header card ─ */
     .news-header-card { padding: 8px 12px; margin-bottom: 6px; }
-    .section-title { font-size: 14px; }
+    .section-title { font-size: 13px; }
+    #todayDateLabel { font-size: 11px !important; }
 
-    /* Thumb grid: 2-col */
-    .thumb-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    /* ─ FEATURED ARTICLE CARD: 모바일에서 숨김 ─ */
+    .news-card-featured { display: none !important; }
+
+    /* ─ Thumb grid 2-col ─ */
+    .thumb-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
     .thumb-card { border-radius: 10px; }
+    .thumb-body { padding: 8px; }
+    .thumb-title { font-size: 11.5px; -webkit-line-clamp: 2; }
 
-    /* Filter tabs: scroll */
+    /* ─ Filter tabs ─ */
     .filter-tabs {
-      overflow-x: auto; scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-      flex-wrap: nowrap; gap: 6px; padding-bottom: 2px; margin-top: 10px;
+      overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap;
+      gap: 6px; padding-bottom: 2px; margin-top: 10px;
     }
     .filter-tabs::-webkit-scrollbar { display: none; }
     .filter-tab { flex-shrink: 0; padding: 5px 12px; font-size: 12px; }
 
-    /* Featured article card */
-    .news-card-featured { flex-direction: column; }
-    .feat-photo { width: 100% !important; height: 160px; border-radius: 8px 8px 0 0; }
-
-    /* Regular news cards */
+    /* ─ Regular news cards ─ */
     .news-card { padding: 12px; gap: 10px; }
-    .news-img { width: 56px; height: 56px; font-size: 22px; border-radius: 8px; flex-shrink: 0; }
-    .news-title { font-size: 13px; }
+    .news-img { width: 52px; height: 52px; font-size: 20px; flex-shrink: 0; }
+    .news-title { font-size: 13px; word-break: keep-all; }
+    .news-excerpt { display: none; }
 
-    /* Market section */
-    .market-section { padding: 10px 12px 12px; margin-top: 0; }
+    /* ─ Market section ─ */
+    .market-section { padding: 10px 12px 14px; }
     .market-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .market-card { padding: 12px 10px; }
-    .market-name { font-size: 12px; }
-    .market-price { font-size: 18px; }
-
-    /* Tab group: scroll */
+    .market-card { padding: 11px 10px; }
+    .market-name { font-size: 11.5px; -webkit-line-clamp: 2; }
+    .market-price { font-size: 17px; }
+    .market-vol { font-size: 10px; }
     .tab-group {
       overflow-x: auto; scrollbar-width: none;
       flex-wrap: nowrap; gap: 4px; padding-bottom: 2px;
     }
     .tab-group::-webkit-scrollbar { display: none; }
-    .tab-btn { flex-shrink: 0; padding: 6px 12px; font-size: 12px; }
+    .tab-btn { flex-shrink: 0; padding: 6px 11px; font-size: 11.5px; }
 
-    /* Twitter section inside left panel on mobile */
-    .tw-feed-section { margin-top: 0; }
+    /* ─ Subscription modal (모바일 full-sheet) ─ */
+    .sub-overlay { align-items: flex-end !important; }
+    .sub-modal {
+      width: 100% !important; max-width: 100% !important;
+      border-radius: 20px 20px 0 0 !important;
+      padding: 24px 18px 28px !important;
+      max-height: 92vh !important; overflow-y: auto !important;
+      animation: subSlideUp 0.28s ease !important;
+    }
+    @keyframes subSlideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .sub-title { font-size: 18px !important; }
+    .sub-desc { font-size: 12.5px !important; margin-bottom: 16px !important; }
+    .sub-plans { grid-template-columns: 1fr !important; gap: 8px !important; margin-bottom: 14px !important; }
+    .sub-plan { padding: 14px 14px !important; }
+    .plan-price { font-size: 26px !important; }
+    .sub-cta-row { flex-direction: column !important; gap: 8px !important; }
+    .sub-cta-main { width: 100% !important; padding: 13px !important; text-align: center; box-sizing: border-box; }
+    .sub-cta-free { width: 100% !important; text-align: center; padding: 10px !important; box-sizing: border-box; }
 
-    /* Bottom nav (mobile only) */
+    /* ─ Bottom nav ─ */
     .mobile-bottom-nav {
-      display: flex;
-      position: fixed; bottom: 0; left: 0; right: 0;
-      height: 58px;
-      background: var(--bg-secondary);
-      border-top: 1.5px solid var(--border);
-      z-index: 500;
+      display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+      height: 58px; background: var(--bg-secondary);
+      border-top: 1.5px solid var(--border); z-index: 500;
       padding-bottom: env(safe-area-inset-bottom, 0);
     }
     .mob-nav-item {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 2px;
-      cursor: pointer; color: var(--text-muted);
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 2px; cursor: pointer; color: var(--text-muted);
       font-size: 9.5px; font-weight: 600; transition: color 0.15s;
       padding-bottom: 4px; border: none; background: none;
     }
     .mob-nav-item.active { color: var(--purple); }
     .mob-nav-icon { font-size: 19px; line-height: 1.2; }
-
     body { padding-bottom: 58px; }
   }
 
@@ -2114,11 +2122,10 @@ function renderTicker() {
 let articleCache = [];
 function _reg(n) { articleCache.push(n); return articleCache.length - 1; }
 
-// Featured card: text LEFT, photo RIGHT (ABC News style)
+// Featured card: text LEFT, photo RIGHT — desktop only; mobile falls back to cardRegular
 function cardFeatured(n) {
+  if (window.innerWidth <= 767) return cardRegular(n);
   const i = _reg(n);
-  // Emoji layer is ALWAYS visible (z-index:1). Image loads on top (z-index:2).
-  // If image fails → opacity:0 via onerror → emoji shows through.
   const imgLayer = n.img
     ? `<img src="${n.img}" alt="" loading="eager"
            style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;z-index:2;display:block;opacity:0;transition:opacity .4s"
@@ -2223,7 +2230,8 @@ function toggleMore(btn) {
 // more:     collapsible at bottom
 function buildNewsHTML(featured, thumbArr, moreArr) {
   articleCache = [];
-  let html = featured ? cardFeatured(featured) : '';
+  const isMobile = window.innerWidth <= 767;
+  let html = (featured && !isMobile) ? cardFeatured(featured) : '';
   if (thumbArr.length > 0) {
     html += `<div class="thumb-grid">${thumbArr.map(cardThumb).join('')}</div>`;
   }
@@ -2240,8 +2248,9 @@ function renderNews(filter = '전체') {
   if (filter !== '전체') {
     articleCache = [];
     const filtered = newsData.filter(n => n.category === filter);
+    const _mob = window.innerWidth <= 767;
     container.innerHTML = filtered.map((n, idx) =>
-      n.featured && idx === 0 ? cardFeatured(n) : cardRegular(n)
+      (n.featured && idx === 0 && !_mob) ? cardFeatured(n) : cardRegular(n)
     ).join('');
     return;
   }
