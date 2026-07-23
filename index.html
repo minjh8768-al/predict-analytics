@@ -150,6 +150,19 @@
     border-radius: 50%;
     background: linear-gradient(135deg, var(--purple), #e040fb);
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    overflow: hidden;
+  }
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
   }
 
   /* ─── TICKER ─── */
@@ -2779,15 +2792,11 @@ function updateAuthUI(user) {
   if (user) {
     loginBtn.style.display = 'none';
     wrap.style.display = 'block';
-    avatar.style.background = 'linear-gradient(135deg,#7c3aed,#4f46e5)';
+    avatar.style.background = 'linear-gradient(135deg,#7c3aed,#e040fb)';
     if (user.photo) {
-      const img = new Image();
-      img.onload = () => {
-        avatar.style.backgroundImage = `url('${user.photo}')`;
-        avatar.style.backgroundSize = 'cover';
-        avatar.style.backgroundPosition = 'center';
-      };
-      img.src = user.photo;
+      avatar.innerHTML = `<img src="${user.photo}" referrerpolicy="no-referrer" onerror="this.parentElement.innerHTML='${(user.name||'U')[0].toUpperCase()}'">`;
+    } else {
+      avatar.innerHTML = (user.name || 'U')[0].toUpperCase();
     }
     const used = getUsageToday();
     const limit = user.plan === 'premium' ? '무제한' : `${used}/1회`;
