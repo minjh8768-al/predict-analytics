@@ -1765,6 +1765,8 @@
     measurementId: "G-Y4NE0XETLP"
   };
 
+  const ADMIN_EMAILS = ['minjh8768@skycamp.co.kr', 'minjh8768@gmail.com'];
+
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
@@ -1777,7 +1779,8 @@
     try {
       const result = await signInWithPopup(auth, provider);
       const u = result.user;
-      const user = { name: u.displayName || 'Google 사용자', email: u.email, photo: u.photoURL, plan: 'free' };
+      const plan = ADMIN_EMAILS.includes(u.email) ? 'premium' : 'free';
+      const user = { name: u.displayName || 'Google 사용자', email: u.email, photo: u.photoURL, plan };
       localStorage.setItem('pa_user', JSON.stringify(user));
       updateAuthUI(user);
       closeSubscribeModal();
@@ -1798,7 +1801,8 @@
   onAuthStateChanged(auth, (u) => {
     if (u) {
       const stored = JSON.parse(localStorage.getItem('pa_user') || '{}');
-      const user = { name: u.displayName || stored.name || 'Google 사용자', email: u.email, photo: u.photoURL, plan: stored.plan || 'free' };
+      const plan = ADMIN_EMAILS.includes(u.email) ? 'premium' : (stored.plan || 'free');
+      const user = { name: u.displayName || stored.name || 'Google 사용자', email: u.email, photo: u.photoURL, plan };
       localStorage.setItem('pa_user', JSON.stringify(user));
       updateAuthUI(user);
     } else {
