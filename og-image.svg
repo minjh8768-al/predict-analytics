@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0f1a"/>
+      <stop offset="100%" style="stop-color:#1a1040"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6c5ce7"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1200" height="4" fill="url(#accent)"/>
+
+  <!-- Logo area -->
+  <rect x="80" y="220" width="56" height="56" rx="14" fill="url(#accent)"/>
+  <text x="108" y="258" font-family="Arial" font-size="30" fill="white" text-anchor="middle">📊</text>
+
+  <!-- Title -->
+  <text x="80" y="330" font-family="Arial Black, Arial" font-size="62" font-weight="900" fill="white">PredictAnalytics</text>
+
+  <!-- Subtitle -->
+  <text x="80" y="395" font-family="Arial" font-size="28" fill="#a78bfa">폴리마켓 실시간 예측 · AI 분석 · 시장 인사이트</text>
+
+  <!-- Stats -->
+  <rect x="80" y="440" width="220" height="70" rx="12" fill="rgba(108,92,231,0.2)"/>
+  <text x="190" y="470" font-family="Arial" font-size="13" fill="#a78bfa" text-anchor="middle">실시간 마켓</text>
+  <text x="190" y="497" font-family="Arial Black" font-size="22" font-weight="900" fill="white" text-anchor="middle">145,000+</text>
+
+  <rect x="320" y="440" width="220" height="70" rx="12" fill="rgba(108,92,231,0.2)"/>
+  <text x="430" y="470" font-family="Arial" font-size="13" fill="#a78bfa" text-anchor="middle">AI 분석</text>
+  <text x="430" y="497" font-family="Arial Black" font-size="22" font-weight="900" fill="white" text-anchor="middle">무제한</text>
+
+  <rect x="560" y="440" width="220" height="70" rx="12" fill="rgba(108,92,231,0.2)"/>
+  <text x="670" y="470" font-family="Arial" font-size="13" fill="#a78bfa" text-anchor="middle">예측 정확도</text>
+  <text x="670" y="497" font-family="Arial Black" font-size="22" font-weight="900" fill="white" text-anchor="middle">실시간</text>
+
+  <!-- URL -->
+  <text x="80" y="590" font-family="Arial" font-size="20" fill="#6c5ce7">predictanalytics-news.vercel.app</text>
+</svg>
