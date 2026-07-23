@@ -6,17 +6,20 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { question, probability, volume, outcomes } = req.body;
-  const key = process.env.GEMINI_API_KEY;
+  const key = process.env.GROQ_API_KEY;
 
   try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text:
-`폴리마켓 예측 분석 전문가로서 다음 마켓을 심층 분석해줘.
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'authorization': `Bearer ${key}`
+      },
+      body: JSON.stringify({
+        model: 'llama3-8b-8192',
+        messages: [{
+          role: 'user',
+          content: `폴리마켓 예측 분석 전문가로서 다음 마켓을 심층 분석해줘.
 
 질문: ${question}
 현재 확률: ${probability}%
@@ -38,14 +41,15 @@ export default async function handler(req, res) {
 (향후 주요 이벤트/날짜)
 
 💰 **트레이딩 포인트**
-(이 마켓에서 포지션 잡을 때 고려할 핵심 1가지)` }] }],
-          generationConfig: { maxOutputTokens: 900, temperature: 0.7 }
-        })
-      }
-    );
+(이 마켓에서 포지션 잡을 때 고려할 핵심 1가지)`
+        }],
+        max_tokens: 900,
+        temperature: 0.7
+      })
+    });
     const data = await r.json();
     if (data.error) return res.status(500).json({ error: data.error.message });
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '분석 실패';
+    const text = data.choices?.[0]?.message?.content || '분석 실패';
     res.json({ analysis: text });
   } catch (e) {
     res.status(500).json({ error: e.message });

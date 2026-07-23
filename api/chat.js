@@ -41,7 +41,7 @@ ${marketContext || '마켓 데이터 없음'}
         'authorization': `Bearer ${key}`
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'llama3-8b-8192',
         messages: groqMessages,
         max_tokens: 1000,
         temperature: 0.8
