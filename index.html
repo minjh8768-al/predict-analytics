@@ -1601,6 +1601,130 @@
   @media (min-width: 768px) {
     .mobile-bottom-nav { display: none; }
   }
+
+  /* ─── AI FEATURES ────────────────────────────────────────────────── */
+  .ai-summary-btn {
+    display: flex; align-items: center; gap: 7px;
+    margin: 18px 0 4px; padding: 10px 18px;
+    background: linear-gradient(135deg, #7c3aed18, #4f46e518);
+    border: 1.5px solid var(--purple); border-radius: 10px;
+    color: var(--purple); font-size: 13px; font-weight: 700;
+    cursor: pointer; width: 100%; justify-content: center;
+    transition: all 0.2s;
+  }
+  .ai-summary-btn:hover { background: linear-gradient(135deg, #7c3aed28, #4f46e528); }
+  .ai-btn-icon { font-size: 15px; }
+
+  .ai-summary-box, .ai-analyze-panel {
+    background: linear-gradient(135deg, #7c3aed0a, #4f46e50a);
+    border: 1px solid #7c3aed30; border-radius: 10px;
+    padding: 14px 16px; margin-top: 8px; font-size: 13px;
+    line-height: 1.7; color: var(--text-secondary);
+  }
+  .ai-result strong { color: var(--text-primary); }
+
+  .ai-loading { display: flex; gap: 5px; justify-content: center; padding: 12px 0; }
+  .ai-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--purple);
+    animation: aiPulse 1.2s ease-in-out infinite;
+  }
+  .ai-dot:nth-child(2) { animation-delay: 0.2s; }
+  .ai-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes aiPulse { 0%,80%,100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.1); } }
+
+  /* Market AI report button */
+  .ai-market-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px; background: transparent;
+    border: 1.5px solid var(--purple); border-radius: 20px;
+    color: var(--purple); font-size: 11.5px; font-weight: 700;
+    cursor: pointer; transition: all 0.18s; margin-top: 8px;
+  }
+  .ai-market-btn:hover { background: #7c3aed18; }
+  .ai-analyze-panel { display: none; margin-top: 8px; font-size: 12px; }
+
+  /* ─── Chatbot ─── */
+  .chatbot-fab {
+    position: fixed; bottom: 80px; right: 18px; z-index: 600;
+    width: 50px; height: 50px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), #4f46e5);
+    color: #fff; font-size: 20px; font-weight: 700;
+    border: none; cursor: pointer; box-shadow: 0 4px 16px #7c3aed40;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .chatbot-fab:hover { transform: scale(1.08); box-shadow: 0 6px 20px #7c3aed55; }
+
+  .chatbot-panel {
+    position: fixed; bottom: 140px; right: 18px; z-index: 599;
+    width: 340px; max-width: calc(100vw - 36px);
+    height: 480px; max-height: calc(100vh - 180px);
+    background: var(--bg-card); border: 1.5px solid var(--border);
+    border-radius: 18px; display: flex; flex-direction: column;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+    transform: scale(0.92) translateY(12px); opacity: 0;
+    pointer-events: none; transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .chatbot-panel.open { transform: scale(1) translateY(0); opacity: 1; pointer-events: all; }
+
+  .chat-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px 12px; border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .chat-header-icon {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--purple), #4f46e5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #fff;
+  }
+  .chat-header-title { font-size: 14px; font-weight: 700; }
+  .chat-header-sub { font-size: 11px; color: var(--text-muted); }
+  .chat-close { margin-left: auto; background: none; border: none; font-size: 18px; color: var(--text-muted); cursor: pointer; padding: 2px 6px; }
+
+  #chatLog {
+    flex: 1; overflow-y: auto; padding: 12px 14px; display: flex;
+    flex-direction: column; gap: 8px; scroll-behavior: smooth;
+  }
+  #chatLog::-webkit-scrollbar { width: 4px; }
+  #chatLog::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .chat-msg {
+    max-width: 86%; padding: 9px 12px; border-radius: 12px;
+    font-size: 13px; line-height: 1.6; word-break: keep-all;
+  }
+  .chat-ai {
+    background: var(--bg-secondary); color: var(--text-primary);
+    border-bottom-left-radius: 4px; align-self: flex-start;
+  }
+  .chat-user {
+    background: linear-gradient(135deg, var(--purple), #4f46e5);
+    color: #fff; border-bottom-right-radius: 4px; align-self: flex-end;
+  }
+  .chat-typing { padding: 10px 14px; }
+
+  .chat-input-row {
+    display: flex; gap: 8px; padding: 10px 12px;
+    border-top: 1px solid var(--border); flex-shrink: 0;
+  }
+  #chatInput {
+    flex: 1; padding: 9px 12px; border: 1.5px solid var(--border);
+    border-radius: 10px; font-size: 13px; background: var(--bg-secondary);
+    color: var(--text-primary); outline: none;
+    transition: border-color 0.15s;
+  }
+  #chatInput:focus { border-color: var(--purple); }
+  .chat-send-btn {
+    padding: 9px 14px; background: var(--purple); color: #fff;
+    border: none; border-radius: 10px; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.15s; flex-shrink: 0;
+  }
+  .chat-send-btn:hover { opacity: 0.85; }
+
+  @media (max-width: 767px) {
+    .chatbot-panel { bottom: 72px; right: 10px; width: calc(100vw - 20px); }
+    .chatbot-fab { bottom: 70px; right: 10px; width: 46px; height: 46px; font-size: 18px; }
+  }
 </style>
 </head>
 <body>
@@ -2496,6 +2620,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+// ─── AI API 설정 (Vercel 배포 후 URL 변경) ────────────────────────
+const AI_API = 'https://predict-analytics-ai.vercel.app';
+
 // ─── ARTICLE MODAL ───────────────────────────────────────────────
 let polyLive = [];
 
@@ -2544,7 +2671,11 @@ function openArticle(idx) {
       ${n.views !== '-' ? `<span style="color:var(--text-muted)">· 👁 ${n.views} · 💬 ${n.comments}</span>` : ''}
       ${n.link ? `<a href="${n.link}" target="_blank" rel="noopener" style="margin-left:auto;font-size:11.5px;color:var(--blue);font-weight:600;text-decoration:none">원문 보기 →</a>` : ''}
     </div>
-    ${pmHtml}`;
+    ${pmHtml}
+    <button class="ai-summary-btn" onclick="loadAISummary(${idx})">
+      <span class="ai-btn-icon">✦</span> AI 분석 보기
+    </button>
+    <div class="ai-summary-box" id="aiSummaryBox_${idx}" style="display:none"></div>`;
 
   document.getElementById('articleModal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -2554,7 +2685,126 @@ function closeArticleModal() {
   document.getElementById('articleModal').classList.remove('open');
   document.body.style.overflow = '';
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArticleModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeArticleModal(); closeChatbot(); }
+});
+
+// ─── Feature 1: 뉴스 AI 요약 ──────────────────────────────────────
+async function loadAISummary(idx) {
+  const n = articleCache[idx];
+  if (!n) return;
+  const btn = document.querySelector('.ai-summary-btn');
+  const box = document.getElementById(`aiSummaryBox_${idx}`);
+  if (!box) return;
+
+  if (box.style.display !== 'none') { box.style.display = 'none'; if (btn) btn.textContent = '✦ AI 분석 보기'; return; }
+
+  box.style.display = 'block';
+  box.innerHTML = '<div class="ai-loading"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span></div>';
+  if (btn) btn.innerHTML = '<span class="ai-btn-icon">✦</span> 닫기';
+
+  try {
+    const res = await fetch(`${AI_API}/api/summarize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: n.title, excerpt: n.excerpt, category: n.category, prob: n.prob })
+    });
+    const data = await res.json();
+    box.innerHTML = `<div class="ai-result">${(data.summary || data.error || '분석 실패').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>`;
+  } catch (e) {
+    box.innerHTML = `<div class="ai-result" style="color:var(--red)">API 연결 실패 — Vercel 배포 후 AI_API URL을 업데이트하세요.</div>`;
+  }
+}
+
+// ─── Feature 2: Polymarket 마켓 AI 분석 ───────────────────────────
+async function loadMarketAnalysis(btn, question, probability, volume, outcomes) {
+  const panel = btn.nextElementSibling;
+  if (panel.style.display !== 'none') { panel.style.display = 'none'; btn.innerHTML = '✦ AI 리포트'; return; }
+
+  panel.style.display = 'block';
+  panel.innerHTML = '<div class="ai-loading"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span></div>';
+  btn.innerHTML = '✦ 닫기';
+
+  try {
+    const res = await fetch(`${AI_API}/api/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, probability, volume, outcomes })
+    });
+    const data = await res.json();
+    panel.innerHTML = `<div class="ai-result">${(data.analysis || data.error || '분석 실패').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>`;
+  } catch (e) {
+    panel.innerHTML = `<div class="ai-result" style="color:var(--red)">API 연결 실패</div>`;
+  }
+}
+
+// ─── Feature 3: AI 챗봇 ────────────────────────────────────────────
+let chatHistory = [];
+let chatOpen = false;
+
+function toggleChatbot() { chatOpen ? closeChatbot() : openChatbot(); }
+
+function openChatbot() {
+  chatOpen = true;
+  document.getElementById('chatbotPanel').classList.add('open');
+  document.getElementById('chatbotBtn').innerHTML = '✕';
+  if (chatHistory.length === 0) appendChatMsg('ai', '안녕하세요! 예측 분석 AI입니다 ✦\n현재 폴리마켓 데이터를 기반으로 분석해드립니다.\n\n무엇이 궁금하신가요?\n• 특정 마켓 분석\n• 예측 확률 해석\n• 투자 인사이트');
+}
+
+function closeChatbot() {
+  chatOpen = false;
+  const p = document.getElementById('chatbotPanel');
+  const b = document.getElementById('chatbotBtn');
+  if (p) p.classList.remove('open');
+  if (b) b.innerHTML = '✦';
+}
+
+function appendChatMsg(role, text) {
+  const log = document.getElementById('chatLog');
+  if (!log) return;
+  const div = document.createElement('div');
+  div.className = `chat-msg chat-${role}`;
+  div.innerHTML = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function sendChatMsg() {
+  const input = document.getElementById('chatInput');
+  const text = (input?.value || '').trim();
+  if (!text) return;
+  input.value = '';
+  appendChatMsg('user', text);
+  chatHistory.push({ role: 'user', content: text });
+
+  const typing = document.createElement('div');
+  typing.className = 'chat-msg chat-ai chat-typing';
+  typing.innerHTML = '<span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span>';
+  document.getElementById('chatLog').appendChild(typing);
+  document.getElementById('chatLog').scrollTop = 99999;
+
+  const markets = (window.pmFeatPool || []).slice(0, 8).map(m => {
+    let prices = []; try { prices = JSON.parse(m.outcomePrices || '[]'); } catch(e) {}
+    return { question: m.question, prob: Math.round((prices[0]||0)*100), volume: m.volume };
+  });
+
+  try {
+    const res = await fetch(`${AI_API}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: chatHistory, markets })
+    });
+    const data = await res.json();
+    typing.remove();
+    const reply = data.reply || data.error || '응답 실패';
+    appendChatMsg('ai', reply);
+    chatHistory.push({ role: 'assistant', content: reply });
+    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+  } catch (e) {
+    typing.remove();
+    appendChatMsg('ai', 'API 연결 실패 — Vercel 배포 후 AI_API URL을 업데이트하세요.');
+  }
+}
 
 // ─── POLYMARKET REAL-TIME (WebSocket) ────────────────────────────
 // ─── POLYMARKET REAL-TIME ENGINE ─────────────────────────────────────
@@ -3154,6 +3404,12 @@ function renderPolyFeatured(m, outcomes, prices, histories) {
     <div class="pm-nav-dots" id="pmNavDots"></div>
     <button class="pm-nav-prev" onclick="navFeat(-1)">‹ <span id="pmNavPrev"></span></button>
     <button class="pm-nav-next" onclick="navFeat(1)"><span id="pmNavNext"></span> ›</button>
+  </div>
+  <div style="padding:0 14px 12px">
+    <button class="ai-market-btn" onclick="loadMarketAnalysis(this,${JSON.stringify(m.question)},${Math.round((prices[0]||0)*100)},${m.volume||0},${JSON.stringify(outcomes.join(', '))})">
+      ✦ AI 리포트
+    </button>
+    <div class="ai-analyze-panel"></div>
   </div>`;
 
   const sec = document.getElementById('polyFeaturedSection');
@@ -3468,6 +3724,25 @@ function mobTab(tab, btn) {
 </div>
 
 <!-- ─── MOBILE BOTTOM NAV ─── -->
+<!-- ─── AI 챗봇 ─── -->
+<button class="chatbot-fab" id="chatbotBtn" onclick="toggleChatbot()" title="AI 예측 분석">✦</button>
+<div class="chatbot-panel" id="chatbotPanel">
+  <div class="chat-header">
+    <div class="chat-header-icon">✦</div>
+    <div>
+      <div class="chat-header-title">PredictAI</div>
+      <div class="chat-header-sub">폴리마켓 예측 분석 전문 AI</div>
+    </div>
+    <button class="chat-close" onclick="closeChatbot()">✕</button>
+  </div>
+  <div id="chatLog"></div>
+  <div class="chat-input-row">
+    <input id="chatInput" type="text" placeholder="마켓 분석, 예측 확률 등 질문하세요..."
+      onkeydown="if(event.key==='Enter')sendChatMsg()">
+    <button class="chat-send-btn" onclick="sendChatMsg()">전송</button>
+  </div>
+</div>
+
 <nav class="mobile-bottom-nav" id="mobileBottomNav">
   <button class="mob-nav-item active" id="mnHome" onclick="mobTab('home',this)">
     <span class="mob-nav-icon">🏠</span><span>홈</span>
