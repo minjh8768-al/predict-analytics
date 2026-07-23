@@ -3841,14 +3841,14 @@ function mobTab(tab, btn) {
 
 <!-- ─── 구독 모달 ─── -->
 <div id="subscribeOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;">
-  <div id="subscribeModal" style="background:var(--card);border-radius:20px;padding:40px 36px;max-width:400px;width:90%;text-align:center;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
-    <button onclick="closeSubscribeModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)">✕</button>
+  <div id="subscribeModal" style="background:#16162a;border-radius:20px;padding:40px 36px;max-width:400px;width:90%;text-align:center;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.7);border:1px solid rgba(124,58,237,0.3);">
+    <button onclick="closeSubscribeModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#888">✕</button>
     <div style="font-size:40px;margin-bottom:12px" id="modalEmoji">✦</div>
-    <h2 id="modalTitle" style="font-size:20px;font-weight:700;margin-bottom:8px;color:var(--text)"></h2>
-    <p id="modalDesc" style="color:var(--text-muted);font-size:14px;line-height:1.6;margin-bottom:24px"></p>
-    <div style="background:linear-gradient(135deg,#7c3aed18,#4f46e518);border:1px solid #7c3aed40;border-radius:12px;padding:16px;margin-bottom:20px">
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">무료 플랜 포함</div>
-      <div style="font-size:13px;color:var(--text);line-height:1.8">
+    <h2 id="modalTitle" style="font-size:20px;font-weight:700;margin-bottom:8px;color:#fff"></h2>
+    <p id="modalDesc" style="color:#aaa;font-size:14px;line-height:1.6;margin-bottom:24px"></p>
+    <div style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);border-radius:12px;padding:16px;margin-bottom:20px">
+      <div style="font-size:13px;color:#aaa;margin-bottom:6px">무료 플랜 포함</div>
+      <div style="font-size:13px;color:#e0e0e0;line-height:1.8">
         ✓ AI 분석 1회/일<br>
         ✓ 관심 마켓 저장<br>
         ✓ 실시간 데이터 열람
@@ -3860,7 +3860,7 @@ function mobTab(tab, btn) {
     </button>
     <div id="premiumBtn" style="display:none">
       <div style="border-top:1px solid var(--border);margin:12px 0"></div>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">프리미엄 — AI 무제한 · 고급 분석</div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:10px">프리미엄 — AI 무제한 · 고급 분석</div>
       <button onclick="closeSubscribeModal()" style="width:100%;padding:13px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">프리미엄 구독하기</button>
     </div>
   </div>
