@@ -96,10 +96,13 @@ export default function handler() {
                         type: 'div',
                         props: {
                           style: {
-                            fontSize: '100px', lineHeight: '1',
-                            filter: 'drop-shadow(0 0 30px rgba(247,147,26,0.8))',
+                            width: '110px', height: '110px', borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #f7931a, #ff6b00)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '64px', fontWeight: '900', color: '#fff',
+                            boxShadow: '0 0 40px rgba(247,147,26,0.6)',
                           },
-                          children: '₿'
+                          children: 'B'
                         }
                       },
                       {
