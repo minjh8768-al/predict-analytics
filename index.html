@@ -2156,16 +2156,6 @@
     </div>
 
     <div class="sub-plans">
-      <!-- 테스트 (임시) -->
-      <div class="sub-plan" onclick="selectPlan(this,'테스트')" style="border-color:#f59e0b;background:rgba(245,158,11,0.05)">
-        <div class="plan-name" style="color:#f59e0b">🧪 테스트</div>
-        <div class="plan-price">$1<sub>/회</sub></div>
-        <div class="plan-period">라이브 결제 확인용</div>
-        <ul class="plan-features">
-          <li>임시 테스트 플랜</li>
-          <li>확인 후 삭제 예정</li>
-        </ul>
-      </div>
       <!-- 스탠다드 -->
       <div class="sub-plan" onclick="selectPlan(this,'스탠다드')">
         <div class="plan-name">스탠다드</div>
@@ -4071,7 +4061,7 @@ function handleSubCTA() {
   if (_ppMounted) return; // 절대 리셋 안 함 — 페이지 새로고침 전까지 한 번만 렌더
   _ppMounted = true;
 
-  const priceMap = { '테스트': '1.00', '스탠다드': '99.00', '프리미엄': '199.00', '서포터': '999.00' };
+  const priceMap = { '스탠다드': '99.00', '프리미엄': '199.00', '서포터': '999.00' };
 
   paypal.Buttons({
     style: { layout: 'vertical', color: 'blue', shape: 'rect', label: 'pay' },
