@@ -3915,7 +3915,8 @@ function openSubModal(label) {
   btn.textContent = `프리미엄 구독 시작하기 →`;
   btn.style.display = 'block';
   btn.disabled = false;
-  destroyPaypal();
+  // 버튼은 유지, 컨테이너만 숨김
+  document.getElementById('paypal-button-container').style.display = 'none';
   document.getElementById('subOverlay').classList.add('open');
 }
 
@@ -3945,29 +3946,22 @@ function subOverlayClick(e) {
   if (e.target === document.getElementById('subOverlay')) closeSubModal();
 }
 
-let _paypalInstance = null;
-
-function destroyPaypal() {
-  if (_paypalInstance) {
-    try { _paypalInstance.close(); } catch(e) {}
-    _paypalInstance = null;
-  }
-  const container = document.getElementById('paypal-button-container');
-  if (container) { container.innerHTML = ''; container.style.display = 'none'; }
-}
+let _paypalRendered = false;
 
 function handleSubCTA() {
   const btn = document.getElementById('subCtaMain');
   const container = document.getElementById('paypal-button-container');
 
-  if (_paypalInstance) return;
-
   btn.style.display = 'none';
   container.style.display = 'block';
 
+  // 이미 렌더링됐으면 그냥 보여주기만 (re-render 금지)
+  if (_paypalRendered) return;
+  _paypalRendered = true;
+
   const priceMap = { '스탠다드': '99.00', '프리미엄': '199.00', '서포터': '999.00' };
 
-  _paypalInstance = paypal.Buttons({
+  paypal.Buttons({
     style: { layout: 'vertical', color: 'blue', shape: 'rect', label: 'pay' },
     createOrder: function(data, actions) {
       return actions.order.create({
@@ -3984,22 +3978,21 @@ function handleSubCTA() {
         user.plan = 'premium';
         localStorage.setItem('pa_user', JSON.stringify(user));
         updateAuthUI(user);
-        destroyPaypal();
         closeSubModal();
         alert('결제 완료! 프리미엄이 활성화됐어요.');
       }
     },
     onError: function(err) {
       alert('결제 오류: ' + err);
-      destroyPaypal();
+      container.style.display = 'none';
       btn.style.display = 'block';
+      _paypalRendered = false;
     },
     onCancel: function() {
-      destroyPaypal();
+      container.style.display = 'none';
       btn.style.display = 'block';
     }
-  });
-  _paypalInstance.render('#paypal-button-container');
+  }).render('#paypal-button-container');
 }
 
 function handleFreeTrial() {
