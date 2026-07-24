@@ -2925,13 +2925,14 @@ function updateAuthUI(user) {
       avatar.innerHTML = (user.name || 'U')[0].toUpperCase();
     }
     const used = getUsageToday();
-    const limit = user.plan === 'premium' ? '무제한' : `${used}/1회`;
+    const planLabelMap = { standard: '✦ 스탠다드', premium: '✦ 프리미엄', supporter: '✦ 서포터' };
+    const isPaid = ['standard','premium','supporter'].includes(user.plan) || ADMIN_LIST.includes(user.email);
+    const limit = isPaid ? '무제한' : `${used}/1회`;
     document.getElementById('menuUserName').textContent = user.name;
-    document.getElementById('menuUserPlan').textContent = user.plan === 'premium' ? '✦ 프리미엄' : '무료 플랜';
+    document.getElementById('menuUserPlan').textContent = planLabelMap[user.plan] || '무료 플랜';
     document.getElementById('menuAIUsage').textContent = `오늘 AI 분석: ${limit}`;
-    const isPremium = user.plan === 'premium' || ADMIN_LIST.includes(user.email);
     const upgradeBtn = document.getElementById('upgradeMenuBtn');
-    if (upgradeBtn) upgradeBtn.style.display = isPremium ? 'none' : 'block';
+    if (upgradeBtn) upgradeBtn.style.display = isPaid ? 'none' : 'block';
   } else {
     loginBtn.style.display = '';
     wrap.style.display = 'none';
@@ -4075,7 +4076,8 @@ function handleSubCTA() {
       const details = await actions.order.capture();
       if (details.status === 'COMPLETED') {
         const user = getUser();
-        user.plan = 'premium';
+        const planKeyMap = { '스탠다드': 'standard', '프리미엄': 'premium', '서포터': 'supporter' };
+        user.plan = planKeyMap[_selectedPlan] || 'standard';
         localStorage.setItem('pa_user', JSON.stringify(user));
         updateAuthUI(user);
         // 성공 화면으로 인라인 전환
