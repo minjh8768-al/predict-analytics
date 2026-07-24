@@ -1,6 +1,6 @@
 import { verifyToken } from './_auth.js';
 
-const PAYPAL_API = 'https://api-m.sandbox.paypal.com';
+const PAYPAL_API = 'https://api-m.paypal.com';
 const PLANS = {
   standard: { price: '99.00', name: '스탠다드 플랜' },
   premium:  { price: '199.00', name: '프리미엄 플랜' },

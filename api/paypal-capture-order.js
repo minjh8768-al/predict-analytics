@@ -1,6 +1,6 @@
 import { verifyToken } from './_auth.js';
 
-const PAYPAL_API = 'https://api-m.sandbox.paypal.com';
+const PAYPAL_API = 'https://api-m.paypal.com';
 
 async function getAccessToken() {
   const creds = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_SECRET}`).toString('base64');
