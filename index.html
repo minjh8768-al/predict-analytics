@@ -239,7 +239,7 @@
   .ticker-item:hover { color: var(--purple); }
 
   .ticker-badge {
-    background: #f0f2ff;
+    background: var(--bg-card);
     color: var(--text-muted);
     font-size: 10px;
     padding: 1px 5px;
@@ -251,7 +251,7 @@
 
   /* ─── HERO ─── */
   .hero {
-    background: linear-gradient(180deg, #ffffff 0%, #f5f6fa 100%);
+    background: var(--bg-secondary);
     padding: 20px;
     border-bottom: 1px solid var(--border);
   }
@@ -639,7 +639,7 @@
     height: 90px;
     border-radius: 8px;
     flex-shrink: 0;
-    background: #f0f2ff;
+    background: var(--bg-card);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1326,9 +1326,9 @@
 
   /* ─── SCROLLBAR ─── */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: #f5f6fa; }
-  ::-webkit-scrollbar-thumb { background: #d1d5e8; border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #9aa0b8; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
   /* ─── TWITTER WIDGET ─── */
   .twitter-card {
@@ -1539,7 +1539,7 @@
   }
   .more-btn:hover, .more-btn.open {
     border-color: var(--purple); color: var(--purple);
-    background: #f5f3ff; border-style: solid;
+    background: var(--bg-card-hover); border-style: solid;
   }
   .more-list {
     max-height: 0; opacity: 0;
@@ -2793,7 +2793,7 @@ function fmtVol(v) {
 function pmCard(q, outcomes, prices, vol, imgUrl) {
   return `<div class="market-card" onclick="openSubModal('시장 데이터')" style="cursor:pointer">
     <div class="market-card-header">
-      <div class="market-icon" style="background:#f0f2ff;overflow:hidden;padding:0">
+      <div class="market-icon" style="background:var(--bg-card);overflow:hidden;padding:0">
         ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML='🎯'">` : '🎯'}
       </div>
       <div class="market-title">${q}</div>
