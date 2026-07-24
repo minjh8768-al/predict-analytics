@@ -1,9 +1,14 @@
+import { verifyToken } from './_auth.js';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const user = await verifyToken(req);
+  if (!user) return res.status(401).json({ error: '로그인이 필요합니다.' });
 
   const { messages, markets, cryptoData } = req.body;
   const key = process.env.GROQ_API_KEY;
@@ -41,7 +46,7 @@ ${marketContext || '마켓 데이터 없음'}
         'authorization': `Bearer ${key}`
       },
       body: JSON.stringify({
-        model: 'llama3-8b-8192',
+        model: 'llama-3.1-8b-instant',
         messages: groqMessages,
         max_tokens: 1000,
         temperature: 0.8
