@@ -1899,12 +1899,13 @@
       const isAdmin = ADMIN_EMAILS.includes(u.email);
       // Firestore에서 기존 플랜 확인
       const fsData = await _loadUserPlan(u.uid);
-      const plan = isAdmin ? 'premium' : (fsData?.plan || 'free');
+      // Firestore 플랜 우선, 없으면 관리자는 premium, 일반은 free
+      const plan = fsData?.plan || (isAdmin ? 'premium' : 'free');
       // 최초 로그인 시 Firestore에 유저 등록
       if (!fsData) {
         await setDoc(doc(db, 'users', u.uid), {
           email: u.email, name: u.displayName || 'Google 사용자',
-          plan: 'free', createdAt: serverTimestamp()
+          plan: isAdmin ? 'premium' : 'free', createdAt: serverTimestamp()
         }, { merge: true });
       }
       const user = { uid: u.uid, name: u.displayName || 'Google 사용자', email: u.email, photo: u.photoURL, plan };
@@ -1936,7 +1937,8 @@
       const isAdmin = ADMIN_EMAILS.includes(u.email);
       // Firestore에서 플랜 불러오기 (localStorage보다 우선)
       const fsData = await _loadUserPlan(u.uid);
-      const plan = isAdmin ? 'premium' : (fsData?.plan || stored.plan || 'free');
+      // Firestore 플랜 우선, 없으면 관리자는 premium, 일반은 free
+      const plan = fsData?.plan || (isAdmin ? 'premium' : stored.plan || 'free');
       const user = { uid: u.uid, name: u.displayName || stored.name || 'Google 사용자', email: u.email, photo: u.photoURL, plan };
       localStorage.setItem('pa_user', JSON.stringify(user));
       updateAuthUI(user);
