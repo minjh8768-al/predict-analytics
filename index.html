@@ -3946,6 +3946,8 @@ function subOverlayClick(e) {
   if (e.target === document.getElementById('subOverlay')) closeSubModal();
 }
 
+let _ppMounted = false;
+
 function handleSubCTA() {
   const btn = document.getElementById('subCtaMain');
   const container = document.getElementById('paypal-button-container');
@@ -3953,8 +3955,8 @@ function handleSubCTA() {
   btn.style.display = 'none';
   container.style.display = 'block';
 
-  // DOM에 이미 버튼이 있으면 절대 re-render 안 함
-  if (container.hasChildNodes()) return;
+  if (_ppMounted) return; // 절대 리셋 안 함 — 페이지 새로고침 전까지 한 번만 렌더
+  _ppMounted = true;
 
   const priceMap = { '스탠다드': '99.00', '프리미엄': '199.00', '서포터': '999.00' };
 
@@ -3988,7 +3990,7 @@ function handleSubCTA() {
       container.style.display = 'none';
       btn.style.display = 'block';
     }
-  }).render('#paypal-button-container');
+  }).render(container);
 }
 
 function handleFreeTrial() {
