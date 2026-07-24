@@ -2989,10 +2989,13 @@ function updateAuthUI(user) {
     }
     const used = getUsageToday();
     const planLabelMap = { standard: '✦ 스탠다드', premium: '✦ 프리미엄', supporter: '✦ 서포터' };
+    const planColorMap = { standard: '#60a5fa', premium: '#a78bfa', supporter: '#f59e0b' };
     const isPaid = ['standard','premium','supporter'].includes(user.plan) || ADMIN_LIST.includes(user.email);
     const limit = isPaid ? '무제한' : `${used}/1회`;
     document.getElementById('menuUserName').textContent = user.name;
-    document.getElementById('menuUserPlan').textContent = planLabelMap[user.plan] || '무료 플랜';
+    const planEl = document.getElementById('menuUserPlan');
+    planEl.textContent = planLabelMap[user.plan] || '무료 플랜';
+    planEl.style.color = planColorMap[user.plan] || '#9aa0b8';
     document.getElementById('menuAIUsage').textContent = `오늘 AI 분석: ${limit}`;
     const upgradeBtn = document.getElementById('upgradeMenuBtn');
     if (upgradeBtn) upgradeBtn.style.display = isPaid ? 'none' : 'block';
