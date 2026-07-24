@@ -1848,6 +1848,8 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
     from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+  import { getFirestore, doc, setDoc, getDoc, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyDPnNCfbUSQXfmYhT4g1NMQcfXrVC20Cp0",
@@ -1863,18 +1865,49 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
 
   window._fbAuth = auth;
   window._fbProvider = provider;
   window._fbSignOut = signOut;
 
+  // Firestore에 유저 플랜 저장 (결제 완료 시 호출)
+  window._saveUserPlan = async function(uid, plan, extra) {
+    await setDoc(doc(db, 'users', uid), {
+      plan,
+      planUpdatedAt: serverTimestamp(),
+      ...extra
+    }, { merge: true });
+  };
+
+  // Firestore에서 유저 플랜 조회
+  async function _loadUserPlan(uid) {
+    try {
+      const snap = await getDoc(doc(db, 'users', uid));
+      return snap.exists() ? snap.data() : null;
+    } catch (e) {
+      console.warn('Firestore 조회 실패:', e.message);
+      return null;
+    }
+  }
+
   window.loginWithGoogle = async function() {
     try {
       const result = await signInWithPopup(auth, provider);
       const u = result.user;
-      const plan = ADMIN_EMAILS.includes(u.email) ? 'premium' : 'free';
-      const user = { name: u.displayName || 'Google 사용자', email: u.email, photo: u.photoURL, plan };
+      const isAdmin = ADMIN_EMAILS.includes(u.email);
+      // Firestore에서 기존 플랜 확인
+      const fsData = await _loadUserPlan(u.uid);
+      const plan = isAdmin ? 'premium' : (fsData?.plan || 'free');
+      // 최초 로그인 시 Firestore에 유저 등록
+      if (!fsData) {
+        await setDoc(doc(db, 'users', u.uid), {
+          email: u.email, name: u.displayName || 'Google 사용자',
+          plan: 'free', createdAt: serverTimestamp()
+        }, { merge: true });
+      }
+      const user = { uid: u.uid, name: u.displayName || 'Google 사용자', email: u.email, photo: u.photoURL, plan };
       localStorage.setItem('pa_user', JSON.stringify(user));
       updateAuthUI(user);
       closeSubscribeModal();
@@ -1897,11 +1930,14 @@
     return await auth.currentUser.getIdToken();
   };
 
-  onAuthStateChanged(auth, (u) => {
+  onAuthStateChanged(auth, async (u) => {
     if (u) {
       const stored = JSON.parse(localStorage.getItem('pa_user') || '{}');
-      const plan = ADMIN_EMAILS.includes(u.email) ? 'premium' : (stored.plan || 'free');
-      const user = { name: u.displayName || stored.name || 'Google 사용자', email: u.email, photo: u.photoURL, plan };
+      const isAdmin = ADMIN_EMAILS.includes(u.email);
+      // Firestore에서 플랜 불러오기 (localStorage보다 우선)
+      const fsData = await _loadUserPlan(u.uid);
+      const plan = isAdmin ? 'premium' : (fsData?.plan || stored.plan || 'free');
+      const user = { uid: u.uid, name: u.displayName || stored.name || 'Google 사용자', email: u.email, photo: u.photoURL, plan };
       localStorage.setItem('pa_user', JSON.stringify(user));
       updateAuthUI(user);
     } else {
@@ -4105,6 +4141,18 @@ function handleSubCTA() {
         user.plan = planKeyMap[_selectedPlan] || 'standard';
         localStorage.setItem('pa_user', JSON.stringify(user));
         updateAuthUI(user);
+        // Firestore에 플랜 영구 저장
+        const currentUser = window._fbAuth && window._fbAuth.currentUser;
+        if (currentUser && window._saveUserPlan) {
+          try {
+            await window._saveUserPlan(currentUser.uid, user.plan, {
+              email: user.email,
+              name: user.name,
+              paypalOrderId: details.id,
+              paypalPayerEmail: details.payer?.email_address || ''
+            });
+          } catch (e) { console.warn('Firestore 저장 실패:', e.message); }
+        }
         // 성공 화면으로 인라인 전환
         document.getElementById('subSuccess').querySelector('#successPlanName').textContent = _selectedPlan;
         document.querySelector('.sub-badge').style.display = 'none';
