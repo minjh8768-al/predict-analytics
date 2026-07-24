@@ -2200,7 +2200,7 @@
       <button class="sub-cta-main" id="subCtaMain" onclick="handleSubCTA()">프리미엄 구독 시작하기 →</button>
     </div>
     <div id="paypal-button-container" style="margin-top:12px;display:none;"></div>
-    <div class="sub-note">언제든지 취소 가능 · 안전한 PayPal 결제</div>
+    <div class="sub-note">언제든지 취소 가능 · 안전한 PayPal 결제 · <span onclick="showPaymentSuccess('프리미엄')" style="cursor:pointer;color:var(--purple);text-decoration:underline">테스트</span></div>
 
     <!-- 결제 성공 화면 -->
     <div class="sub-success" id="subSuccess">
@@ -4029,6 +4029,18 @@ function closeSubModal() {
   document.querySelector('.sub-plans').style.display = '';
   document.querySelector('.sub-cta-row').style.display = '';
   document.querySelector('.sub-note').style.display = '';
+}
+
+function showPaymentSuccess(planName) {
+  document.getElementById('successPlanName').textContent = planName || _selectedPlan || '프리미엄';
+  document.querySelector('.sub-badge').style.display = 'none';
+  document.querySelector('.sub-title').style.display = 'none';
+  document.querySelector('.sub-desc').style.display = 'none';
+  document.querySelector('.sub-plans').style.display = 'none';
+  document.querySelector('.sub-cta-row').style.display = 'none';
+  document.getElementById('paypal-button-container').style.display = 'none';
+  document.querySelector('.sub-note').style.display = 'none';
+  document.getElementById('subSuccess').classList.add('visible');
 }
 
 function subOverlayClick(e) {
