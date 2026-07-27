@@ -2311,6 +2311,12 @@
     </div>
     <div id="paypal-button-container" style="margin-top:12px;display:none;"></div>
 
+    <div class="sub-cta-row" style="margin-top:10px;gap:6px;">
+      <span style="font-size:12px;color:var(--text-secondary);white-space:nowrap;">BOSS 충전:</span>
+      <button class="sub-cta-free" onclick="handleBossTopUp(100)" style="flex:1;padding:8px;">+100</button>
+      <button class="sub-cta-free" onclick="handleBossTopUp(500)" style="flex:1;padding:8px;">+500</button>
+      <button class="sub-cta-free" onclick="handleBossTopUp(1000)" style="flex:1;padding:8px;">+1000</button>
+    </div>
     <div class="sub-cta-row" style="margin-top:10px;">
       <button class="sub-cta-boss" id="subCtaBoss" onclick="handleBossPayment()">🪙 $BOSS 토큰으로 결제</button>
     </div>
@@ -4310,6 +4316,46 @@ async function chargeBossAndFinalize(walletAddress) {
 
   document.getElementById('bossStatus').style.display = 'none';
   showPaymentSuccess(_selectedPlan);
+}
+
+// Prefers an already-installed MetaMask; falls back to the Web3Auth
+// (Google/Kakao/...) embedded wallet when there's no injected provider.
+async function getConnectedWalletAddress() {
+  if (window.ethereum) {
+    const [address] = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    await ensureBossNetwork();
+    return address;
+  }
+  const web3auth = await getWeb3Auth();
+  await web3auth.connect();
+  const ethProvider = web3auth.connection?.ethereumProvider;
+  if (!ethProvider) throw new Error('지갑 provider를 가져오지 못했습니다.');
+  const ethersProvider = new ethers.BrowserProvider(ethProvider);
+  const signer = await ethersProvider.getSigner();
+  return await signer.getAddress();
+}
+
+// Test/demo only — mints straight to the wallet with no real payment in
+// front of it, same simplification as the boss-predict prototype.
+async function handleBossTopUp(amount) {
+  try {
+    showBossStatus('지갑 연결 중...', 'info');
+    const walletAddress = await getConnectedWalletAddress();
+
+    showBossStatus(`${amount} BOSS 충전 처리 중...`, 'info');
+    const res = await fetch(`${BOSS_API_BASE}/purchase`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ walletAddress, amount }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || '충전 실패');
+
+    const short = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+    showBossStatus(`✅ ${amount} BOSS 충전 완료! (지갑 ${short})`, 'info');
+  } catch (err) {
+    showBossStatus(err.message || '충전 중 오류가 발생했습니다.', 'error');
+  }
 }
 
 async function handleBossPayment() {
