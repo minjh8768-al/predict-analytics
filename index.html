@@ -4365,9 +4365,13 @@ async function handleGoogleWalletPayment() {
   try {
     showBossStatus('구글 로그인 중...', 'info');
     const web3auth = await getWeb3Auth();
-    const provider = await web3auth.connect();
+    await web3auth.connect();
+    // v11: connect()'s return value / web3auth.provider are not the raw
+    // EIP-1193 provider — the actual provider is nested under .connection.
+    const ethProvider = web3auth.connection?.ethereumProvider;
+    if (!ethProvider) throw new Error('지갑 provider를 가져오지 못했습니다.');
 
-    const ethersProvider = new ethers.BrowserProvider(provider);
+    const ethersProvider = new ethers.BrowserProvider(ethProvider);
     const signer = await ethersProvider.getSigner();
     const walletAddress = await signer.getAddress();
 
