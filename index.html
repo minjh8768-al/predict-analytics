@@ -4246,9 +4246,10 @@ function handleSubCTA() {
 }
 
 // ─── $BOSS 토큰 결제 (PayPal과 별개의 선택지) ──────────────────────
-// 테스트넷(Polygon Amoy) 데모 연동. 메인넷으로 옮길 때 아래 두 값만 교체.
+// Polygon 메인넷. 백엔드(boss-token-server)는 아직 로컬(localhost:4000)에서만
+// 돌고 있음 — 실제 서비스 전엔 이 URL을 공개 호스팅 주소로 바꿔야 함.
 const BOSS_TOKEN_ADDRESS = '0x36B1218cAea18F78d25E0fbf1fA4Ce82fE02cd29';
-const BOSS_CHAIN_ID_HEX  = '0x13882'; // 80002, Polygon Amoy
+const BOSS_CHAIN_ID_HEX  = '0x89'; // 137, Polygon mainnet
 const BOSS_API_BASE      = 'http://localhost:4000';
 const BOSS_PLAN_PRICE    = { '스탠다드': 99, '프리미엄': 199, '서포터': 999 };
 
@@ -4273,10 +4274,10 @@ async function ensureBossNetwork() {
       method: 'wallet_addEthereumChain',
       params: [{
         chainId: BOSS_CHAIN_ID_HEX,
-        chainName: 'Polygon Amoy',
+        chainName: 'Polygon',
         nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
-        rpcUrls: ['https://polygon-amoy-bor-rpc.publicnode.com'],
-        blockExplorerUrls: ['https://amoy.polygonscan.com'],
+        rpcUrls: ['https://polygon-bor-rpc.publicnode.com'],
+        blockExplorerUrls: ['https://polygonscan.com'],
       }],
     });
   }
@@ -4370,7 +4371,7 @@ async function handleBossPayment() {
     showBossStatus('지갑 연결 중...', 'info');
     const [walletAddress] = await window.ethereum.request({ method: 'eth_requestAccounts' });
 
-    showBossStatus('네트워크 확인 중 (Polygon Amoy)...', 'info');
+    showBossStatus('네트워크 확인 중 (Polygon)...', 'info');
     await ensureBossNetwork();
 
     await chargeBossAndFinalize(walletAddress);
@@ -4395,8 +4396,8 @@ async function getWeb3Auth() {
     chainConfig: {
       chainNamespace: 'eip155',
       chainId: BOSS_CHAIN_ID_HEX,
-      rpcTarget: 'https://polygon-amoy-bor-rpc.publicnode.com',
-      displayName: 'Polygon Amoy',
+      rpcTarget: 'https://polygon-bor-rpc.publicnode.com',
+      displayName: 'Polygon',
       ticker: 'POL',
       tickerName: 'POL',
     },
