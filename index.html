@@ -2311,18 +2311,10 @@
     </div>
     <div id="paypal-button-container" style="margin-top:12px;display:none;"></div>
 
-    <div class="sub-cta-row" style="margin-top:10px;gap:6px;">
-      <span style="font-size:12px;color:var(--text-secondary);white-space:nowrap;">BOSS 충전:</span>
-      <button class="sub-cta-free" onclick="handleBossTopUp(100)" style="flex:1;padding:8px;">+100</button>
-      <button class="sub-cta-free" onclick="handleBossTopUp(500)" style="flex:1;padding:8px;">+500</button>
-      <button class="sub-cta-free" onclick="handleBossTopUp(1000)" style="flex:1;padding:8px;">+1000</button>
-    </div>
     <div class="sub-cta-row" style="margin-top:10px;">
-      <button class="sub-cta-boss" id="subCtaBoss" onclick="handleBossPayment()">🪙 $BOSS 토큰으로 결제</button>
+      <button class="sub-cta-boss" id="bossEntryBtn" onclick="startBossFlow()" style="width:100%;">🪙 $BOSS 토큰으로 결제</button>
     </div>
-    <div class="sub-cta-row" style="margin-top:6px;">
-      <button class="sub-cta-free" id="subCtaGoogleWallet" onclick="handleGoogleWalletPayment()" style="flex:1;width:100%;">🔐 지갑 없어요 — 구글로 계속하기</button>
-    </div>
+    <div id="bossFlowPanel"></div>
     <div id="bossStatus" class="boss-status" style="display:none;"></div>
 
     <div class="sub-note">언제든지 취소 가능 · 안전한 PayPal 결제 · <span onclick="showPaymentSuccess('프리미엄')" style="cursor:pointer;color:var(--purple);text-decoration:underline">테스트</span></div>
@@ -4159,6 +4151,7 @@ function closeSubModal() {
   document.querySelector('.sub-plans').style.display = '';
   document.querySelector('.sub-cta-row').style.display = '';
   document.querySelector('.sub-note').style.display = '';
+  resetBossFlow();
 }
 
 function showPaymentSuccess(planName) {
@@ -4260,34 +4253,46 @@ function showBossStatus(message, type) {
   el.style.display = 'block';
 }
 
-async function ensureBossNetwork() {
-  const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-  if (chainId === BOSS_CHAIN_ID_HEX) return;
-  try {
-    await window.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: BOSS_CHAIN_ID_HEX }],
-    });
-  } catch (switchError) {
-    if (switchError.code !== 4902) throw switchError; // not-added-yet
-    await window.ethereum.request({
-      method: 'wallet_addEthereumChain',
-      params: [{
-        chainId: BOSS_CHAIN_ID_HEX,
-        chainName: 'Polygon',
-        nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
-        rpcUrls: ['https://polygon-bor-rpc.publicnode.com'],
-        blockExplorerUrls: ['https://polygonscan.com'],
-      }],
-    });
-  }
+// ─── 지갑 없는 사용자용: 구글/카카오 로그인만으로 지갑 자동 생성 (Web3Auth) ───
+const WEB3AUTH_CLIENT_ID = 'BNypgroyi7vHsL4cGrlboqQ-HdvkMzDG1QetK33qPa9Q1-cXM6wRbxYfqfWjle3w09NXZWdpq0x_78XhKJoKOiA';
+let _web3auth = null;
+
+async function getWeb3Auth() {
+  if (_web3auth) return _web3auth;
+  if (!window.Web3AuthModal) throw new Error('Web3Auth 스크립트를 불러올 수 없습니다. 페이지를 새로고침해주세요.');
+  const { Web3Auth } = window.Web3AuthModal;
+  _web3auth = new Web3Auth({
+    clientId: WEB3AUTH_CLIENT_ID,
+    web3AuthNetwork: 'sapphire_devnet',
+    chainConfig: {
+      chainNamespace: 'eip155',
+      chainId: BOSS_CHAIN_ID_HEX,
+      rpcTarget: 'https://polygon-bor-rpc.publicnode.com',
+      displayName: 'Polygon',
+      ticker: 'POL',
+      tickerName: 'POL',
+    },
+  });
+  await _web3auth.init();
+  return _web3auth;
 }
 
-// Shared by both wallet paths (MetaMask, Web3Auth Google) — everything
-// after "we know the user's wallet address" is identical either way.
-async function chargeBossAndFinalize(walletAddress) {
-  const amount = BOSS_PLAN_PRICE[_selectedPlan] || BOSS_PLAN_PRICE['프리미엄'];
-  showBossStatus(`${amount} BOSS 결제 처리 중...`, 'info');
+// Read-only balance check — no wallet interaction needed, just an RPC call.
+async function getBossBalance(walletAddress) {
+  const provider = new ethers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com');
+  const erc20 = new ethers.Contract(
+    BOSS_TOKEN_ADDRESS,
+    ['function balanceOf(address) view returns (uint256)', 'function decimals() view returns (uint8)'],
+    provider
+  );
+  const [balance, decimals] = await Promise.all([erc20.balanceOf(walletAddress), erc20.decimals()]);
+  return Number(ethers.formatUnits(balance, decimals));
+}
+
+// Shared by both wallet paths — everything after "we know the user's
+// wallet address and how much to charge" is identical either way.
+async function chargeBossAndFinalize(walletAddress, amount) {
+  showBossStatus(`${amount.toLocaleString()} BOSS 결제 처리 중...`, 'info');
 
   const res = await fetch(`${BOSS_API_BASE}/subscribe`, {
     method: 'POST',
@@ -4316,117 +4321,93 @@ async function chargeBossAndFinalize(walletAddress) {
   }
 
   document.getElementById('bossStatus').style.display = 'none';
+  document.getElementById('bossFlowPanel').innerHTML = '';
   showPaymentSuccess(_selectedPlan);
 }
 
-// Prefers an already-installed MetaMask; falls back to the Web3Auth
-// (Google/Kakao/...) embedded wallet when there's no injected provider.
-async function getConnectedWalletAddress() {
-  if (window.ethereum) {
-    const [address] = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    await ensureBossNetwork();
-    return address;
-  }
-  const web3auth = await getWeb3Auth();
-  await web3auth.connect();
-  const ethProvider = web3auth.connection?.ethereumProvider;
-  if (!ethProvider) throw new Error('지갑 provider를 가져오지 못했습니다.');
-  const ethersProvider = new ethers.BrowserProvider(ethProvider);
-  const signer = await ethersProvider.getSigner();
-  return await signer.getAddress();
+// ─── 단계별 흐름: 진입 버튼 → 지갑 선택 → 잔액 확인 → (필요시 충전) → 결제 ───
+function resetBossFlow() {
+  const entry = document.getElementById('bossEntryBtn');
+  if (entry) entry.style.display = '';
+  const panel = document.getElementById('bossFlowPanel');
+  if (panel) panel.innerHTML = '';
+  const status = document.getElementById('bossStatus');
+  if (status) status.style.display = 'none';
 }
 
-// Test/demo only — mints straight to the wallet with no real payment in
-// front of it, same simplification as the boss-predict prototype.
-async function handleBossTopUp(amount) {
+// Web3Auth's own login modal already lists MetaMask/Phantom alongside
+// Google/Kakao/etc., so there's no need for a separate direct-MetaMask
+// button — one entry point covers every wallet + no-wallet case.
+async function startBossFlow() {
+  document.getElementById('bossEntryBtn').style.display = 'none';
   try {
-    showBossStatus('지갑 연결 중...', 'info');
-    const walletAddress = await getConnectedWalletAddress();
-
-    showBossStatus(`${amount} BOSS 충전 처리 중...`, 'info');
-    const res = await fetch(`${BOSS_API_BASE}/purchase`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ walletAddress, amount }),
-    });
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.error || '충전 실패');
-
-    const short = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
-    showBossStatus(`✅ ${amount} BOSS 충전 완료! (지갑 ${short})`, 'info');
-  } catch (err) {
-    showBossStatus(err.message || '충전 중 오류가 발생했습니다.', 'error');
-  }
-}
-
-async function handleBossPayment() {
-  const btn = document.getElementById('subCtaBoss');
-  if (!window.ethereum) {
-    showBossStatus('메타마스크가 설치되어 있지 않습니다. 메타마스크가 없으면 아래 "구글로 계속하기"를 이용해주세요.', 'error');
-    return;
-  }
-
-  btn.disabled = true;
-  try {
-    showBossStatus('지갑 연결 중...', 'info');
-    const [walletAddress] = await window.ethereum.request({ method: 'eth_requestAccounts' });
-
-    showBossStatus('네트워크 확인 중 (Polygon)...', 'info');
-    await ensureBossNetwork();
-
-    await chargeBossAndFinalize(walletAddress);
-  } catch (err) {
-    showBossStatus(err.message || '결제 중 오류가 발생했습니다.', 'error');
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-// ─── 지갑 없는 사용자용: 구글 로그인만으로 지갑 자동 생성 (Web3Auth) ───
-const WEB3AUTH_CLIENT_ID = 'BNypgroyi7vHsL4cGrlboqQ-HdvkMzDG1QetK33qPa9Q1-cXM6wRbxYfqfWjle3w09NXZWdpq0x_78XhKJoKOiA';
-let _web3auth = null;
-
-async function getWeb3Auth() {
-  if (_web3auth) return _web3auth;
-  if (!window.Web3AuthModal) throw new Error('Web3Auth 스크립트를 불러올 수 없습니다. 페이지를 새로고침해주세요.');
-  const { Web3Auth } = window.Web3AuthModal;
-  _web3auth = new Web3Auth({
-    clientId: WEB3AUTH_CLIENT_ID,
-    web3AuthNetwork: 'sapphire_devnet',
-    chainConfig: {
-      chainNamespace: 'eip155',
-      chainId: BOSS_CHAIN_ID_HEX,
-      rpcTarget: 'https://polygon-bor-rpc.publicnode.com',
-      displayName: 'Polygon',
-      ticker: 'POL',
-      tickerName: 'POL',
-    },
-  });
-  await _web3auth.init();
-  return _web3auth;
-}
-
-async function handleGoogleWalletPayment() {
-  const btn = document.getElementById('subCtaGoogleWallet');
-  btn.disabled = true;
-  try {
-    showBossStatus('구글 로그인 중...', 'info');
+    showBossStatus('로그인 중...', 'info');
     const web3auth = await getWeb3Auth();
     await web3auth.connect();
     // v11: connect()'s return value / web3auth.provider are not the raw
     // EIP-1193 provider — the actual provider is nested under .connection.
     const ethProvider = web3auth.connection?.ethereumProvider;
     if (!ethProvider) throw new Error('지갑 provider를 가져오지 못했습니다.');
-
     const ethersProvider = new ethers.BrowserProvider(ethProvider);
     const signer = await ethersProvider.getSigner();
     const walletAddress = await signer.getAddress();
 
-    await chargeBossAndFinalize(walletAddress);
+    showBossStatus('잔액 확인 중...', 'info');
+    const price = BOSS_PLAN_PRICE[_selectedPlan] || BOSS_PLAN_PRICE['프리미엄'];
+    const balance = await getBossBalance(walletAddress);
+    document.getElementById('bossStatus').style.display = 'none';
+    renderBossActionPanel(walletAddress, balance, price);
   } catch (err) {
-    showBossStatus(err.message || '로그인/결제 중 오류가 발생했습니다.', 'error');
-  } finally {
-    btn.disabled = false;
+    const cancelled = /closed the modal|user closed|user rejected/i.test(err.message || '');
+    showBossStatus(cancelled ? '로그인이 취소되었습니다.' : (err.message || '연결 중 오류가 발생했습니다.'), 'error');
+    document.getElementById('bossEntryBtn').style.display = '';
+  }
+}
+
+function renderBossActionPanel(walletAddress, balance, price) {
+  const short = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+  const panel = document.getElementById('bossFlowPanel');
+  if (balance < price) {
+    const needed = Math.ceil(price - balance);
+    panel.innerHTML = `
+      <div class="boss-status info" style="display:block;">지갑 ${short} · 보유 ${balance.toLocaleString()} BOSS / 필요 ${price.toLocaleString()} BOSS</div>
+      <div class="sub-cta-row" style="margin-top:8px;">
+        <button class="sub-cta-boss" style="width:100%" onclick="bossTopUpThenPay('${walletAddress}', ${needed}, ${price})">🪙 ${needed.toLocaleString()} BOSS 충전 후 결제하기</button>
+      </div>
+    `;
+  } else {
+    panel.innerHTML = `
+      <div class="boss-status info" style="display:block;">지갑 ${short} · 보유 ${balance.toLocaleString()} BOSS</div>
+      <div class="sub-cta-row" style="margin-top:8px;">
+        <button class="sub-cta-boss" style="width:100%" onclick="bossPay('${walletAddress}', ${price})">✅ ${price.toLocaleString()} BOSS로 결제하기</button>
+      </div>
+    `;
+  }
+}
+
+// Test/demo only — mints straight to the wallet with no real payment in
+// front of it, same simplification as the boss-predict prototype.
+async function bossTopUpThenPay(walletAddress, needed, price) {
+  try {
+    showBossStatus(`${needed.toLocaleString()} BOSS 충전 중...`, 'info');
+    const res = await fetch(`${BOSS_API_BASE}/purchase`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ walletAddress, amount: needed }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || '충전 실패');
+    await bossPay(walletAddress, price);
+  } catch (err) {
+    showBossStatus(err.message || '충전 중 오류가 발생했습니다.', 'error');
+  }
+}
+
+async function bossPay(walletAddress, price) {
+  try {
+    await chargeBossAndFinalize(walletAddress, price);
+  } catch (err) {
+    showBossStatus(err.message || '결제 중 오류가 발생했습니다.', 'error');
   }
 }
 
