@@ -1990,11 +1990,10 @@
 </script>
 <script src="https://www.paypal.com/sdk/js?client-id=BAAMjDzB-2zepECijN6hADPisERXONLsm5lDNOcqokmlp7_UPlCedXvwvbH7wjCRo5VKdgYM-ngQspwrvA&currency=USD&intent=capture&enable-funding=venmo&disable-funding=paylater" data-sdk-integration-source="developer-studio"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
-<script type="module">
-  window.__web3AuthReady = import("https://esm.sh/@web3auth/modal@11.3.0")
-    .then(m => { window.__Web3Auth = m.Web3Auth; return m.Web3Auth; })
-    .catch(err => { console.error('Web3Auth 모듈 로드 실패:', err); throw err; });
-</script>
+<!-- Self-bundled (esbuild) — @web3auth/modal has CJS/ESM interop issues with
+     live CDN transpilers (esm.sh, jsdelivr +esm), so it's bundled locally
+     into vendor/web3auth.bundle.js instead of imported from a CDN at runtime. -->
+<script src="vendor/web3auth.bundle.js"></script>
 </head>
 <body>
 
@@ -4342,8 +4341,8 @@ let _web3auth = null;
 
 async function getWeb3Auth() {
   if (_web3auth) return _web3auth;
-  if (!window.__web3AuthReady) throw new Error('Web3Auth 모듈을 불러올 수 없습니다. 페이지를 새로고침해주세요.');
-  const Web3Auth = await window.__web3AuthReady; // waits for the actual module fetch, not a timing guess
+  if (!window.Web3AuthModal) throw new Error('Web3Auth 스크립트를 불러올 수 없습니다. 페이지를 새로고침해주세요.');
+  const { Web3Auth } = window.Web3AuthModal;
   _web3auth = new Web3Auth({
     clientId: WEB3AUTH_CLIENT_ID,
     web3AuthNetwork: 'sapphire_devnet',
@@ -4356,7 +4355,7 @@ async function getWeb3Auth() {
       tickerName: 'POL',
     },
   });
-  await _web3auth.initModal();
+  await _web3auth.init();
   return _web3auth;
 }
 
