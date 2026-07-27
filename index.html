@@ -4392,10 +4392,10 @@ function renderBossActionPanel(walletAddress, balance, price) {
     const needed = Math.ceil(price - balance);
     panel.innerHTML = `
       <div class="boss-status info" style="display:block;">지갑 ${short} · 보유 ${balance.toLocaleString()} BOSS / 필요 ${price.toLocaleString()} BOSS</div>
-      <div class="sub-cta-row" style="margin-top:8px;">
-        <button class="sub-cta-boss" style="width:100%" onclick="bossTopUpThenPay('${walletAddress}', ${needed}, ${price})">🪙 ${needed.toLocaleString()} BOSS 충전 후 결제하기</button>
-      </div>
+      <div style="font-size:12.5px;color:var(--text-secondary);margin:8px 0 4px;">부족한 ${needed.toLocaleString()} BOSS(= $${needed.toLocaleString()})를 페이팔로 결제하면 자동 충전됩니다.</div>
+      <div id="bossTopUpPaypal"></div>
     `;
+    renderBossTopUpPayPal(walletAddress, needed, price);
   } else {
     panel.innerHTML = `
       <div class="boss-status info" style="display:block;">지갑 ${short} · 보유 ${balance.toLocaleString()} BOSS</div>
@@ -4406,22 +4406,40 @@ function renderBossActionPanel(walletAddress, balance, price) {
   }
 }
 
-// Test/demo only — mints straight to the wallet with no real payment in
-// front of it, same simplification as the boss-predict prototype.
-async function bossTopUpThenPay(walletAddress, needed, price) {
-  try {
-    showBossStatus(`${needed.toLocaleString()} BOSS 충전 중...`, 'info');
-    const res = await fetch(`${BOSS_API_BASE}/purchase`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ walletAddress, amount: needed }),
-    });
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.error || '충전 실패');
-    await bossPay(walletAddress, price);
-  } catch (err) {
-    showBossStatus(err.message || '충전 중 오류가 발생했습니다.', 'error');
-  }
+// 1 BOSS = $1로 취급 (기존 플랜 가격표: 스탠다드 99 / 프리미엄 199 / 서포터 999와 동일 비율).
+// 페이팔 결제가 실제로 승인된 뒤에만 /purchase를 호출 — 무료 발행 스텁은 여기서 없앰.
+function renderBossTopUpPayPal(walletAddress, needed, price) {
+  paypal.Buttons({
+    style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
+    createOrder: function(data, actions) {
+      return actions.order.create({
+        purchase_units: [{
+          amount: { value: needed.toFixed(2), currency_code: 'USD' },
+          description: `PredictAnalytics BOSS 충전 (${needed} BOSS)`,
+        }],
+      });
+    },
+    onApprove: async function(data, actions) {
+      const details = await actions.order.capture();
+      if (details.status !== 'COMPLETED') return;
+      try {
+        showBossStatus(`${needed.toLocaleString()} BOSS 충전 중...`, 'info');
+        const res = await fetch(`${BOSS_API_BASE}/purchase`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletAddress, amount: needed }),
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || '충전 실패');
+        await bossPay(walletAddress, price);
+      } catch (err) {
+        showBossStatus(err.message || '충전 중 오류가 발생했습니다.', 'error');
+      }
+    },
+    onError: function(err) {
+      showBossStatus('페이팔 결제 오류: ' + err, 'error');
+    },
+  }).render('#bossTopUpPaypal');
 }
 
 async function bossPay(walletAddress, price) {
