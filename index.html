@@ -3067,14 +3067,32 @@ function withTimeout(promise, ms, label) {
   ]);
 }
 
-// Firebase Custom Connection(JWT) 방식은 Web3Auth 쪽 Auth Network에서
-// 연결이 멈추는 문제가 재현되어(2026-07-28) 일단 원래 방식(자체 로그인 모달)으로
-// 되돌림. 나중에 재시도할 때는 이 함수를 connectTo(...) 버전으로 다시 교체.
+// 2026-07-28 재시도: 대시보드 설정 반영 시간이 더 지난 뒤 다시 테스트.
+// 안 되면 이 함수만 원래 모달 방식(web3auth.connect())으로 되돌리면 됨.
 async function connectWeb3AuthViaFirebase() {
+  console.log('[boss] 1/4 Firebase 토큰 요청...');
+  const idToken = window.getFirebaseToken ? await window.getFirebaseToken() : null;
+  if (!idToken) throw new Error('먼저 사이트에 로그인해주세요.');
+  console.log('[boss] 2/4 Firebase 토큰 확보, 길이:', idToken.length);
+  try {
+    const payload = JSON.parse(atob(idToken.split('.')[1]));
+    console.log('[boss] 토큰 claims — iss:', payload.iss, '/ aud:', payload.aud, '/ sub:', payload.sub);
+  } catch (e) { console.warn('[boss] 토큰 디코딩 실패(무시 가능):', e.message); }
+
   const web3auth = await getWeb3Auth();
-  // 이전 세션이 남아있으면 먼저 끊어서 매번 선택 화면이 뜨도록 함.
-  await web3auth.logout().catch(() => {});
-  await withTimeout(web3auth.connect(), 30000, 'Web3Auth connect');
+  console.log('[boss] 3/4 Web3Auth 초기화 완료, connectTo 호출...');
+  const { WALLET_CONNECTORS, AUTH_CONNECTION } = window.Web3AuthModal;
+  await withTimeout(
+    web3auth.connectTo(WALLET_CONNECTORS.AUTH, {
+      authConnectionId: 'firebase-predictanalytics',
+      authConnection: AUTH_CONNECTION.CUSTOM,
+      idToken,
+      extraLoginOptions: { isUserIdCaseSensitive: false },
+    }),
+    20000,
+    'Web3Auth connectTo'
+  );
+  console.log('[boss] 4/4 connectTo 완료');
 
   const ethProvider = web3auth.connection?.ethereumProvider;
   if (!ethProvider) throw new Error('지갑 provider를 가져오지 못했습니다.');
@@ -3149,7 +3167,7 @@ async function refreshMenuWalletInfo() {
   }
   if (disconnectEl) disconnectEl.style.display = '';
   const short = `${user.bossWallet.slice(0, 6)}...${user.bossWallet.slice(-4)}`;
-  btnEl.textContent = '다른 지갑 연결';
+  btnEl.textContent = '잔액 새로고침';
   infoEl.textContent = `${short} · 조회 중...`;
   try {
     const balance = await getBossBalance(user.bossWallet);
