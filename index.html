@@ -3057,21 +3057,35 @@ function toggleUserMenu() {
 }
 
 // 헤더 프로필 메뉴의 "내 지갑" — 결제 흐름과 무관하게 지갑 연결/잔액만 보여줌.
+// Firebase 로그인 상태를 그대로 Web3Auth 인증으로 재사용 — 별도 로그인창
+// (구글/카카오 선택 모달) 없이 조용히 같은 지갑을 복원/생성한다.
+// 대시보드의 "firebase-predictanalytics" Custom Connection과 짝을 이룸.
+async function connectWeb3AuthViaFirebase() {
+  const idToken = window.getFirebaseToken ? await window.getFirebaseToken() : null;
+  if (!idToken) throw new Error('먼저 사이트에 로그인해주세요.');
+
+  const web3auth = await getWeb3Auth();
+  const { WALLET_CONNECTORS, AUTH_CONNECTION } = window.Web3AuthModal;
+  await web3auth.connectTo(WALLET_CONNECTORS.AUTH, {
+    authConnectionId: 'firebase-predictanalytics',
+    authConnection: AUTH_CONNECTION.CUSTOM,
+    idToken,
+    extraLoginOptions: { isUserIdCaseSensitive: false },
+  });
+
+  const ethProvider = web3auth.connection?.ethereumProvider;
+  if (!ethProvider) throw new Error('지갑 provider를 가져오지 못했습니다.');
+  const ethersProvider = new ethers.BrowserProvider(ethProvider);
+  const signer = await ethersProvider.getSigner();
+  return await signer.getAddress();
+}
+
 async function connectWalletForMenu() {
   const btn = document.getElementById('menuWalletConnectBtn');
   btn.disabled = true;
   btn.textContent = '연결 중...';
   try {
-    const web3auth = await getWeb3Auth();
-    // "다른 지갑 연결"이 목적인 버튼이라, 이전 세션이 남아있으면 먼저 끊어서
-    // 매번 선택 화면(메타마스크/구글/카카오 등)이 뜨도록 함.
-    await web3auth.logout().catch(() => {});
-    await web3auth.connect();
-    const ethProvider = web3auth.connection?.ethereumProvider;
-    if (!ethProvider) throw new Error('지갑 provider를 가져오지 못했습니다.');
-    const ethersProvider = new ethers.BrowserProvider(ethProvider);
-    const signer = await ethersProvider.getSigner();
-    const walletAddress = await signer.getAddress();
+    const walletAddress = await connectWeb3AuthViaFirebase();
 
     const user = getUser() || {};
     user.bossWallet = walletAddress;
@@ -3130,7 +3144,7 @@ async function refreshMenuWalletInfo() {
   }
   if (disconnectEl) disconnectEl.style.display = '';
   const short = `${user.bossWallet.slice(0, 6)}...${user.bossWallet.slice(-4)}`;
-  btnEl.textContent = '다른 지갑 연결';
+  btnEl.textContent = '잔액 새로고침';
   infoEl.textContent = `${short} · 조회 중...`;
   try {
     const balance = await getBossBalance(user.bossWallet);
@@ -4506,16 +4520,8 @@ async function startBossFlow() {
   if (!requireSiteLogin()) return;
   document.getElementById('bossEntryBtn').style.display = 'none';
   try {
-    showBossStatus('로그인 중...', 'info');
-    const web3auth = await getWeb3Auth();
-    await web3auth.connect();
-    // v11: connect()'s return value / web3auth.provider are not the raw
-    // EIP-1193 provider — the actual provider is nested under .connection.
-    const ethProvider = web3auth.connection?.ethereumProvider;
-    if (!ethProvider) throw new Error('지갑 provider를 가져오지 못했습니다.');
-    const ethersProvider = new ethers.BrowserProvider(ethProvider);
-    const signer = await ethersProvider.getSigner();
-    const walletAddress = await signer.getAddress();
+    showBossStatus('지갑 준비 중...', 'info');
+    const walletAddress = await connectWeb3AuthViaFirebase();
 
     _bossWalletAddress = walletAddress;
     showBossStatus('잔액 확인 중...', 'info');
