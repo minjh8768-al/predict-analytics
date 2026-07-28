@@ -1888,7 +1888,7 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
     from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-  import { getFirestore, doc, setDoc, getDoc, serverTimestamp }
+  import { getFirestore, doc, setDoc, getDoc, serverTimestamp, increment }
     from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const firebaseConfig = {
@@ -1911,6 +1911,7 @@
   window._fbAuth = auth;
   window._fbProvider = provider;
   window._fbSignOut = signOut;
+  window._firestoreIncrement = increment;
 
   // Firestore에 유저 플랜 저장 (결제 완료 시 호출)
   window._saveUserPlan = async function(uid, plan, extra) {
@@ -1919,6 +1920,12 @@
       planUpdatedAt: serverTimestamp(),
       ...extra
     }, { merge: true });
+  };
+
+  // plan 필드는 건드리지 않고 결제 기록만 남길 때 사용 (예: BOSS 충전 시점 —
+  // 이때는 아직 구독이 확정된 게 아니라 plan을 같이 바꾸면 안 됨).
+  window._recordPayment = async function(uid, extra) {
+    await setDoc(doc(db, 'users', uid), extra, { merge: true });
   };
 
   // Firestore에서 유저 플랜 조회
@@ -2035,6 +2042,11 @@
             <div id="menuAIUsage" style="font-size:11px;color:#888;margin-top:4px"></div>
           </div>
           <button id="upgradeMenuBtn" onclick="openSubModal();toggleUserMenu()" style="display:none;width:100%;text-align:left;padding:9px 12px;background:linear-gradient(135deg,#7c3aed22,#4f46e522);border:none;border-radius:8px;color:#c4b5fd;font-size:13px;cursor:pointer;margin-bottom:4px">✦ 프리미엄 업그레이드</button>
+          <div style="padding:9px 12px;border-top:1px solid var(--border);margin-top:2px;margin-bottom:2px">
+            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">🪙 내 지갑</div>
+            <div id="menuWalletInfo" style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">연결된 지갑 없음</div>
+            <button id="menuWalletConnectBtn" onclick="connectWalletForMenu()" style="width:100%;text-align:left;padding:7px 10px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:12px;cursor:pointer">지갑 연결하기</button>
+          </div>
           <button onclick="logoutUser()" style="width:100%;text-align:left;padding:9px 12px;background:none;border:none;border-radius:8px;color:var(--text-muted);font-size:13px;cursor:pointer">로그아웃</button>
         </div>
       </div>
@@ -3033,7 +3045,55 @@ function closeSubscribeModal() {
 
 function toggleUserMenu() {
   const menu = document.getElementById('userMenu');
-  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  const opening = menu.style.display === 'none';
+  menu.style.display = opening ? 'block' : 'none';
+  if (opening) refreshMenuWalletInfo();
+}
+
+// 헤더 프로필 메뉴의 "내 지갑" — 결제 흐름과 무관하게 지갑 연결/잔액만 보여줌.
+async function connectWalletForMenu() {
+  const btn = document.getElementById('menuWalletConnectBtn');
+  btn.disabled = true;
+  btn.textContent = '연결 중...';
+  try {
+    const web3auth = await getWeb3Auth();
+    await web3auth.connect();
+    const ethProvider = web3auth.connection?.ethereumProvider;
+    if (!ethProvider) throw new Error('지갑 provider를 가져오지 못했습니다.');
+    const ethersProvider = new ethers.BrowserProvider(ethProvider);
+    const signer = await ethersProvider.getSigner();
+    const walletAddress = await signer.getAddress();
+
+    const user = getUser() || {};
+    user.bossWallet = walletAddress;
+    localStorage.setItem('pa_user', JSON.stringify(user));
+    await refreshMenuWalletInfo();
+  } catch (err) {
+    document.getElementById('menuWalletInfo').textContent = err.message || '지갑 연결 실패';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function refreshMenuWalletInfo() {
+  const infoEl = document.getElementById('menuWalletInfo');
+  const btnEl = document.getElementById('menuWalletConnectBtn');
+  if (!infoEl || !btnEl) return;
+  const user = getUser();
+  if (!user || !user.bossWallet) {
+    infoEl.textContent = '연결된 지갑 없음';
+    btnEl.textContent = '지갑 연결하기';
+    return;
+  }
+  const short = `${user.bossWallet.slice(0, 6)}...${user.bossWallet.slice(-4)}`;
+  btnEl.textContent = '다른 지갑 연결';
+  infoEl.textContent = `${short} · 조회 중...`;
+  try {
+    const balance = await getBossBalance(user.bossWallet);
+    infoEl.textContent = `${short} · ${balance.toLocaleString()} BOSS`;
+  } catch (e) {
+    infoEl.textContent = `${short} · 잔액 조회 실패`;
+  }
 }
 
 // logoutUser → Firebase module script에서 정의됨
@@ -4216,11 +4276,15 @@ function handleSubCTA() {
         const currentUser = window._fbAuth && window._fbAuth.currentUser;
         if (currentUser && window._saveUserPlan) {
           try {
+            const paidAmount = parseFloat(priceMap[_selectedPlan] || '199.00');
             await window._saveUserPlan(currentUser.uid, user.plan, {
               email: user.email,
               name: user.name,
               paypalOrderId: details.id,
-              paypalPayerEmail: details.payer?.email_address || ''
+              paypalPayerEmail: details.payer?.email_address || '',
+              paymentMethod: 'PayPal',
+              lastPaymentAmount: paidAmount,
+              totalPaidUSD: window._firestoreIncrement ? window._firestoreIncrement(paidAmount) : paidAmount,
             });
           } catch (e) { console.warn('Firestore 저장 실패:', e.message); }
         }
@@ -4468,6 +4532,21 @@ function renderBossTopUpPayPal(walletAddress, needed, price) {
         });
         const body = await res.json();
         if (!res.ok) throw new Error(body.error || '충전 실패');
+
+        // 실제 결제가 일어난 시점은 여기(페이팔 승인) — 관리자 페이지 집계용으로 기록.
+        const currentUser = window._fbAuth && window._fbAuth.currentUser;
+        if (currentUser && window._recordPayment) {
+          try {
+            await window._recordPayment(currentUser.uid, {
+              email: currentUser.email,
+              bossWallet: walletAddress,
+              paymentMethod: 'BOSS',
+              lastPaymentAmount: needed,
+              totalPaidUSD: window._firestoreIncrement ? window._firestoreIncrement(needed) : needed,
+            });
+          } catch (e) { console.warn('Firestore 저장 실패:', e.message); }
+        }
+
         await bossPay(walletAddress, price);
       } catch (err) {
         showBossStatus(err.message || '충전 중 오류가 발생했습니다.', 'error');
