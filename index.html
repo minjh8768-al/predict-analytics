@@ -3060,6 +3060,9 @@ async function connectWalletForMenu() {
   btn.textContent = '연결 중...';
   try {
     const web3auth = await getWeb3Auth();
+    // "다른 지갑 연결"이 목적인 버튼이라, 이전 세션이 남아있으면 먼저 끊어서
+    // 매번 선택 화면(메타마스크/구글/카카오 등)이 뜨도록 함.
+    await web3auth.logout().catch(() => {});
     await web3auth.connect();
     const ethProvider = web3auth.connection?.ethereumProvider;
     if (!ethProvider) throw new Error('지갑 provider를 가져오지 못했습니다.');
