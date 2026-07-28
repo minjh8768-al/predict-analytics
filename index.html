@@ -4468,9 +4468,20 @@ async function getWeb3Auth() {
   return _web3auth;
 }
 
+// 여러 함수가 각자 새 JsonRpcProvider를 만들면 지갑 모달을 열 때마다 공용 퍼블릭 RPC에
+// 네트워크 감지 요청까지 겹쳐서 순간적으로 너무 많은 요청이 몰려 rate limit에 걸림.
+// 하나만 만들어서 재사용 + chainId(137)를 미리 알려줘서 감지 요청 자체를 생략시킴.
+let _polygonProvider = null;
+function getPolygonProvider() {
+  if (!_polygonProvider) {
+    _polygonProvider = new ethers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com', 137);
+  }
+  return _polygonProvider;
+}
+
 // Read-only balance check — no wallet interaction needed, just an RPC call.
 async function getBossBalance(walletAddress) {
-  const provider = new ethers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com');
+  const provider = getPolygonProvider();
   const erc20 = new ethers.Contract(
     BOSS_TOKEN_ADDRESS,
     ['function balanceOf(address) view returns (uint256)', 'function decimals() view returns (uint8)'],
@@ -4488,27 +4499,39 @@ const WALLET_OTHER_TOKENS = [
 ];
 
 async function getWalletPortfolio(walletAddress) {
-  const provider = new ethers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com');
+  const provider = getPolygonProvider();
   const erc20Abi = ['function balanceOf(address) view returns (uint256)', 'function decimals() view returns (uint8)'];
-  const [polBalance, ...tokens] = await Promise.all([
-    provider.getBalance(walletAddress),
-    ...WALLET_OTHER_TOKENS.map(async t => {
+
+  const polResult = await provider.getBalance(walletAddress).catch(() => null);
+
+  // 토큰 하나가 실패해도 나머지는 정상 표시되도록 개별적으로 catch
+  const tokens = await Promise.all(WALLET_OTHER_TOKENS.map(async t => {
+    try {
       const c = new ethers.Contract(t.address, erc20Abi, provider);
       const [bal, dec] = await Promise.all([c.balanceOf(walletAddress), c.decimals()]);
-      return { symbol: t.symbol, balance: Number(ethers.formatUnits(bal, dec)) };
-    }),
-  ]);
-  return { pol: Number(ethers.formatEther(polBalance)), tokens };
+      return { symbol: t.symbol, balance: Number(ethers.formatUnits(bal, dec)), error: false };
+    } catch (e) {
+      return { symbol: t.symbol, balance: 0, error: true };
+    }
+  }));
+
+  return {
+    pol: polResult === null ? null : Number(ethers.formatEther(polResult)),
+    tokens,
+  };
 }
 
 function renderWalletModalAssets(portfolio) {
   const el = document.getElementById('walletModalAssets');
   if (!el) return;
-  const rows = [{ symbol: 'POL (가스비)', balance: portfolio.pol }, ...portfolio.tokens];
+  const rows = [
+    { symbol: 'POL (가스비)', balance: portfolio.pol, error: portfolio.pol === null },
+    ...portfolio.tokens,
+  ];
   el.innerHTML = rows.map((r, i) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;${i < rows.length - 1 ? 'border-bottom:1px solid var(--border)' : ''}">
       <span style="font-size:12.5px;color:var(--text-secondary)">${r.symbol}</span>
-      <span style="font-size:12.5px;font-weight:600;color:var(--text-primary)">${r.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+      <span style="font-size:12.5px;font-weight:600;color:${r.error ? 'var(--text-muted)' : 'var(--text-primary)'}">${r.error ? '조회 실패' : r.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
     </div>`).join('');
 }
 
