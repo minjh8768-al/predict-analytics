@@ -149,6 +149,14 @@
         <div class="stat-label">서포터</div>
         <div class="stat-val" style="color:var(--yellow)" id="statSupporter">—</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-label">추천 가입</div>
+        <div class="stat-val purple" id="statReferred">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">추천 보상 지급</div>
+        <div class="stat-val green" id="statReferralPaid">—</div>
+      </div>
     </div>
 
     <div class="stat-card" style="margin-bottom:20px">
@@ -181,11 +189,12 @@
             <th>PayPal ID</th>
             <th>누적 결제액</th>
             <th>지갑 / BOSS 잔액</th>
+            <th>추천</th>
             <th>플랜 변경</th>
           </tr>
         </thead>
         <tbody id="userTableBody">
-          <tr class="loading-row"><td colspan="9"><span class="dot-spin"></span> 불러오는 중...</td></tr>
+          <tr class="loading-row"><td colspan="10"><span class="dot-spin"></span> 불러오는 중...</td></tr>
         </tbody>
       </table>
     </div>
@@ -268,7 +277,7 @@
   // ── 유저 목록 로드 ──
   window.loadUsers = async function() {
     document.getElementById('userTableBody').innerHTML =
-      '<tr class="loading-row"><td colspan="9"><span class="dot-spin"></span> 불러오는 중...</td></tr>';
+      '<tr class="loading-row"><td colspan="10"><span class="dot-spin"></span> 불러오는 중...</td></tr>';
     try {
       const snap = await getDocs(collection(db, 'users'));
       allUsers = [];
@@ -278,7 +287,7 @@
       renderTable();
     } catch (e) {
       document.getElementById('userTableBody').innerHTML =
-        `<tr class="loading-row"><td colspan="9" style="color:var(--red)">오류: ${e.message}<br><small>Firestore 보안 규칙을 확인하세요</small></td></tr>`;
+        `<tr class="loading-row"><td colspan="10" style="color:var(--red)">오류: ${e.message}<br><small>Firestore 보안 규칙을 확인하세요</small></td></tr>`;
     }
   };
 
@@ -329,6 +338,8 @@
     document.getElementById('statPaid').textContent = paid.length;
     document.getElementById('statPremium').textContent = allUsers.filter(u => u.plan === 'premium').length;
     document.getElementById('statSupporter').textContent = allUsers.filter(u => u.plan === 'supporter').length;
+    document.getElementById('statReferred').textContent = allUsers.filter(u => u.referredBy).length;
+    document.getElementById('statReferralPaid').textContent = allUsers.filter(u => u.referralFirstPayBonusPaid).length;
   }
 
   window.setFilter = function(f, el) {
@@ -350,7 +361,7 @@
 
     if (!rows.length) {
       document.getElementById('userTableBody').innerHTML =
-        '<tr><td colspan="9" class="empty">조건에 맞는 유저가 없습니다.</td></tr>';
+        '<tr><td colspan="10" class="empty">조건에 맞는 유저가 없습니다.</td></tr>';
       return;
     }
 
@@ -368,6 +379,15 @@
       const walletCell = u.bossWallet
         ? `<span title="${esc(u.bossWallet)}">${u.bossWallet.slice(0,6)}...${u.bossWallet.slice(-4)}</span><br><small id="bal-${u.uid}" style="font-size:11px;color:var(--text-muted)">불러오는 중...</small>`
         : '—';
+      let referralCell = '—';
+      if (u.referredBy) {
+        const referrer = allUsers.find(x => x.uid === u.referredBy);
+        const referrerLabel = referrer ? esc(referrer.name || referrer.email || u.referredBy) : u.referredBy;
+        const badge = u.referralFirstPayBonusPaid
+          ? '<span style="color:var(--green);font-weight:700">지급됨</span>'
+          : '<span style="color:var(--text-muted)">대기중</span>';
+        referralCell = `→ ${referrerLabel}<br><small style="font-size:10px">${badge}</small>`;
+      }
       return `<tr>
         <td><div class="avatar-placeholder">👤</div></td>
         <td class="name">${esc(u.name || '—')}</td>
@@ -377,6 +397,7 @@
         <td>${orderId}</td>
         <td>${totalPaid}${lastPaidSub}</td>
         <td>${walletCell}</td>
+        <td>${referralCell}</td>
         <td>
           <div style="display:flex;align-items:center;gap:6px">
             <select class="plan-select" id="sel-${u.uid}">
