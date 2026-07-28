@@ -1998,7 +1998,8 @@
       const fsData = await _loadUserPlan(u.uid);
       // Firestore 플랜 우선, 없으면 관리자는 premium, 일반은 free
       const plan = fsData?.plan || (isAdmin ? 'premium' : stored.plan || 'free');
-      const user = { uid: u.uid, name: u.displayName || stored.name || 'Google 사용자', email: u.email, photo: u.photoURL, plan };
+      const bossWallet = fsData?.bossWallet || stored.bossWallet;
+      const user = { uid: u.uid, name: u.displayName || stored.name || 'Google 사용자', email: u.email, photo: u.photoURL, plan, bossWallet };
       localStorage.setItem('pa_user', JSON.stringify(user));
       updateAuthUI(user);
     } else {
