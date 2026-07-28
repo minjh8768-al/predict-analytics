@@ -4459,11 +4459,10 @@ function handleSubCTA() {
 }
 
 // ─── $BOSS 토큰 결제 (PayPal과 별개의 선택지) ──────────────────────
-// Polygon 메인넷. 백엔드(boss-token-server)는 아직 로컬(localhost:4000)에서만
-// 돌고 있음 — 실제 서비스 전엔 이 URL을 공개 호스팅 주소로 바꿔야 함.
+// Polygon 메인넷. mint/burn은 이 사이트와 같은 Vercel 배포에 있는
+// /api/boss-purchase, /api/boss-subscribe 서버리스 함수가 처리 (admin-mint와 동일 패턴).
 const BOSS_TOKEN_ADDRESS = '0x36B1218cAea18F78d25E0fbf1fA4Ce82fE02cd29';
 const BOSS_CHAIN_ID_HEX  = '0x89'; // 137, Polygon mainnet
-const BOSS_API_BASE      = 'http://localhost:4000';
 const BOSS_PLAN_PRICE    = { '스탠다드': 99, '프리미엄': 199, '서포터': 999 };
 
 function showBossStatus(message, type) {
@@ -4648,9 +4647,10 @@ async function submitWalletSend() {
 async function chargeBossAndFinalize(walletAddress, amount) {
   showBossStatus(`${amount.toLocaleString()} BOSS 결제 처리 중...`, 'info');
 
-  const res = await fetch(`${BOSS_API_BASE}/subscribe`, {
+  const idToken = window.getFirebaseToken ? await window.getFirebaseToken() : null;
+  const res = await fetch('/api/boss-subscribe', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {}) },
     body: JSON.stringify({ walletAddress, amount }),
   });
   const body = await res.json();
@@ -4797,9 +4797,10 @@ function renderBossTopUpPayPal(walletAddress, needed, price) {
       if (details.status !== 'COMPLETED') return;
       try {
         showBossStatus(`${needed.toLocaleString()} BOSS 충전 중...`, 'info');
-        const res = await fetch(`${BOSS_API_BASE}/purchase`, {
+        const idToken = window.getFirebaseToken ? await window.getFirebaseToken() : null;
+        const res = await fetch('/api/boss-purchase', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {}) },
           body: JSON.stringify({ walletAddress, amount: needed }),
         });
         const body = await res.json();
