@@ -1936,10 +1936,17 @@
     return code;
   }
 
+  // 이 기능이 추가되기 전에 가입한 기존 유저는 referralCode가 없으므로,
+  // 없으면 그 자리에서 하나 만들어 저장(백필)한 뒤 돌려줌.
   window._getMyReferralCode = async function() {
     if (!auth.currentUser) return null;
-    const snap = await getDoc(doc(db, 'users', auth.currentUser.uid));
-    return snap.exists() ? (snap.data().referralCode || null) : null;
+    const uid = auth.currentUser.uid;
+    const snap = await getDoc(doc(db, 'users', uid));
+    const existing = snap.exists() ? snap.data().referralCode : null;
+    if (existing) return existing;
+    const code = generateReferralCode();
+    await setDoc(doc(db, 'users', uid), { referralCode: code }, { merge: true });
+    return code;
   };
 
   window._getMyTotals = async function() {
@@ -2119,29 +2126,29 @@
       <button class="btn-primary" id="loginBtn" onclick="showSubscribeModal('login')">로그인</button>
       <div style="position:relative;display:none" id="userAvatarWrap">
         <div class="avatar" id="userAvatar" style="cursor:pointer" onclick="toggleUserMenu()"></div>
-        <div id="userMenu" style="display:none;position:absolute;top:44px;right:0;background:var(--bg-secondary);border:1px solid var(--border);border-radius:14px;padding:8px;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:1000">
-          <div style="padding:10px 12px;border-bottom:1px solid var(--border);margin-bottom:6px">
-            <div id="menuUserName" style="font-weight:700;color:var(--text-primary);font-size:14px"></div>
-            <div id="menuUserPlan" style="font-size:12px;color:#a78bfa;margin-top:2px"></div>
-            <div id="menuAIUsage" style="font-size:11px;color:#888;margin-top:4px"></div>
-            <div id="menuVipInfo" style="margin-top:8px;display:none"></div>
+        <div id="userMenu" style="display:none;position:absolute;top:48px;right:0;background:var(--bg-secondary);border:1px solid var(--border);border-radius:18px;padding:12px;min-width:300px;box-shadow:0 12px 40px rgba(0,0,0,0.18);z-index:1000">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border);margin-bottom:10px">
+            <div id="menuUserName" style="font-weight:800;color:var(--text-primary);font-size:17px"></div>
+            <div id="menuUserPlan" style="font-size:14px;color:#a78bfa;margin-top:3px;font-weight:600"></div>
+            <div id="menuAIUsage" style="font-size:12.5px;color:#888;margin-top:5px"></div>
+            <div id="menuVipInfo" style="margin-top:12px;display:none"></div>
           </div>
-          <button id="upgradeMenuBtn" onclick="openSubModal();toggleUserMenu()" style="display:none;width:100%;text-align:left;padding:9px 12px;background:linear-gradient(135deg,#7c3aed22,#4f46e522);border:none;border-radius:8px;color:#c4b5fd;font-size:13px;cursor:pointer;margin-bottom:4px">✦ 프리미엄 업그레이드</button>
-          <div style="padding:9px 12px;border-top:1px solid var(--border);margin-top:2px;margin-bottom:2px">
-            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">🪙 내 지갑</div>
-            <div id="menuWalletInfo" style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">연결된 지갑 없음</div>
-            <div style="display:flex;flex-direction:column;gap:6px">
-              <button id="menuWalletConnectBtn" onclick="connectWalletForMenu()" style="width:100%;text-align:left;padding:7px 10px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:12px;cursor:pointer">지갑 연결하기</button>
-              <button id="menuWalletViewBtn" onclick="openWalletModal()" style="display:none;width:100%;text-align:left;padding:7px 10px;background:none;border:1px solid var(--border);border-radius:8px;color:#a78bfa;font-size:12px;cursor:pointer">전체 보기</button>
-              <button id="menuWalletDisconnectBtn" onclick="disconnectWalletForMenu()" style="display:none;width:100%;text-align:left;padding:7px 10px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--red);font-size:12px;cursor:pointer">해제</button>
+          <button id="upgradeMenuBtn" onclick="openSubModal();toggleUserMenu()" style="display:none;width:100%;text-align:left;padding:12px 16px;background:linear-gradient(135deg,#7c3aed22,#4f46e522);border:none;border-radius:10px;color:#c4b5fd;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:6px">✦ 프리미엄 업그레이드</button>
+          <div style="padding:12px 16px;border-top:1px solid var(--border);margin-top:4px;margin-bottom:4px">
+            <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:8px">🪙 내 지갑</div>
+            <div id="menuWalletInfo" style="font-size:14px;color:var(--text-secondary);margin-bottom:10px">연결된 지갑 없음</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <button id="menuWalletConnectBtn" onclick="connectWalletForMenu()" style="width:100%;text-align:left;padding:10px 14px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--text-secondary);font-size:14px;cursor:pointer">지갑 연결하기</button>
+              <button id="menuWalletViewBtn" onclick="openWalletModal()" style="display:none;width:100%;text-align:left;padding:10px 14px;background:none;border:1px solid var(--border);border-radius:10px;color:#a78bfa;font-size:14px;cursor:pointer">전체 보기</button>
+              <button id="menuWalletDisconnectBtn" onclick="disconnectWalletForMenu()" style="display:none;width:100%;text-align:left;padding:10px 14px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--red);font-size:14px;cursor:pointer">해제</button>
             </div>
           </div>
-          <div style="padding:9px 12px;border-top:1px solid var(--border);margin-top:2px;margin-bottom:2px">
-            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">🎁 친구 초대</div>
-            <div id="menuReferralInfo" style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">코드 불러오는 중...</div>
-            <button id="menuReferralCopyBtn" onclick="copyReferralLink()" style="width:100%;text-align:left;padding:7px 10px;background:none;border:1px solid var(--border);border-radius:8px;color:#a78bfa;font-size:12px;cursor:pointer">초대 링크 복사</button>
+          <div style="padding:12px 16px;border-top:1px solid var(--border);margin-top:4px;margin-bottom:4px">
+            <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:8px">🎁 친구 초대</div>
+            <div id="menuReferralInfo" style="font-size:14px;color:var(--text-secondary);margin-bottom:10px">코드 불러오는 중...</div>
+            <button id="menuReferralCopyBtn" onclick="copyReferralLink()" style="width:100%;text-align:left;padding:10px 14px;background:none;border:1px solid var(--border);border-radius:10px;color:#a78bfa;font-size:14px;cursor:pointer">초대 링크 복사</button>
           </div>
-          <button onclick="logoutUser()" style="width:100%;text-align:left;padding:9px 12px;background:none;border:none;border-radius:8px;color:var(--text-muted);font-size:13px;cursor:pointer">로그아웃</button>
+          <button onclick="logoutUser()" style="width:100%;text-align:left;padding:12px 16px;background:none;border:none;border-radius:10px;color:var(--text-muted);font-size:14px;cursor:pointer">로그아웃</button>
         </div>
       </div>
     </div>
