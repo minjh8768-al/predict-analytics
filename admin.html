@@ -169,6 +169,16 @@
       <div id="mintStatus" style="font-size:12px;color:var(--text-sub);margin-top:8px"></div>
     </div>
 
+    <div class="stat-card" style="margin-bottom:20px">
+      <div class="stat-label" style="margin-bottom:12px">➖ BOSS 수동 차감 (환불 등)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="burnWalletInput" placeholder="지갑 주소 (0x...)" style="flex:2;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none">
+        <input id="burnAmountInput" type="number" min="0" step="any" placeholder="수량" style="flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none">
+        <button id="burnSubmitBtn" onclick="submitManualBurn()" style="padding:8px 18px;border-radius:8px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer">차감</button>
+      </div>
+      <div id="burnStatus" style="font-size:12px;color:var(--text-sub);margin-top:8px"></div>
+    </div>
+
     <div class="toolbar">
       <input class="search-box" id="searchBox" placeholder="이메일 또는 이름 검색..." oninput="renderTable()">
       <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">전체</button>
@@ -323,6 +333,47 @@
       statusEl.innerHTML = `지급 완료! <a href="https://polygonscan.com/tx/${body.txHash}" target="_blank" rel="noopener" style="color:var(--purple)">거래 확인 ↗</a>`;
       document.getElementById('mintWalletInput').value = '';
       document.getElementById('mintAmountInput').value = '';
+      bossBalanceCache.delete(walletAddress);
+    } catch (e) {
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  // ── BOSS 수동 차감 (결제 실수 정정, 환불 등 — PayPal 환불은 별도로 처리해야 함) ──
+  window.submitManualBurn = async function() {
+    const btn = document.getElementById('burnSubmitBtn');
+    const statusEl = document.getElementById('burnStatus');
+    const walletAddress = document.getElementById('burnWalletInput').value.trim();
+    const amount = document.getElementById('burnAmountInput').value.trim();
+
+    if (!walletAddress || !amount) {
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = '지갑 주소와 수량을 모두 입력해주세요.';
+      return;
+    }
+    if (!confirm(`${walletAddress}\n지갑에서 ${amount} BOSS를 차감합니다. 계속할까요?`)) return;
+
+    btn.disabled = true;
+    statusEl.style.color = 'var(--text-sub)';
+    statusEl.textContent = '차감 처리 중...';
+
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch('/api/admin-burn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+        body: JSON.stringify({ walletAddress, amount }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || '차감 실패');
+
+      statusEl.style.color = 'var(--green)';
+      statusEl.innerHTML = `차감 완료! <a href="https://polygonscan.com/tx/${body.txHash}" target="_blank" rel="noopener" style="color:var(--purple)">거래 확인 ↗</a>`;
+      document.getElementById('burnWalletInput').value = '';
+      document.getElementById('burnAmountInput').value = '';
       bossBalanceCache.delete(walletAddress);
     } catch (e) {
       statusEl.style.color = 'var(--red)';
