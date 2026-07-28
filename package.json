@@ -2,6 +2,7 @@
   "name": "predictanalytics-news",
   "version": "1.0.0",
   "dependencies": {
-    "@vercel/og": "^0.6.2"
+    "@vercel/og": "^0.6.2",
+    "ethers": "^6.17.0"
   }
 }
