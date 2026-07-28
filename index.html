@@ -1980,13 +1980,6 @@
     await setDoc(doc(db, 'users', u.uid), { referredBy: referrerUid }, { merge: true });
   };
 
-  window._getMyTotals = async function() {
-    if (!auth.currentUser) return null;
-    const snap = await getDoc(doc(db, 'users', auth.currentUser.uid));
-    const d = snap.exists() ? snap.data() : {};
-    return { totalPaidPayPal: d.totalPaidPayPal || 0, totalPaidBoss: d.totalPaidBoss || 0 };
-  };
-
   // 추천을 통해 가입한 유저가 첫 유료 결제를 마쳤을 때 호출 — 추천인에게 10 BOSS 보상.
   // (알려진 한계: referralFirstPayBonusPaid 플래그를 클라이언트가 직접 쓰기 때문에,
   // Firebase Admin SDK 없이는 악의적 재호출을 서버가 막을 수 없음 — BOSS가 아직
@@ -2171,7 +2164,6 @@
             <div id="menuUserName" style="font-weight:800;color:var(--text-primary);font-size:17px"></div>
             <div id="menuUserPlan" style="font-size:14px;color:#a78bfa;margin-top:3px;font-weight:600"></div>
             <div id="menuAIUsage" style="font-size:12.5px;color:#888;margin-top:5px"></div>
-            <div id="menuVipInfo" style="margin-top:12px;display:none"></div>
           </div>
           <button id="upgradeMenuBtn" onclick="openSubModal();toggleUserMenu()" style="display:none;width:100%;text-align:left;padding:12px 16px;background:linear-gradient(135deg,#7c3aed22,#4f46e522);border:none;border-radius:10px;color:#c4b5fd;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:6px">✦ 프리미엄 업그레이드</button>
           <div style="padding:12px 16px;border-top:1px solid var(--border);margin-top:4px;margin-bottom:4px">
@@ -3249,51 +3241,7 @@ function toggleUserMenu() {
   menu.style.display = opening ? 'block' : 'none';
   if (opening) {
     refreshMenuWalletInfo();
-    refreshMenuVipInfo();
     refreshMenuReferralInfo();
-  }
-}
-
-// ─── VIP 등급 (누적 결제액 기준, PayPal+BOSS 합산) ───
-const VIP_TIERS = [
-  { level: 0, label: '일반', min: 0 },
-  { level: 1, label: 'VIP1', min: 100 },
-  { level: 2, label: 'VIP2', min: 300 },
-  { level: 3, label: 'VIP3', min: 700 },
-  { level: 4, label: 'VIP4', min: 1500 },
-];
-
-function getVipTier(totalSpend) {
-  let current = VIP_TIERS[0];
-  for (const t of VIP_TIERS) { if (totalSpend >= t.min) current = t; }
-  const next = VIP_TIERS.find(t => t.min > current.min);
-  return { current, next };
-}
-
-async function refreshMenuVipInfo() {
-  const el = document.getElementById('menuVipInfo');
-  if (!el || !window._getMyTotals) return;
-  try {
-    const totals = await window._getMyTotals();
-    if (!totals) { el.style.display = 'none'; return; }
-    const spend = totals.totalPaidPayPal + totals.totalPaidBoss;
-    const { current, next } = getVipTier(spend);
-    el.style.display = 'block';
-    if (next) {
-      const pct = Math.min(100, Math.round((spend / next.min) * 100));
-      el.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-size:11px;font-weight:800;color:#f59e0b">${current.label}</span>
-          <span style="font-size:10px;color:var(--text-muted)">${next.label} 달성까지 $${spend.toLocaleString()} / $${next.min.toLocaleString()}</span>
-        </div>
-        <div style="height:5px;border-radius:3px;background:var(--bg-secondary);overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#f59e0b,#a78bfa);border-radius:3px"></div>
-        </div>`;
-    } else {
-      el.innerHTML = `<span style="font-size:11px;font-weight:800;color:#f59e0b">👑 ${current.label} · 최고 등급</span>`;
-    }
-  } catch (e) {
-    el.style.display = 'none';
   }
 }
 
