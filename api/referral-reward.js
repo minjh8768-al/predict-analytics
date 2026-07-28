@@ -5,7 +5,7 @@ import { getBossContract } from './_boss.js';
 // 고정 지급액 — 클라이언트가 임의 금액을 요청하지 못하도록 서버에서 종류별로 고정.
 // signup(가입만으로 지급)은 일부러 없음 — 가짜 계정을 무한정 만들어 추천인에게
 // 공짜로 BOSS를 채굴시킬 수 있어서, 실제 첫 결제가 확인된 경우에만 보상함.
-const REWARD_AMOUNTS = { firstpay: 50 };
+const REWARD_AMOUNTS = { firstpay: 10 };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

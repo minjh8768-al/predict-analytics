@@ -1987,7 +1987,7 @@
     return { totalPaidPayPal: d.totalPaidPayPal || 0, totalPaidBoss: d.totalPaidBoss || 0 };
   };
 
-  // 추천을 통해 가입한 유저가 첫 유료 결제를 마쳤을 때 호출 — 추천인에게 50 BOSS 보상.
+  // 추천을 통해 가입한 유저가 첫 유료 결제를 마쳤을 때 호출 — 추천인에게 10 BOSS 보상.
   // (알려진 한계: referralFirstPayBonusPaid 플래그를 클라이언트가 직접 쓰기 때문에,
   // Firebase Admin SDK 없이는 악의적 재호출을 서버가 막을 수 없음 — BOSS가 아직
   // 실질 가치를 갖지 않는 지금 단계에서는 감수 가능한 리스크로 판단.)
