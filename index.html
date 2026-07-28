@@ -1932,30 +1932,39 @@
     }
   }
 
+  // 공통 로그인 로직 — closeModal=true면 기존처럼 모달을 닫고,
+  // false면 모달 안 결제 흐름(예: $BOSS 결제)이 이어서 진행되도록 열어둔 채 반환.
+  async function _doGoogleLogin(closeModal) {
+    const result = await signInWithPopup(auth, provider);
+    const u = result.user;
+    const isAdmin = ADMIN_EMAILS.includes(u.email);
+    const fsData = await _loadUserPlan(u.uid);
+    const plan = fsData?.plan || (isAdmin ? 'premium' : 'free');
+    if (!fsData) {
+      await setDoc(doc(db, 'users', u.uid), {
+        email: u.email, name: u.displayName || 'Google 사용자',
+        plan: isAdmin ? 'premium' : 'free', createdAt: serverTimestamp()
+      }, { merge: true });
+    }
+    const user = { uid: u.uid, name: u.displayName || 'Google 사용자', email: u.email, photo: u.photoURL, plan };
+    localStorage.setItem('pa_user', JSON.stringify(user));
+    updateAuthUI(user);
+    if (closeModal) closeSubscribeModal();
+    return user;
+  }
+
   window.loginWithGoogle = async function() {
     try {
-      const result = await signInWithPopup(auth, provider);
-      const u = result.user;
-      const isAdmin = ADMIN_EMAILS.includes(u.email);
-      // Firestore에서 기존 플랜 확인
-      const fsData = await _loadUserPlan(u.uid);
-      // Firestore 플랜 우선, 없으면 관리자는 premium, 일반은 free
-      const plan = fsData?.plan || (isAdmin ? 'premium' : 'free');
-      // 최초 로그인 시 Firestore에 유저 등록
-      if (!fsData) {
-        await setDoc(doc(db, 'users', u.uid), {
-          email: u.email, name: u.displayName || 'Google 사용자',
-          plan: isAdmin ? 'premium' : 'free', createdAt: serverTimestamp()
-        }, { merge: true });
-      }
-      const user = { uid: u.uid, name: u.displayName || 'Google 사용자', email: u.email, photo: u.photoURL, plan };
-      localStorage.setItem('pa_user', JSON.stringify(user));
-      updateAuthUI(user);
-      closeSubscribeModal();
+      await _doGoogleLogin(true);
     } catch (e) {
       console.error('Google 로그인 실패:', e.message);
       alert('로그인 실패: ' + e.message);
     }
+  };
+
+  // $BOSS 결제 흐름 전용 — 로그인 후에도 구독 모달을 계속 열어둔다.
+  window.loginWithGoogleInline = function() {
+    return _doGoogleLogin(false);
   };
 
   window.logoutUser = async function() {
@@ -4358,7 +4367,35 @@ async function refreshBossPanelForPlanChange() {
 // Web3Auth's own login modal already lists MetaMask/Phantom alongside
 // Google/Kakao/etc., so there's no need for a separate direct-MetaMask
 // button — one entry point covers every wallet + no-wallet case.
+// 결제(어떤 수단이든)는 반드시 사이트 계정에 연결되어야 관리자 페이지에서
+// 보임 — 이 화면 없이 지갑부터 연결하면 admin.html에서 이 결제가 안 보임.
+function requireSiteLogin() {
+  const user = getUser();
+  if (user && user.uid) return true;
+  document.getElementById('bossEntryBtn').style.display = 'none';
+  document.getElementById('bossFlowPanel').innerHTML = `
+    <div class="boss-status info" style="display:block;">결제하려면 먼저 사이트에 로그인해주세요.</div>
+    <div class="sub-cta-row" style="margin-top:8px;">
+      <button class="sub-cta-boss" style="width:100%" onclick="bossFlowLoginThenStart()">Google로 로그인하고 계속하기</button>
+    </div>
+  `;
+  return false;
+}
+
+async function bossFlowLoginThenStart() {
+  try {
+    document.getElementById('bossFlowPanel').innerHTML = '';
+    showBossStatus('로그인 중...', 'info');
+    await window.loginWithGoogleInline();
+    document.getElementById('bossStatus').style.display = 'none';
+    await startBossFlow();
+  } catch (err) {
+    showBossStatus(err.message || '로그인 중 오류가 발생했습니다.', 'error');
+  }
+}
+
 async function startBossFlow() {
+  if (!requireSiteLogin()) return;
   document.getElementById('bossEntryBtn').style.display = 'none';
   try {
     showBossStatus('로그인 중...', 'info');
