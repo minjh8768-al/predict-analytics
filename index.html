@@ -1886,9 +1886,9 @@
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, deleteUser, reauthenticateWithPopup }
     from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-  import { getFirestore, doc, setDoc, getDoc, serverTimestamp, increment, collection, query, where, getDocs }
+  import { getFirestore, doc, setDoc, getDoc, deleteDoc, serverTimestamp, increment, collection, query, where, getDocs }
     from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const firebaseConfig = {
@@ -2115,6 +2115,24 @@
     if (menu) menu.style.display = 'none';
   };
 
+  // 사이트 계정(Firestore 기록 + Firebase 로그인 자체)을 삭제.
+  // 지갑 주소와 그 안의 BOSS 잔액은 블록체인에 남는 것이라 여기서 지울 수 없음 — 호출부에서 안내.
+  window._deleteAccount = async function() {
+    const u = auth.currentUser;
+    if (!u) throw new Error('로그인이 필요합니다.');
+    await deleteDoc(doc(db, 'users', u.uid)).catch(() => {});
+    try {
+      await deleteUser(u);
+    } catch (e) {
+      if (e.code === 'auth/requires-recent-login') {
+        await reauthenticateWithPopup(u, provider);
+        await deleteUser(u);
+      } else {
+        throw e;
+      }
+    }
+  };
+
   window.getFirebaseToken = async function() {
     if (!auth.currentUser) return null;
     return await auth.currentUser.getIdToken();
@@ -2200,6 +2218,7 @@
             </div>
           </div>
           <button onclick="logoutUser()" style="width:100%;text-align:left;padding:12px 16px;background:none;border:none;border-radius:10px;color:var(--text-muted);font-size:14px;cursor:pointer">로그아웃</button>
+          <button onclick="deleteAccountFromMenu()" style="width:100%;text-align:left;padding:8px 16px;background:none;border:none;border-radius:10px;color:var(--text-muted);font-size:12px;opacity:0.65;cursor:pointer">회원 탈퇴</button>
         </div>
       </div>
     </div>
@@ -3228,6 +3247,22 @@ function closeSubscribeModal() {
 }
 
 // loginWithGoogle, logoutUser → Firebase module script에서 정의됨
+
+async function deleteAccountFromMenu() {
+  if (!window._deleteAccount) return;
+  const warning = '정말 탈퇴하시겠습니까?\n\n- 사이트에 저장된 계정 정보(결제 내역, 플랜 등)는 삭제됩니다.\n- 단, 연결된 지갑 주소와 그 안의 BOSS 잔액은 블록체인에 남아있는 것이라 삭제되지 않습니다.\n\n이 작업은 되돌릴 수 없습니다.';
+  if (!confirm(warning)) return;
+  try {
+    await window._deleteAccount();
+    localStorage.removeItem('pa_user');
+    updateAuthUI(null);
+    const menu = document.getElementById('userMenu');
+    if (menu) menu.style.display = 'none';
+    alert('탈퇴가 완료되었습니다.');
+  } catch (e) {
+    alert('탈퇴 중 오류가 발생했습니다: ' + (e.message || '알 수 없는 오류'));
+  }
+}
 
 function toggleUserMenu() {
   const menu = document.getElementById('userMenu');
