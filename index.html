@@ -1953,7 +1953,10 @@
         plan: isAdmin ? 'premium' : 'free', createdAt: serverTimestamp()
       }, { merge: true });
     }
-    const user = { uid: u.uid, name: u.displayName || 'Google 사용자', email: u.email, photo: u.photoURL, plan };
+    const user = {
+      uid: u.uid, name: u.displayName || 'Google 사용자', email: u.email, photo: u.photoURL, plan,
+      bossWallet: fsData?.bossWallet, // Firestore에 저장된 지갑이 있으면 로그인할 때마다 복원
+    };
     localStorage.setItem('pa_user', JSON.stringify(user));
     updateAuthUI(user);
     if (closeModal) closeSubscribeModal();
@@ -3067,6 +3070,15 @@ async function connectWalletForMenu() {
     const user = getUser() || {};
     user.bossWallet = walletAddress;
     localStorage.setItem('pa_user', JSON.stringify(user));
+
+    // localStorage만으론 재로그인/다른 기기에서 사라지므로 Firestore에도 저장
+    const currentUser = window._fbAuth && window._fbAuth.currentUser;
+    if (currentUser && window._recordPayment) {
+      try {
+        await window._recordPayment(currentUser.uid, { bossWallet: walletAddress });
+      } catch (e) { console.warn('Firestore 저장 실패:', e.message); }
+    }
+
     await refreshMenuWalletInfo();
   } catch (err) {
     document.getElementById('menuWalletInfo').textContent = err.message || '지갑 연결 실패';
