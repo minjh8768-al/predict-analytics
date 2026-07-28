@@ -1958,6 +1958,7 @@
 
   // 가입 링크(?ref=)를 안 거치고 코드만 전달받은 경우를 위한 수동 입력 경로 —
   // 로직은 _doGoogleLogin의 신규가입 처리와 동일 (가입 보상 10 BOSS까지).
+  // 여기서도 보상은 즉시 주지 않음 — 관계만 기록하고, 실제 첫 결제 시점에만 지급.
   window._applyReferralCode = async function(inputCode) {
     const u = auth.currentUser;
     if (!u) throw new Error('로그인이 필요합니다.');
@@ -1975,21 +1976,8 @@
     const referrerDoc = snap.docs[0];
     const referrerUid = referrerDoc.id;
     if (referrerUid === u.uid) throw new Error('본인 코드는 입력할 수 없습니다.');
-    const referrerData = referrerDoc.data();
 
     await setDoc(doc(db, 'users', u.uid), { referredBy: referrerUid }, { merge: true });
-
-    if (referrerData.bossWallet) {
-      const idToken = await u.getIdToken();
-      const r = await fetch('/api/referral-reward', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-        body: JSON.stringify({ referrerWallet: referrerData.bossWallet, kind: 'signup' }),
-      });
-      if (r.ok) {
-        await setDoc(doc(db, 'users', u.uid), { referralSignupBonusPaid: true }, { merge: true });
-      }
-    }
   };
 
   window._getMyTotals = async function() {
@@ -2054,7 +2042,10 @@
         referralCode,
       }, { merge: true });
 
-      // 추천 링크(?ref=CODE)로 들어온 신규 가입이면 추천인에게 가입 보상(10 BOSS) 지급
+      // 추천 링크(?ref=CODE)로 들어온 신규 가입이면 추천 관계만 기록.
+      // 보상은 여기서 즉시 주지 않음 — 가입만으로 지급하면 가짜 계정을 무한정
+      // 만들어 추천인에게 공짜로 BOSS를 채굴시키는 게 가능해지기 때문에,
+      // 실제 첫 결제가 일어났을 때(_triggerReferralFirstPayBonus)만 보상함.
       const refCode = localStorage.getItem('pa_ref_code');
       if (refCode && refCode !== referralCode) {
         try {
@@ -2063,23 +2054,11 @@
           if (!snap.empty) {
             const referrerDoc = snap.docs[0];
             const referrerUid = referrerDoc.id;
-            const referrerData = referrerDoc.data();
             if (referrerUid !== u.uid) {
               await setDoc(doc(db, 'users', u.uid), { referredBy: referrerUid }, { merge: true });
-              if (referrerData.bossWallet) {
-                const idToken = await u.getIdToken();
-                const r = await fetch('/api/referral-reward', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-                  body: JSON.stringify({ referrerWallet: referrerData.bossWallet, kind: 'signup' }),
-                });
-                if (r.ok) {
-                  await setDoc(doc(db, 'users', u.uid), { referralSignupBonusPaid: true }, { merge: true });
-                }
-              }
             }
           }
-        } catch (e) { console.warn('추천 가입 보상 처리 실패:', e.message); }
+        } catch (e) { console.warn('추천 관계 기록 실패:', e.message); }
         localStorage.removeItem('pa_ref_code');
       }
     }
