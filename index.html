@@ -2294,7 +2294,25 @@
       <code id="walletModalAddress" style="font-size:12.5px;color:var(--text-secondary);word-break:break-all;text-align:left;line-height:1.5">-</code>
       <button id="walletCopyBtn" onclick="copyWalletAddress()" style="flex-shrink:0;padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:none;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">복사</button>
     </div>
-    <a id="walletExplorerLink" href="#" target="_blank" rel="noopener" style="display:inline-block;font-size:12.5px;color:#a78bfa;text-decoration:none;margin-bottom:22px">Polygonscan에서 보기 ↗</a>
+    <a id="walletExplorerLink" href="#" target="_blank" rel="noopener" style="display:inline-block;font-size:12.5px;color:#a78bfa;text-decoration:none;margin-bottom:18px">Polygonscan에서 보기 ↗</a>
+
+    <button id="walletSendToggleBtn" onclick="toggleWalletSendForm()" style="width:100%;padding:10px;margin-bottom:14px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--text-secondary);font-size:13px;font-weight:600;cursor:pointer">↗ 보내기</button>
+
+    <div id="walletSendForm" style="display:none;text-align:left;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <select id="walletSendAsset" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:12.5px">
+          <option value="BOSS">BOSS</option>
+          <option value="POL">POL</option>
+          <option value="USDT">USDT</option>
+          <option value="USDC">USDC</option>
+        </select>
+        <input id="walletSendAmount" type="number" min="0" step="any" placeholder="금액" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:12.5px;box-sizing:border-box">
+      </div>
+      <input id="walletSendTo" type="text" placeholder="받는 주소 (0x...)" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:12.5px;margin-bottom:10px;box-sizing:border-box">
+      <button id="walletSendSubmitBtn" onclick="submitWalletSend()" style="width:100%;padding:10px;border-radius:8px;border:none;background:#6c5ce7;color:#fff;font-size:13px;font-weight:700;cursor:pointer">보내기</button>
+      <div id="walletSendStatus" style="font-size:11.5px;color:var(--text-muted);margin-top:8px"></div>
+    </div>
+
     <button onclick="closeWalletModal()" style="width:100%;padding:12px;border-radius:10px;border:none;background:var(--bg-secondary);color:var(--text-secondary);font-size:14px;font-weight:600;cursor:pointer">닫기</button>
   </div>
 </div>
@@ -3087,7 +3105,10 @@ function withTimeout(promise, ms, label) {
 
 // Web3Auth Firebase Custom Connection: 두 번 재시도 모두 Auth Network에서
 // 멈춰서(2026-07-28) Privy로 교체 예정 — 그 전까지는 안정적인 모달 방식 유지.
-async function connectWeb3AuthViaFirebase() {
+// 매번 새로 로그인시켜서 signer를 얻음 — 지갑 연결/전송 양쪽에서 공용으로 사용.
+// (연결 상태를 캐싱하지 않는 이유: 예전에 겪었던 "다른 계정인데 같은 지갑" 문제를
+// logout() 후 재연결로 완화해둔 상태라서, 그 패턴을 그대로 유지)
+async function getBossSigner() {
   const web3auth = await getWeb3Auth();
   await web3auth.logout().catch(() => {});
   await withTimeout(web3auth.connect(), 30000, 'Web3Auth connect');
@@ -3095,7 +3116,11 @@ async function connectWeb3AuthViaFirebase() {
   const ethProvider = web3auth.connection?.ethereumProvider;
   if (!ethProvider) throw new Error('지갑 provider를 가져오지 못했습니다.');
   const ethersProvider = new ethers.BrowserProvider(ethProvider);
-  const signer = await ethersProvider.getSigner();
+  return await ethersProvider.getSigner();
+}
+
+async function connectWeb3AuthViaFirebase() {
+  const signer = await getBossSigner();
   return await signer.getAddress();
 }
 
@@ -3185,6 +3210,10 @@ function openWalletModal() {
   document.getElementById('walletExplorerLink').href = `https://polygonscan.com/address/${user.bossWallet}`;
   document.getElementById('walletModalBalance').textContent = '조회 중...';
   document.getElementById('walletModalAssets').innerHTML = '<div style="padding:9px 0;font-size:12px;color:var(--text-muted)">조회 중...</div>';
+  document.getElementById('walletSendForm').style.display = 'none';
+  document.getElementById('walletSendStatus').textContent = '';
+  document.getElementById('walletSendAmount').value = '';
+  document.getElementById('walletSendTo').value = '';
   document.getElementById('walletOverlay').classList.add('open');
   getBossBalance(user.bossWallet).then(balance => {
     document.getElementById('walletModalBalance').textContent = `${balance.toLocaleString()} BOSS`;
@@ -4533,6 +4562,85 @@ function renderWalletModalAssets(portfolio) {
       <span style="font-size:12.5px;color:var(--text-secondary)">${r.symbol}</span>
       <span style="font-size:12.5px;font-weight:600;color:${r.error ? 'var(--text-muted)' : 'var(--text-primary)'}">${r.error ? '조회 실패' : r.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
     </div>`).join('');
+}
+
+// ─── 지갑 모달 "보내기" ──────────────────────────────────────────
+const WALLET_SEND_ASSETS = {
+  BOSS: { address: BOSS_TOKEN_ADDRESS, native: false },
+  USDT: { address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', native: false },
+  USDC: { address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', native: false },
+  POL:  { native: true },
+};
+
+async function sendFromWallet(assetKey, toAddress, amountStr) {
+  if (!ethers.isAddress(toAddress)) throw new Error('받는 주소가 올바르지 않습니다.');
+  const amount = Number(amountStr);
+  if (!(amount > 0)) throw new Error('금액을 정확히 입력해주세요.');
+
+  const signer = await getBossSigner();
+  const asset = WALLET_SEND_ASSETS[assetKey];
+
+  if (asset.native) {
+    const tx = await signer.sendTransaction({ to: toAddress, value: ethers.parseEther(amountStr) });
+    await tx.wait();
+    return tx.hash;
+  }
+
+  const erc20 = new ethers.Contract(asset.address, [
+    'function transfer(address to, uint256 amount) returns (bool)',
+    'function decimals() view returns (uint8)',
+  ], signer);
+  const decimals = await erc20.decimals();
+  const tx = await erc20.transfer(toAddress, ethers.parseUnits(amountStr, decimals));
+  await tx.wait();
+  return tx.hash;
+}
+
+function toggleWalletSendForm() {
+  const form = document.getElementById('walletSendForm');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function submitWalletSend() {
+  const btn = document.getElementById('walletSendSubmitBtn');
+  const statusEl = document.getElementById('walletSendStatus');
+  const asset = document.getElementById('walletSendAsset').value;
+  const to = document.getElementById('walletSendTo').value.trim();
+  const amount = document.getElementById('walletSendAmount').value.trim();
+
+  if (!to || !amount) {
+    statusEl.style.color = '#ef4444';
+    statusEl.textContent = '받는 주소와 금액을 모두 입력해주세요.';
+    return;
+  }
+  if (!confirm(`${amount} ${asset}을(를)\n${to}\n주소로 보냅니다.\n\n이 작업은 취소·환불이 불가능합니다. 계속할까요?`)) {
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.style.color = 'var(--text-muted)';
+  statusEl.textContent = '지갑 인증 중... (로그인 창이 뜰 수 있어요)';
+
+  try {
+    const txHash = await sendFromWallet(asset, to, amount);
+    statusEl.style.color = '#22c55e';
+    statusEl.innerHTML = `전송 완료! <a href="https://polygonscan.com/tx/${txHash}" target="_blank" rel="noopener" style="color:#a78bfa">거래 확인 ↗</a>`;
+    document.getElementById('walletSendAmount').value = '';
+    document.getElementById('walletSendTo').value = '';
+
+    const user = getUser();
+    if (user && user.bossWallet) {
+      getBossBalance(user.bossWallet).then(b => {
+        document.getElementById('walletModalBalance').textContent = `${b.toLocaleString()} BOSS`;
+      }).catch(() => {});
+      getWalletPortfolio(user.bossWallet).then(renderWalletModalAssets).catch(() => {});
+    }
+  } catch (err) {
+    statusEl.style.color = '#ef4444';
+    statusEl.textContent = err.message || '전송 실패';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 // Shared by both wallet paths — everything after "we know the user's
