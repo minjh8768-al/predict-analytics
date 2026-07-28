@@ -3060,18 +3060,38 @@ function toggleUserMenu() {
 // Firebase 로그인 상태를 그대로 Web3Auth 인증으로 재사용 — 별도 로그인창
 // (구글/카카오 선택 모달) 없이 조용히 같은 지갑을 복원/생성한다.
 // 대시보드의 "firebase-predictanalytics" Custom Connection과 짝을 이룸.
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} — ${ms/1000}초 타임아웃`)), ms)),
+  ]);
+}
+
 async function connectWeb3AuthViaFirebase() {
+  console.log('[boss] 1/4 Firebase 토큰 요청...');
   const idToken = window.getFirebaseToken ? await window.getFirebaseToken() : null;
   if (!idToken) throw new Error('먼저 사이트에 로그인해주세요.');
+  console.log('[boss] 2/4 Firebase 토큰 확보, 길이:', idToken.length);
+  // 토큰 자체가 우리가 대시보드에 설정한 iss/aud와 맞는지 눈으로 바로 확인 가능하도록 디코딩해서 로그
+  try {
+    const payload = JSON.parse(atob(idToken.split('.')[1]));
+    console.log('[boss] 토큰 claims — iss:', payload.iss, '/ aud:', payload.aud, '/ sub:', payload.sub);
+  } catch (e) { console.warn('[boss] 토큰 디코딩 실패(무시 가능):', e.message); }
 
   const web3auth = await getWeb3Auth();
+  console.log('[boss] 3/4 Web3Auth 초기화 완료, connectTo 호출...');
   const { WALLET_CONNECTORS, AUTH_CONNECTION } = window.Web3AuthModal;
-  await web3auth.connectTo(WALLET_CONNECTORS.AUTH, {
-    authConnectionId: 'firebase-predictanalytics',
-    authConnection: AUTH_CONNECTION.CUSTOM,
-    idToken,
-    extraLoginOptions: { isUserIdCaseSensitive: false },
-  });
+  await withTimeout(
+    web3auth.connectTo(WALLET_CONNECTORS.AUTH, {
+      authConnectionId: 'firebase-predictanalytics',
+      authConnection: AUTH_CONNECTION.CUSTOM,
+      idToken,
+      extraLoginOptions: { isUserIdCaseSensitive: false },
+    }),
+    15000,
+    'Web3Auth connectTo'
+  );
+  console.log('[boss] 4/4 connectTo 완료');
 
   const ethProvider = web3auth.connection?.ethereumProvider;
   if (!ethProvider) throw new Error('지갑 provider를 가져오지 못했습니다.');
@@ -3101,7 +3121,9 @@ async function connectWalletForMenu() {
 
     await refreshMenuWalletInfo();
   } catch (err) {
+    console.error('[boss] connectWalletForMenu 실패:', err);
     document.getElementById('menuWalletInfo').textContent = err.message || '지갑 연결 실패';
+    btn.textContent = '지갑 연결하기'; // 타임아웃/실패 시 버튼이 "연결 중..."에 영구히 멈추지 않도록
   } finally {
     btn.disabled = false;
   }
