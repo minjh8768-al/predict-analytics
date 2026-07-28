@@ -2288,7 +2288,8 @@
     <button class="sub-close" onclick="closeWalletModal()">✕</button>
     <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:18px">🪙 내 지갑</div>
     <div id="walletModalBalance" style="font-size:34px;font-weight:800;color:var(--text-primary);margin-bottom:4px">—</div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:24px">Polygon 메인넷 · BOSS</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Polygon 메인넷 · BOSS</div>
+    <div id="walletModalAssets" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:4px 16px;margin-bottom:18px;text-align:left"></div>
     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px">
       <code id="walletModalAddress" style="font-size:12.5px;color:var(--text-secondary);word-break:break-all;text-align:left;line-height:1.5">-</code>
       <button id="walletCopyBtn" onclick="copyWalletAddress()" style="flex-shrink:0;padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:none;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">복사</button>
@@ -3183,11 +3184,17 @@ function openWalletModal() {
   document.getElementById('walletModalAddress').textContent = user.bossWallet;
   document.getElementById('walletExplorerLink').href = `https://polygonscan.com/address/${user.bossWallet}`;
   document.getElementById('walletModalBalance').textContent = '조회 중...';
+  document.getElementById('walletModalAssets').innerHTML = '<div style="padding:9px 0;font-size:12px;color:var(--text-muted)">조회 중...</div>';
   document.getElementById('walletOverlay').classList.add('open');
   getBossBalance(user.bossWallet).then(balance => {
     document.getElementById('walletModalBalance').textContent = `${balance.toLocaleString()} BOSS`;
   }).catch(() => {
     document.getElementById('walletModalBalance').textContent = '조회 실패';
+  });
+  getWalletPortfolio(user.bossWallet).then(portfolio => {
+    renderWalletModalAssets(portfolio);
+  }).catch(() => {
+    document.getElementById('walletModalAssets').innerHTML = '<div style="padding:9px 0;font-size:12px;color:var(--text-muted)">다른 자산 조회 실패</div>';
   });
 }
 
@@ -4471,6 +4478,38 @@ async function getBossBalance(walletAddress) {
   );
   const [balance, decimals] = await Promise.all([erc20.balanceOf(walletAddress), erc20.decimals()]);
   return Number(ethers.formatUnits(balance, decimals));
+}
+
+// 지갑 모달의 "다른 자산" 목록 — 실제로 사용자가 받을 만한 폴리곤 위 자산 위주로만 확인.
+// (전체 토큰을 다 훑으려면 Etherscan/Alchemy 같은 인덱싱 API가 따로 필요함)
+const WALLET_OTHER_TOKENS = [
+  { symbol: 'USDT', address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8D' },
+  { symbol: 'USDC', address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' },
+];
+
+async function getWalletPortfolio(walletAddress) {
+  const provider = new ethers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com');
+  const erc20Abi = ['function balanceOf(address) view returns (uint256)', 'function decimals() view returns (uint8)'];
+  const [polBalance, ...tokens] = await Promise.all([
+    provider.getBalance(walletAddress),
+    ...WALLET_OTHER_TOKENS.map(async t => {
+      const c = new ethers.Contract(t.address, erc20Abi, provider);
+      const [bal, dec] = await Promise.all([c.balanceOf(walletAddress), c.decimals()]);
+      return { symbol: t.symbol, balance: Number(ethers.formatUnits(bal, dec)) };
+    }),
+  ]);
+  return { pol: Number(ethers.formatEther(polBalance)), tokens };
+}
+
+function renderWalletModalAssets(portfolio) {
+  const el = document.getElementById('walletModalAssets');
+  if (!el) return;
+  const rows = [{ symbol: 'POL (가스비)', balance: portfolio.pol }, ...portfolio.tokens];
+  el.innerHTML = rows.map((r, i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;${i < rows.length - 1 ? 'border-bottom:1px solid var(--border)' : ''}">
+      <span style="font-size:12.5px;color:var(--text-secondary)">${r.symbol}</span>
+      <span style="font-size:12.5px;font-weight:600;color:var(--text-primary)">${r.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+    </div>`).join('');
 }
 
 // Shared by both wallet paths — everything after "we know the user's
