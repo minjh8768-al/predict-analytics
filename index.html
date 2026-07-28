@@ -2050,6 +2050,7 @@
             <div id="menuWalletInfo" style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">연결된 지갑 없음</div>
             <div style="display:flex;gap:6px">
               <button id="menuWalletConnectBtn" onclick="connectWalletForMenu()" style="flex:1;text-align:left;padding:7px 10px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:12px;cursor:pointer">지갑 연결하기</button>
+              <button id="menuWalletViewBtn" onclick="openWalletModal()" style="display:none;padding:7px 10px;background:none;border:1px solid var(--border);border-radius:8px;color:#a78bfa;font-size:12px;cursor:pointer">전체 보기</button>
               <button id="menuWalletDisconnectBtn" onclick="disconnectWalletForMenu()" style="display:none;padding:7px 10px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--red);font-size:12px;cursor:pointer">해제</button>
             </div>
           </div>
@@ -2281,6 +2282,21 @@
 </footer>
 
 <!-- ─── 구독 모달 ─── -->
+<div class="sub-overlay" id="walletOverlay" onclick="if(event.target===this) closeWalletModal()">
+  <div class="sub-modal" style="max-width:420px;text-align:center">
+    <button class="sub-close" onclick="closeWalletModal()">✕</button>
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:18px">🪙 내 지갑</div>
+    <div id="walletModalBalance" style="font-size:34px;font-weight:800;color:var(--text-primary);margin-bottom:4px">—</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:24px">Polygon 메인넷 · BOSS</div>
+    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px">
+      <code id="walletModalAddress" style="font-size:12.5px;color:var(--text-secondary);word-break:break-all;text-align:left;line-height:1.5">-</code>
+      <button id="walletCopyBtn" onclick="copyWalletAddress()" style="flex-shrink:0;padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:none;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">복사</button>
+    </div>
+    <a id="walletExplorerLink" href="#" target="_blank" rel="noopener" style="display:inline-block;font-size:12.5px;color:#a78bfa;text-decoration:none;margin-bottom:22px">Polygonscan에서 보기 ↗</a>
+    <button onclick="closeWalletModal()" style="width:100%;padding:12px;border-radius:10px;border:none;background:var(--bg-secondary);color:var(--text-secondary);font-size:14px;font-weight:600;cursor:pointer">닫기</button>
+  </div>
+</div>
+
 <div class="sub-overlay" id="subOverlay" onclick="subOverlayClick(event)">
   <div class="sub-modal">
     <button class="sub-close" onclick="closeSubModal()">✕</button>
@@ -3137,15 +3153,18 @@ async function refreshMenuWalletInfo() {
   const infoEl = document.getElementById('menuWalletInfo');
   const btnEl = document.getElementById('menuWalletConnectBtn');
   const disconnectEl = document.getElementById('menuWalletDisconnectBtn');
+  const viewEl = document.getElementById('menuWalletViewBtn');
   if (!infoEl || !btnEl) return;
   const user = getUser();
   if (!user || !user.bossWallet) {
     infoEl.textContent = '연결된 지갑 없음';
     btnEl.textContent = '지갑 연결하기';
     if (disconnectEl) disconnectEl.style.display = 'none';
+    if (viewEl) viewEl.style.display = 'none';
     return;
   }
   if (disconnectEl) disconnectEl.style.display = '';
+  if (viewEl) viewEl.style.display = '';
   const short = `${user.bossWallet.slice(0, 6)}...${user.bossWallet.slice(-4)}`;
   btnEl.textContent = '다른 지갑 연결';
   infoEl.textContent = `${short} · 조회 중...`;
@@ -3155,6 +3174,35 @@ async function refreshMenuWalletInfo() {
   } catch (e) {
     infoEl.textContent = `${short} · 잔액 조회 실패`;
   }
+}
+
+function openWalletModal() {
+  const user = getUser();
+  if (!user || !user.bossWallet) return;
+  document.getElementById('walletModalAddress').textContent = user.bossWallet;
+  document.getElementById('walletExplorerLink').href = `https://polygonscan.com/address/${user.bossWallet}`;
+  document.getElementById('walletModalBalance').textContent = '조회 중...';
+  document.getElementById('walletOverlay').classList.add('open');
+  getBossBalance(user.bossWallet).then(balance => {
+    document.getElementById('walletModalBalance').textContent = `${balance.toLocaleString()} BOSS`;
+  }).catch(() => {
+    document.getElementById('walletModalBalance').textContent = '조회 실패';
+  });
+}
+
+function closeWalletModal() {
+  document.getElementById('walletOverlay').classList.remove('open');
+}
+
+function copyWalletAddress() {
+  const user = getUser();
+  if (!user || !user.bossWallet) return;
+  navigator.clipboard.writeText(user.bossWallet).then(() => {
+    const btn = document.getElementById('walletCopyBtn');
+    const original = btn.textContent;
+    btn.textContent = '복사됨!';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  }).catch(() => {});
 }
 
 // logoutUser → Firebase module script에서 정의됨
