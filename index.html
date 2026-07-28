@@ -1981,30 +1981,17 @@
   };
 
   // 추천을 통해 가입한 유저가 첫 유료 결제를 마쳤을 때 호출 — 추천인에게 10 BOSS 보상.
-  // (알려진 한계: referralFirstPayBonusPaid 플래그를 클라이언트가 직접 쓰기 때문에,
-  // Firebase Admin SDK 없이는 악의적 재호출을 서버가 막을 수 없음 — BOSS가 아직
-  // 실질 가치를 갖지 않는 지금 단계에서는 감수 가능한 리스크로 판단.)
+  // 판단(추천인 조회, 이미 지급했는지, 실제 결제 여부 확인)과 플래그 기록 전부
+  // 서버(Firebase Admin SDK)가 직접 함 — 클라이언트는 그냥 신호만 보냄.
   window._triggerReferralFirstPayBonus = async function() {
     const u = auth.currentUser;
     if (!u) return;
     try {
-      const snap = await getDoc(doc(db, 'users', u.uid));
-      if (!snap.exists()) return;
-      const data = snap.data();
-      if (!data.referredBy || data.referralFirstPayBonusPaid) return;
-      const referrerSnap = await getDoc(doc(db, 'users', data.referredBy));
-      if (!referrerSnap.exists()) return;
-      const referrerWallet = referrerSnap.data().bossWallet;
-      if (!referrerWallet) return;
       const idToken = await u.getIdToken();
-      const r = await fetch('/api/referral-reward', {
+      await fetch('/api/referral-reward', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-        body: JSON.stringify({ referrerWallet, kind: 'firstpay' }),
       });
-      if (r.ok) {
-        await setDoc(doc(db, 'users', u.uid), { referralFirstPayBonusPaid: true }, { merge: true });
-      }
     } catch (e) { console.warn('추천 첫결제 보상 처리 실패:', e.message); }
   };
 
