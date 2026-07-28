@@ -308,7 +308,9 @@
       const planClass = `plan-${u.plan || 'free'}`;
       const planLabel = PLAN_LABELS[u.plan] || '무료';
       const orderId = u.paypalOrderId ? `<small style="font-size:10px;color:var(--text-muted)">${u.paypalOrderId.slice(0,12)}…</small>` : '—';
-      const totalPaid = u.totalPaidUSD ? `$${Number(u.totalPaidUSD).toLocaleString()}` : '—';
+      const paypalTotal = u.totalPaidPayPal ? `PayPal $${Number(u.totalPaidPayPal).toLocaleString()}` : '';
+      const bossTotal = u.totalPaidBoss ? `BOSS $${Number(u.totalPaidBoss).toLocaleString()}` : '';
+      const totalPaid = [paypalTotal, bossTotal].filter(Boolean).join('<br>') || '—';
       const lastPaidSub = u.lastPaymentAmount
         ? `<br><small style="font-size:10px;color:var(--text-muted)">최근 ${u.paymentMethod || ''} $${Number(u.lastPaymentAmount).toLocaleString()}</small>`
         : '';

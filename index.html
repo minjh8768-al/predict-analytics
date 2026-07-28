@@ -4284,7 +4284,7 @@ function handleSubCTA() {
               paypalPayerEmail: details.payer?.email_address || '',
               paymentMethod: 'PayPal',
               lastPaymentAmount: paidAmount,
-              totalPaidUSD: window._firestoreIncrement ? window._firestoreIncrement(paidAmount) : paidAmount,
+              totalPaidPayPal: window._firestoreIncrement ? window._firestoreIncrement(paidAmount) : paidAmount,
             });
           } catch (e) { console.warn('Firestore 저장 실패:', e.message); }
         }
@@ -4542,7 +4542,7 @@ function renderBossTopUpPayPal(walletAddress, needed, price) {
               bossWallet: walletAddress,
               paymentMethod: 'BOSS',
               lastPaymentAmount: needed,
-              totalPaidUSD: window._firestoreIncrement ? window._firestoreIncrement(needed) : needed,
+              totalPaidBoss: window._firestoreIncrement ? window._firestoreIncrement(needed) : needed,
             });
           } catch (e) { console.warn('Firestore 저장 실패:', e.message); }
         }
