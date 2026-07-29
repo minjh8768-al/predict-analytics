@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>관리자 — PredictAnalytics</title>
+<title>관리자 — FactorySignal</title>
 <style>
   :root {
     --bg: #f0f2f8; --surface: #ffffff; --surface2: #f4f5fb;
@@ -106,7 +106,7 @@
 <!-- ── 로그인 필요 화면 ── -->
 <div id="authGate">
   <div class="auth-card">
-    <div class="auth-logo">PredictAnalytics</div>
+    <div class="auth-logo">FactorySignal</div>
     <div class="auth-title">관리자 전용 페이지</div>
     <div class="auth-sub">관리자 Google 계정으로 로그인하세요</div>
     <button class="btn-google" onclick="adminLogin()">
@@ -121,7 +121,7 @@
 <div id="adminPanel">
   <div class="header">
     <div class="header-left">
-      <span class="logo">PredictAnalytics</span>
+      <span class="logo">FactorySignal</span>
       <span class="header-badge">ADMIN</span>
     </div>
     <div style="display:flex;align-items:center;gap:12px">
@@ -160,14 +160,7 @@
     </div>
 
     <div class="stat-card" style="margin-bottom:20px">
-      <div class="stat-label" style="margin-bottom:12px">🚀 SIGNAL 토큰 배포 (일회성)</div>
-      <div style="font-size:12px;color:var(--text-sub);margin-bottom:10px">폴리곤 메인넷에 새 SIGNAL 컨트랙트를 배포합니다. 한 번만 실행하세요.</div>
-      <button id="deploySignalBtn" onclick="deploySignalToken()" style="padding:8px 18px;border-radius:8px;border:none;background:var(--purple);color:#fff;font-size:13px;font-weight:700;cursor:pointer">SIGNAL 컨트랙트 배포</button>
-      <div id="deploySignalStatus" style="font-size:12px;color:var(--text-sub);margin-top:8px"></div>
-    </div>
-
-    <div class="stat-card" style="margin-bottom:20px">
-      <div class="stat-label" style="margin-bottom:12px">🪙 BOSS 수동 지급</div>
+      <div class="stat-label" style="margin-bottom:12px">🪙 SIGNAL 수동 지급</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <input id="mintWalletInput" placeholder="받는 지갑 주소 (0x...)" style="flex:2;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none">
         <input id="mintAmountInput" type="number" min="0" step="any" placeholder="수량" style="flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none">
@@ -177,7 +170,7 @@
     </div>
 
     <div class="stat-card" style="margin-bottom:20px">
-      <div class="stat-label" style="margin-bottom:12px">➖ BOSS 수동 차감 (환불 등)</div>
+      <div class="stat-label" style="margin-bottom:12px">➖ SIGNAL 수동 차감 (환불 등)</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <input id="burnWalletInput" placeholder="지갑 주소 (0x...)" style="flex:2;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none">
         <input id="burnAmountInput" type="number" min="0" step="any" placeholder="수량" style="flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none">
@@ -205,7 +198,7 @@
             <th>결제일</th>
             <th>PayPal ID</th>
             <th>누적 결제액</th>
-            <th>지갑 / BOSS 잔액</th>
+            <th>지갑 / SIGNAL 잔액</th>
             <th>추천</th>
             <th>플랜 변경</th>
           </tr>
@@ -237,7 +230,7 @@
 
   const ADMIN_EMAILS = ['minjh8768@skycamp.co.kr', 'minjh8768@gmail.com'];
   const PLAN_LABELS = { free: '무료', standard: '스탠다드', premium: '프리미엄', supporter: '서포터' };
-  const BOSS_TOKEN_ADDRESS = '0x36B1218cAea18F78d25E0fbf1fA4Ce82fE02cd29'; // Polygon 메인넷
+  const BOSS_TOKEN_ADDRESS = '0xB0F8baF055aEb1bFDE5136c2c3f2a6DD8c395ECf'; // SIGNAL 컨트랙트 (BOSS 후속), Polygon 메인넷
   const bossBalanceCache = new Map();
 
   async function fetchBossBalance(walletAddress) {
@@ -308,34 +301,7 @@
     }
   };
 
-  // ── SIGNAL 컨트랙트 배포 (일회성) ──
-  window.deploySignalToken = async function() {
-    const btn = document.getElementById('deploySignalBtn');
-    const statusEl = document.getElementById('deploySignalStatus');
-    if (!confirm('폴리곤 메인넷에 SIGNAL 컨트랙트를 배포합니다. 실제 가스비가 나가며 되돌릴 수 없습니다. 계속할까요?')) return;
-
-    btn.disabled = true;
-    statusEl.style.color = 'var(--text-sub)';
-    statusEl.textContent = '배포 중... (몇 초 정도 걸릴 수 있습니다)';
-    try {
-      const idToken = await auth.currentUser.getIdToken();
-      const res = await fetch('/api/admin-deploy-signal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '배포 실패');
-      statusEl.style.color = 'var(--green)';
-      statusEl.innerHTML = `배포 완료!<br>컨트랙트 주소: <b>${data.address}</b><br>tx: ${data.txHash}`;
-    } catch (e) {
-      statusEl.style.color = 'var(--red)';
-      statusEl.textContent = '오류: ' + e.message;
-    } finally {
-      btn.disabled = false;
-    }
-  };
-
-  // ── BOSS 수동 지급 ──
+  // ── SIGNAL 수동 지급 ──
   window.submitManualMint = async function() {
     const btn = document.getElementById('mintSubmitBtn');
     const statusEl = document.getElementById('mintStatus');
@@ -347,7 +313,7 @@
       statusEl.textContent = '지갑 주소와 수량을 모두 입력해주세요.';
       return;
     }
-    if (!confirm(`${amount} BOSS를\n${walletAddress}\n주소로 지급합니다. 계속할까요?`)) return;
+    if (!confirm(`${amount} SIGNAL를\n${walletAddress}\n주소로 지급합니다. 계속할까요?`)) return;
 
     btn.disabled = true;
     statusEl.style.color = 'var(--text-sub)';
@@ -376,7 +342,7 @@
     }
   };
 
-  // ── BOSS 수동 차감 (결제 실수 정정, 환불 등 — PayPal 환불은 별도로 처리해야 함) ──
+  // ── SIGNAL 수동 차감 (결제 실수 정정, 환불 등 — PayPal 환불은 별도로 처리해야 함) ──
   window.submitManualBurn = async function() {
     const btn = document.getElementById('burnSubmitBtn');
     const statusEl = document.getElementById('burnStatus');
@@ -388,7 +354,7 @@
       statusEl.textContent = '지갑 주소와 수량을 모두 입력해주세요.';
       return;
     }
-    if (!confirm(`${walletAddress}\n지갑에서 ${amount} BOSS를 차감합니다. 계속할까요?`)) return;
+    if (!confirm(`${walletAddress}\n지갑에서 ${amount} SIGNAL를 차감합니다. 계속할까요?`)) return;
 
     btn.disabled = true;
     statusEl.style.color = 'var(--text-sub)';
@@ -456,7 +422,7 @@
       const planLabel = PLAN_LABELS[u.plan] || '무료';
       const orderId = u.paypalOrderId ? `<small style="font-size:10px;color:var(--text-muted)">${u.paypalOrderId.slice(0,12)}…</small>` : '—';
       const paypalTotal = u.totalPaidPayPal ? `PayPal $${Number(u.totalPaidPayPal).toLocaleString()}` : '';
-      const bossTotal = u.totalPaidBoss ? `BOSS $${Number(u.totalPaidBoss).toLocaleString()}` : '';
+      const bossTotal = u.totalPaidBoss ? `SIGNAL $${Number(u.totalPaidBoss).toLocaleString()}` : '';
       const totalPaid = [paypalTotal, bossTotal].filter(Boolean).join('<br>') || '—';
       const lastPaidSub = u.lastPaymentAmount
         ? `<br><small style="font-size:10px;color:var(--text-muted)">최근 ${u.paymentMethod || ''} $${Number(u.lastPaymentAmount).toLocaleString()}</small>`
@@ -502,7 +468,7 @@
     rows.filter(u => u.bossWallet).forEach(u => {
       fetchBossBalance(u.bossWallet).then(bal => {
         const el = document.getElementById(`bal-${u.uid}`);
-        if (el) el.textContent = `${bal.toLocaleString()} BOSS`;
+        if (el) el.textContent = `${bal.toLocaleString()} SIGNAL`;
       }).catch(() => {
         const el = document.getElementById(`bal-${u.uid}`);
         if (el) el.textContent = '조회 실패';

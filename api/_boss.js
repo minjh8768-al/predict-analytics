@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-export const BOSS_TOKEN_ADDRESS = '0x36B1218cAea18F78d25E0fbf1fA4Ce82fE02cd29';
+export const BOSS_TOKEN_ADDRESS = '0xB0F8baF055aEb1bFDE5136c2c3f2a6DD8c395ECf'; // SIGNAL (구 BOSS) 컨트랙트
 const RPC_URL = 'https://polygon-bor-rpc.publicnode.com';
 
 const BOSS_ABI = [

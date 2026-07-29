@@ -1,8 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/admin-deploy-signal.js": { "maxDuration": 30 }
-  },
   "headers": [
     {
       "source": "/api/(.*)",

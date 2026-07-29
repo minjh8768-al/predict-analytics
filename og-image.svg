@@ -17,7 +17,7 @@
   <text x="108" y="258" font-family="Arial" font-size="30" fill="white" text-anchor="middle">📊</text>
 
   <!-- Title -->
-  <text x="80" y="330" font-family="Arial Black, Arial" font-size="62" font-weight="900" fill="white">PredictAnalytics</text>
+  <text x="80" y="330" font-family="Arial Black, Arial" font-size="62" font-weight="900" fill="white">FactorySignal</text>
 
   <!-- Subtitle -->
   <text x="80" y="395" font-family="Arial" font-size="28" fill="#a78bfa">폴리마켓 실시간 예측 · AI 분석 · 시장 인사이트</text>

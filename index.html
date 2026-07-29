@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PredictAnalytics - 예측 시장 데이터 및 분석</title>
+<title>FactorySignal - 예측 시장 데이터 및 분석</title>
 <meta name="description" content="폴리마켓 실시간 예측 확률, 뉴스 분석, AI 인사이트를 한눈에">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://predictanalytics-news.vercel.app">
-<meta property="og:title" content="PredictAnalytics - 예측 시장 분석">
+<meta property="og:title" content="FactorySignal - 예측 시장 분석">
 <meta property="og:description" content="폴리마켓 실시간 예측 확률, 뉴스 분석, AI 인사이트를 한눈에">
 <meta property="og:image" content="https://predictanalytics-news.vercel.app/api/og?v=3">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="PredictAnalytics - 예측 시장 분석">
+<meta name="twitter:title" content="FactorySignal - 예측 시장 분석">
 <meta name="twitter:description" content="폴리마켓 실시간 예측 확률, 뉴스 분석, AI 인사이트를 한눈에">
 <meta name="twitter:image" content="https://predictanalytics-news.vercel.app/api/og?v=3">
 <style>
@@ -1919,7 +1919,7 @@
     }, { merge: true });
   };
 
-  // plan 필드는 건드리지 않고 결제 기록만 남길 때 사용 (예: BOSS 충전 시점 —
+  // plan 필드는 건드리지 않고 결제 기록만 남길 때 사용 (예: SIGNAL 충전 시점 —
   // 이때는 아직 구독이 확정된 게 아니라 plan을 같이 바꾸면 안 됨).
   window._recordPayment = async function(uid, extra) {
     await setDoc(doc(db, 'users', uid), extra, { merge: true });
@@ -1961,7 +1961,7 @@
   };
 
   // 가입 링크(?ref=)를 안 거치고 코드만 전달받은 경우를 위한 수동 입력 경로 —
-  // 로직은 _doGoogleLogin의 신규가입 처리와 동일 (가입 보상 10 BOSS까지).
+  // 로직은 _doGoogleLogin의 신규가입 처리와 동일 (가입 보상 10 SIGNAL까지).
   // 여기서도 보상은 즉시 주지 않음 — 관계만 기록하고, 실제 첫 결제 시점에만 지급.
   // "코드로 추천인 찾기"는 서버(/api/referral-apply, Admin SDK)가 대신 해줌 —
   // 클라이언트가 users 컬렉션을 직접 훑게 하면 Firestore 규칙을 풀어야 해서
@@ -1979,7 +1979,7 @@
     if (!r.ok) throw new Error(body.error || '적용 실패');
   };
 
-  // 추천을 통해 가입한 유저가 첫 유료 결제를 마쳤을 때 호출 — 추천인에게 10 BOSS 보상.
+  // 추천을 통해 가입한 유저가 첫 유료 결제를 마쳤을 때 호출 — 추천인에게 10 SIGNAL 보상.
   // 판단(추천인 조회, 이미 지급했는지, 실제 결제 여부 확인)과 플래그 기록 전부
   // 서버(Firebase Admin SDK)가 직접 함 — 클라이언트는 그냥 신호만 보냄.
   window._triggerReferralFirstPayBonus = async function() {
@@ -2006,7 +2006,7 @@
   }
 
   // 공통 로그인 로직 — closeModal=true면 기존처럼 모달을 닫고,
-  // false면 모달 안 결제 흐름(예: $BOSS 결제)이 이어서 진행되도록 열어둔 채 반환.
+  // false면 모달 안 결제 흐름(예: $SIGNAL 결제)이 이어서 진행되도록 열어둔 채 반환.
   async function _doGoogleLogin(closeModal) {
     const result = await signInWithPopup(auth, provider);
     const u = result.user;
@@ -2023,7 +2023,7 @@
 
       // 추천 링크(?ref=CODE)로 들어온 신규 가입이면 추천 관계만 기록.
       // 보상은 여기서 즉시 주지 않음 — 가입만으로 지급하면 가짜 계정을 무한정
-      // 만들어 추천인에게 공짜로 BOSS를 채굴시키는 게 가능해지기 때문에,
+      // 만들어 추천인에게 공짜로 SIGNAL를 채굴시키는 게 가능해지기 때문에,
       // 실제 첫 결제가 일어났을 때(_triggerReferralFirstPayBonus)만 보상함.
       const refCode = localStorage.getItem('pa_ref_code');
       if (refCode && refCode !== referralCode) {
@@ -2057,7 +2057,7 @@
     }
   };
 
-  // $BOSS 결제 흐름 전용 — 로그인 후에도 구독 모달을 계속 열어둔다.
+  // $SIGNAL 결제 흐름 전용 — 로그인 후에도 구독 모달을 계속 열어둔다.
   window.loginWithGoogleInline = function() {
     return _doGoogleLogin(false);
   };
@@ -2071,7 +2071,7 @@
   };
 
   // 사이트 계정(Firestore 기록 + Firebase 로그인 자체)을 삭제.
-  // 지갑 주소와 그 안의 BOSS 잔액은 블록체인에 남는 것이라 여기서 지울 수 없음 — 호출부에서 안내.
+  // 지갑 주소와 그 안의 SIGNAL 잔액은 블록체인에 남는 것이라 여기서 지울 수 없음 — 호출부에서 안내.
   // 탈퇴 직전 항상 구글 재인증을 먼저 요구함 — 세션이 오래돼서 필요한 경우에만
   // 재인증하던 이전 방식은, 세션이 갓 로그인된 상태면 확인 절차 없이 바로
   // 삭제돼버리는 문제가 있었음. 재인증에서 취소/실패하면 아무것도 안 지워짐.
@@ -2120,7 +2120,7 @@
   <div class="header-inner">
     <a href="#" class="logo">
       <div class="logo-icon">📊</div>
-      <span>PredictAnalytics</span>
+      <span>FactorySignal</span>
     </a>
     <nav>
       <a href="#traderList" onclick="document.getElementById('traderList').scrollIntoView({behavior:'smooth'});return false;" class="active">거래자</a>
@@ -2196,7 +2196,7 @@
       <div id="profileCardLoggedOut" style="text-align:center;padding:10px 4px">
         <div style="font-size:32px;margin-bottom:10px">👋</div>
         <div style="font-weight:700;color:var(--text);margin-bottom:6px">로그인하고 내 정보를 확인하세요</div>
-        <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:16px">플랜, BOSS 지갑 잔액, 추천 코드까지</div>
+        <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:16px">플랜, SIGNAL 지갑 잔액, 추천 코드까지</div>
         <button class="btn-primary" style="width:100%" onclick="showSubscribeModal('login')">로그인</button>
       </div>
       <div id="profileCardLoggedIn" style="display:none">
@@ -2209,7 +2209,7 @@
         </div>
         <div class="profile-stats">
           <div class="profile-stat">
-            <span class="label">BOSS 지갑 잔액</span>
+            <span class="label">SIGNAL 지갑 잔액</span>
             <span class="value value-green" id="profileCardBoss">-</span>
           </div>
           <div class="profile-stat">
@@ -2359,7 +2359,7 @@
     <a href="/privacy.html">개인정보처리방침</a>
     <a href="mailto:minjh8768@skycamp.co.kr">문의하기</a>
   </div>
-  <div class="site-footer-copy">© 2026 PredictAnalytics. All rights reserved.</div>
+  <div class="site-footer-copy">© 2026 FactorySignal. All rights reserved.</div>
 </footer>
 
 <!-- ─── 지갑 준비 방식 선택 (구글 임베디드 지갑 vs 기존 외부 지갑) ─── -->
@@ -2401,7 +2401,7 @@
     <button class="sub-close" onclick="closeWalletModal()">✕</button>
     <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:18px">🪙 내 지갑</div>
     <div id="walletModalBalance" style="font-size:34px;font-weight:800;color:var(--text-primary);margin-bottom:4px">—</div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Polygon 메인넷 · BOSS</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Polygon 메인넷 · SIGNAL</div>
     <div id="walletModalAssets" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:4px 16px;margin-bottom:18px;text-align:left"></div>
     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px">
       <code id="walletModalAddress" style="font-size:12.5px;color:var(--text-secondary);word-break:break-all;text-align:left;line-height:1.5">-</code>
@@ -2414,7 +2414,7 @@
     <div id="walletSendForm" style="display:none;text-align:left;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px">
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <select id="walletSendAsset" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:12.5px">
-          <option value="BOSS">BOSS</option>
+          <option value="SIGNAL">SIGNAL</option>
           <option value="POL">POL</option>
           <option value="USDT">USDT</option>
           <option value="USDC">USDC</option>
@@ -2488,7 +2488,7 @@
     <div id="paypal-button-container" style="margin-top:12px;display:none;"></div>
 
     <div class="sub-cta-row" style="margin-top:10px;">
-      <button class="sub-cta-boss" id="bossEntryBtn" onclick="startBossFlow()" style="width:100%;">🪙 $BOSS 토큰으로 결제</button>
+      <button class="sub-cta-boss" id="bossEntryBtn" onclick="startBossFlow()" style="width:100%;">🪙 $SIGNAL 토큰으로 결제</button>
     </div>
     <div id="bossFlowPanel"></div>
     <div id="bossStatus" class="boss-status" style="display:none;"></div>
@@ -3266,7 +3266,7 @@ function closeSubscribeModal() {
 
 async function deleteAccountFromMenu() {
   if (!window._deleteAccount) return;
-  const warning = '정말 탈퇴하시겠습니까?\n\n- 계속하면 구글 로그인 확인 창이 한 번 더 뜹니다.\n- 사이트에 저장된 계정 정보(결제 내역, 플랜 등)는 삭제됩니다.\n- 단, 연결된 지갑 주소와 그 안의 BOSS 잔액은 블록체인에 남아있는 것이라 삭제되지 않습니다.\n\n이 작업은 되돌릴 수 없습니다.';
+  const warning = '정말 탈퇴하시겠습니까?\n\n- 계속하면 구글 로그인 확인 창이 한 번 더 뜹니다.\n- 사이트에 저장된 계정 정보(결제 내역, 플랜 등)는 삭제됩니다.\n- 단, 연결된 지갑 주소와 그 안의 SIGNAL 잔액은 블록체인에 남아있는 것이라 삭제되지 않습니다.\n\n이 작업은 되돌릴 수 없습니다.';
   if (!confirm(warning)) return;
   try {
     await window._deleteAccount();
@@ -3511,7 +3511,7 @@ async function refreshMenuWalletInfo() {
   infoEl.textContent = `${short} · 조회 중...`;
   try {
     const balance = await getBossBalance(user.bossWallet);
-    infoEl.textContent = `${short} · ${balance.toLocaleString()} BOSS`;
+    infoEl.textContent = `${short} · ${balance.toLocaleString()} SIGNAL`;
   } catch (e) {
     infoEl.textContent = `${short} · 잔액 조회 실패`;
   }
@@ -3530,7 +3530,7 @@ function openWalletModal() {
   document.getElementById('walletSendTo').value = '';
   document.getElementById('walletOverlay').classList.add('open');
   getBossBalance(user.bossWallet).then(balance => {
-    document.getElementById('walletModalBalance').textContent = `${balance.toLocaleString()} BOSS`;
+    document.getElementById('walletModalBalance').textContent = `${balance.toLocaleString()} SIGNAL`;
   }).catch(() => {
     document.getElementById('walletModalBalance').textContent = '조회 실패';
   });
@@ -3591,7 +3591,7 @@ function updateAuthUI(user) {
 }
 
 // 사이드바 "분석가 Pro" 카드 — 원래 처음 만들 때 넣어둔 고정 데모 데이터(가짜 지갑,
-// 포트폴리오 가치, PnL 등)였는데, 실제 계정 정보(플랜/BOSS 잔액/추천 코드/가입일)로 교체.
+// 포트폴리오 가치, PnL 등)였는데, 실제 계정 정보(플랜/SIGNAL 잔액/추천 코드/가입일)로 교체.
 async function refreshProfileCard(user) {
   const loggedOut = document.getElementById('profileCardLoggedOut');
   const loggedIn = document.getElementById('profileCardLoggedIn');
@@ -3624,7 +3624,7 @@ async function refreshProfileCard(user) {
     bossEl.textContent = '조회 중...';
     try {
       const bal = await getBossBalance(user.bossWallet);
-      bossEl.textContent = `${bal.toLocaleString()} BOSS`;
+      bossEl.textContent = `${bal.toLocaleString()} SIGNAL`;
     } catch (e) {
       bossEl.textContent = '조회 실패';
     }
@@ -4935,7 +4935,7 @@ function handleSubCTA() {
       return actions.order.create({
         purchase_units: [{
           amount: { value: priceMap[_selectedPlan] || '199.00', currency_code: 'USD' },
-          description: `PredictAnalytics ${_selectedPlan} 플랜`
+          description: `FactorySignal ${_selectedPlan} 플랜`
         }]
       });
     },
@@ -4991,10 +4991,10 @@ function handleSubCTA() {
   }).render(container);
 }
 
-// ─── $BOSS 토큰 결제 (PayPal과 별개의 선택지) ──────────────────────
+// ─── $SIGNAL 토큰 결제 (PayPal과 별개의 선택지) ──────────────────────
 // Polygon 메인넷. mint/burn은 이 사이트와 같은 Vercel 배포에 있는
 // /api/boss-purchase, /api/boss-subscribe 서버리스 함수가 처리 (admin-mint와 동일 패턴).
-const BOSS_TOKEN_ADDRESS = '0x36B1218cAea18F78d25E0fbf1fA4Ce82fE02cd29';
+const BOSS_TOKEN_ADDRESS = '0xB0F8baF055aEb1bFDE5136c2c3f2a6DD8c395ECf'; // SIGNAL 컨트랙트 (BOSS 후속)
 const BOSS_CHAIN_ID_HEX  = '0x89'; // 137, Polygon mainnet
 const BOSS_PLAN_PRICE    = { '스탠다드': 99, '프리미엄': 199, '서포터': 999 };
 
@@ -5098,7 +5098,7 @@ function renderWalletModalAssets(portfolio) {
 
 // ─── 지갑 모달 "보내기" ──────────────────────────────────────────
 const WALLET_SEND_ASSETS = {
-  BOSS: { address: BOSS_TOKEN_ADDRESS, native: false },
+  SIGNAL: { address: BOSS_TOKEN_ADDRESS, native: false },
   USDT: { address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', native: false },
   USDC: { address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', native: false },
   POL:  { native: true },
@@ -5163,7 +5163,7 @@ async function submitWalletSend() {
     const user = getUser();
     if (user && user.bossWallet) {
       getBossBalance(user.bossWallet).then(b => {
-        document.getElementById('walletModalBalance').textContent = `${b.toLocaleString()} BOSS`;
+        document.getElementById('walletModalBalance').textContent = `${b.toLocaleString()} SIGNAL`;
       }).catch(() => {});
       getWalletPortfolio(user.bossWallet).then(renderWalletModalAssets).catch(() => {});
     }
@@ -5178,7 +5178,7 @@ async function submitWalletSend() {
 // Shared by both wallet paths — everything after "we know the user's
 // wallet address and how much to charge" is identical either way.
 async function chargeBossAndFinalize(walletAddress, amount) {
-  showBossStatus(`${amount.toLocaleString()} BOSS 결제 처리 중...`, 'info');
+  showBossStatus(`${amount.toLocaleString()} SIGNAL 결제 처리 중...`, 'info');
 
   const idToken = window.getFirebaseToken ? await window.getFirebaseToken() : null;
   const res = await fetch('/api/boss-subscribe', {
@@ -5203,7 +5203,7 @@ async function chargeBossAndFinalize(walletAddress, amount) {
     try {
       await window._saveUserPlan(currentUser.uid, user.plan, {
         email: user.email, name: user.name,
-        paymentMethod: 'BOSS', bossTxHash: body.txHash, bossWallet: walletAddress,
+        paymentMethod: 'SIGNAL', bossTxHash: body.txHash, bossWallet: walletAddress,
       });
     } catch (e) { console.warn('Firestore 저장 실패:', e.message); }
     if (wasFirstPaidPlan && window._triggerReferralFirstPayBonus) {
@@ -5301,22 +5301,22 @@ function renderBossActionPanel(walletAddress, balance, price) {
   if (balance < price) {
     const needed = Math.ceil(price - balance);
     panel.innerHTML = `
-      <div class="boss-status info" style="display:block;">지갑 ${short} · 보유 ${balance.toLocaleString()} BOSS / 필요 ${price.toLocaleString()} BOSS</div>
-      <div style="font-size:12.5px;color:var(--text-secondary);margin:8px 0 4px;">부족한 ${needed.toLocaleString()} BOSS(= $${needed.toLocaleString()})를 페이팔로 결제하면 자동 충전됩니다.</div>
+      <div class="boss-status info" style="display:block;">지갑 ${short} · 보유 ${balance.toLocaleString()} SIGNAL / 필요 ${price.toLocaleString()} SIGNAL</div>
+      <div style="font-size:12.5px;color:var(--text-secondary);margin:8px 0 4px;">부족한 ${needed.toLocaleString()} SIGNAL(= $${needed.toLocaleString()})를 페이팔로 결제하면 자동 충전됩니다.</div>
       <div id="bossTopUpPaypal"></div>
     `;
     renderBossTopUpPayPal(walletAddress, needed, price);
   } else {
     panel.innerHTML = `
-      <div class="boss-status info" style="display:block;">지갑 ${short} · 보유 ${balance.toLocaleString()} BOSS</div>
+      <div class="boss-status info" style="display:block;">지갑 ${short} · 보유 ${balance.toLocaleString()} SIGNAL</div>
       <div class="sub-cta-row" style="margin-top:8px;">
-        <button class="sub-cta-boss" style="width:100%" onclick="bossPay('${walletAddress}', ${price})">✅ ${price.toLocaleString()} BOSS로 결제하기</button>
+        <button class="sub-cta-boss" style="width:100%" onclick="bossPay('${walletAddress}', ${price})">✅ ${price.toLocaleString()} SIGNAL로 결제하기</button>
       </div>
     `;
   }
 }
 
-// 1 BOSS = $1로 취급 (기존 플랜 가격표: 스탠다드 99 / 프리미엄 199 / 서포터 999와 동일 비율).
+// 1 SIGNAL = $1로 취급 (기존 플랜 가격표: 스탠다드 99 / 프리미엄 199 / 서포터 999와 동일 비율).
 // 페이팔 결제가 실제로 승인된 뒤에만 /purchase를 호출 — 무료 발행 스텁은 여기서 없앰.
 function renderBossTopUpPayPal(walletAddress, needed, price) {
   paypal.Buttons({
@@ -5325,7 +5325,7 @@ function renderBossTopUpPayPal(walletAddress, needed, price) {
       return actions.order.create({
         purchase_units: [{
           amount: { value: needed.toFixed(2), currency_code: 'USD' },
-          description: `PredictAnalytics BOSS 충전 (${needed} BOSS)`,
+          description: `FactorySignal SIGNAL 충전 (${needed} SIGNAL)`,
         }],
       });
     },
@@ -5333,7 +5333,7 @@ function renderBossTopUpPayPal(walletAddress, needed, price) {
       const details = await actions.order.capture();
       if (details.status !== 'COMPLETED') return;
       try {
-        showBossStatus(`${needed.toLocaleString()} BOSS 충전 중...`, 'info');
+        showBossStatus(`${needed.toLocaleString()} SIGNAL 충전 중...`, 'info');
         const idToken = window.getFirebaseToken ? await window.getFirebaseToken() : null;
         const res = await fetch('/api/boss-purchase', {
           method: 'POST',
@@ -5350,7 +5350,7 @@ function renderBossTopUpPayPal(walletAddress, needed, price) {
             await window._recordPayment(currentUser.uid, {
               email: currentUser.email,
               bossWallet: walletAddress,
-              paymentMethod: 'BOSS',
+              paymentMethod: 'SIGNAL',
               lastPaymentAmount: needed,
               totalPaidBoss: window._firestoreIncrement ? window._firestoreIncrement(needed) : needed,
             });
