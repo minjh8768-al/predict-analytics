@@ -2891,7 +2891,8 @@ function toggleMore(btn) {
 function buildNewsHTML(featured, thumbArr, moreArr) {
   articleCache = [];
   const isMobile = window.innerWidth <= 767;
-  let html = (featured && !isMobile) ? cardFeatured(featured) : '';
+  // id 달린 wrapper — rotateMainFeatured()가 이 슬롯만 콕 집어서 주기적으로 바꿔치기함.
+  let html = (featured && !isMobile) ? `<div id="mainFeaturedSlot">${cardFeatured(featured)}</div>` : '';
   if (thumbArr.length > 0) {
     html += `<div class="thumb-grid">${thumbArr.map(cardThumb).join('')}</div>`;
   }
@@ -3080,6 +3081,7 @@ async function fetchMainNews() {
     mainArticlePool = articles;
     const activeTab = document.querySelector('.filter-tab.active');
     renderNews(activeTab ? activeTab.textContent.trim() : '전체');
+    startMainRotation();
     console.info(`BBC News: ${articles.length}개 기사 로드됨`);
   } catch (e) {
     console.warn('BBC News 로드 실패 — 정적 데이터 유지:', e.message);
@@ -4273,6 +4275,30 @@ function startAbcRotation() {
     abcRotatePage = (abcRotatePage + 1) % Math.ceil(abcArticlePool.length / 4);
     showAbcPage(abcRotatePage);
   }, 8000);
+}
+
+// ─── 메인 피처드 뉴스 카드 자동 회전 ───────────────────────────────────
+// 한 기사만 계속 고정으로 떠 있으면 죽어있는 것처럼 보인다는 피드백으로 추가.
+// #mainFeaturedSlot이 '전체' 탭일 때만 존재하므로, 다른 탭 보는 중엔 조용히 아무것도 안 함.
+let mainRotateIndex = 0;
+let mainRotateTimer = null;
+
+function rotateMainFeatured() {
+  const slot = document.getElementById('mainFeaturedSlot');
+  if (!slot || mainArticlePool.length < 2) return;
+  mainRotateIndex = (mainRotateIndex + 1) % mainArticlePool.length;
+  const next = mainArticlePool[mainRotateIndex];
+  slot.style.transition = 'opacity .3s';
+  slot.style.opacity = '0';
+  setTimeout(() => {
+    slot.innerHTML = cardFeatured(next);
+    slot.style.opacity = '1';
+  }, 300);
+}
+
+function startMainRotation() {
+  if (mainRotateTimer) clearInterval(mainRotateTimer);
+  mainRotateTimer = setInterval(rotateMainFeatured, 7000);
 }
 
 // ─── POLYMARKET FEATURED CARD (carousel + live comments) ─────────────
