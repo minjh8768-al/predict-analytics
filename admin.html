@@ -85,8 +85,9 @@
   /* ── Plan Selector ── */
   .plan-select { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; padding: 4px 8px; cursor: pointer; outline: none; }
   .plan-select:focus { border-color: var(--purple); }
-  .save-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid var(--purple); background: rgba(108,92,231,.15); color: var(--purple); font-size: 11px; font-weight: 700; cursor: pointer; }
+  .save-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid var(--purple); background: rgba(108,92,231,.15); color: var(--purple); font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
   .save-btn:hover { background: rgba(108,92,231,.3); }
+  thead th:last-child, tbody td:last-child { min-width: 190px; }
   .saved-msg { font-size: 11px; color: var(--green); }
 
   /* ── Empty / Loading ── */
