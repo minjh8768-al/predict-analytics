@@ -3196,7 +3196,9 @@ const ADMIN_LIST = ['minjh8768@gmail.com', 'minjh8768@skycamp.co.kr'];
 function canUseAI() {
   const user = getUser();
   if (!user) return false;
-  if (user.plan === 'premium') return true;
+  // 프로필 메뉴 표시(updateAuthUI)는 스탠다드/프리미엄/서포터 전부 "무제한"이라고
+  // 보여주는데, 여기는 프리미엄만 무제한 처리해서 실제로는 막히는 불일치가 있었음.
+  if (['standard', 'premium', 'supporter'].includes(user.plan)) return true;
   if (ADMIN_LIST.includes(user.email)) return true;
   return getUsageToday() < 1;
 }
