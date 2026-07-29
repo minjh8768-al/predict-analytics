@@ -2292,9 +2292,9 @@
   <aside class="sidebar">
 
     <div class="sidebar-card">
-      <h3>24시간 볼륨</h3>
+      <h3>24시간 거래량 1위</h3>
       <div class="big-stat" id="statVolume">불러오는 중...</div>
-      <div class="stat-change">현재 표시 중인 마켓 합산 기준</div>
+      <div class="stat-change" id="statVolumeTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
     </div>
 
     <div class="sidebar-card" id="liveTradesCard">
@@ -2306,9 +2306,9 @@
     </div>
 
     <div class="sidebar-card">
-      <h3>표시 중인 마켓</h3>
+      <h3>누적 거래량 1위</h3>
       <div class="big-stat" id="statMarketCount">불러오는 중...</div>
-      <div class="stat-change">거래량 상위 마켓 기준</div>
+      <div class="stat-change" id="statMarketCountTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
     </div>
 
     <div class="sidebar-card">
@@ -4076,16 +4076,28 @@ function rotateMarkets() {
   setTimeout(() => setPMStatus('live'), 2000);
 }
 
-// 사이드바 "24시간 볼륨"/"표시 중인 마켓" — 예전엔 고정된 가짜 숫자였음. 폴리마켓
-// 전체 거래량/전체 마켓 수를 한 번에 주는 공개 API가 없어서, 대신 우리가 실제로
-// 불러온 상위 30개 마켓 기준으로 정직하게 계산한 값을 보여줌(라벨도 그렇게 표기).
+// 사이드바 "24시간 거래량 1위"/"누적 거래량 1위" — 예전엔 고정된 가짜 숫자였음.
+// 폴리마켓 전체 거래량 합계를 주는 공개 API가 없어서, "합산" 대신 우리가 실제로
+// 불러온 마켓들 중 진짜 1위 마켓 하나를 콕 집어서 보여주는 방식으로 바꿈 —
+// 어떤 마켓의 어떤 숫자인지 바로 알 수 있게.
 function updateSidebarStats() {
   const volEl = document.getElementById('statVolume');
+  const volTitleEl = document.getElementById('statVolumeTitle');
   const countEl = document.getElementById('statMarketCount');
+  const countTitleEl = document.getElementById('statMarketCountTitle');
   if (!pmAllMarkets.length) return;
-  const total24h = pmAllMarkets.reduce((sum, m) => sum + (parseFloat(m.volume24hr) || 0), 0);
-  if (volEl) volEl.textContent = `$${Math.round(total24h).toLocaleString()}`;
-  if (countEl) countEl.textContent = `${pmAllMarkets.length}개`;
+
+  const top24h = pmAllMarkets.reduce((a, b) =>
+    (parseFloat(b.volume24hr) || 0) > (parseFloat(a.volume24hr) || 0) ? b : a
+  );
+  if (volEl) volEl.textContent = `$${Math.round(parseFloat(top24h.volume24hr) || 0).toLocaleString()}`;
+  if (volTitleEl) volTitleEl.textContent = top24h.question || '';
+
+  const topAllTime = pmAllMarkets.reduce((a, b) =>
+    (parseFloat(b.volume) || 0) > (parseFloat(a.volume) || 0) ? b : a
+  );
+  if (countEl) countEl.textContent = `$${Math.round(parseFloat(topAllTime.volume) || 0).toLocaleString()}`;
+  if (countTitleEl) countTitleEl.textContent = topAllTime.question || '';
 }
 
 async function fetchPolymarkets() {
