@@ -3194,13 +3194,6 @@ function toggleWatchlist(btn) {
   btn.style.color = active ? '' : 'var(--yellow)';
 }
 
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    this.classList.add('active');
-  });
-});
-
 // ─── AI API 설정 (Vercel 배포 후 URL 변경) ────────────────────────
 const AI_API = 'https://predictanalytics-news.vercel.app';
 
@@ -4773,14 +4766,66 @@ function openSubModal(label) {
   document.getElementById('subOverlay').classList.add('open');
 }
 
+// 카테고리 탭 → Polymarket Gamma API의 실제 태그 slug 매핑.
+// /markets 엔드포인트는 tag_slug 파라미터를 조용히 무시해서(버그 아님, API 사양),
+// 태그로 필터링하려면 /events?tag_slug=... 를 쓰고 안에 들어있는 markets를 펼쳐야 함.
+const CATEGORY_TAG_SLUGS = { '정치': 'politics', '경제': 'economy', '암호화폐': 'crypto', '스포츠': 'sports', '세계': 'world' };
+let pmCurrentCategory = '전체';
+
 function marketTabClick(btn, cat) {
-  if (cat === '전체' || hasMarketAccess()) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+  if (cat !== '전체' && !hasMarketAccess()) {
+    _pendingTab = btn;
+    openSubModal(cat);
     return;
   }
-  _pendingTab = btn;
-  openSubModal(cat);
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  pmCurrentCategory = cat;
+  loadMarketsForCategory(cat);
+}
+
+async function loadMarketsForCategory(cat) {
+  if (pmRotateTimer) { clearInterval(pmRotateTimer); pmRotateTimer = null; }
+
+  if (cat === '전체') {
+    pmWindowStart = 0;
+    const first10 = pmAllMarkets.slice(0, 10);
+    polyLive = first10;
+    renderMarkets(first10);
+    const ids = buildPriceMap(first10);
+    if (ids.length) connectWS(ids);
+    pmRotateTimer = setInterval(rotateMarkets, 30000);
+    setPMStatus('live');
+    return;
+  }
+
+  setPMStatus('connecting');
+  const slug = CATEGORY_TAG_SLUGS[cat];
+  try {
+    const res = await fetch(
+      `https://gamma-api.polymarket.com/events?active=true&closed=false&limit=20&order=volume&ascending=false&tag_slug=${slug}`,
+      { headers: { Accept: 'application/json' } }
+    );
+    if (!res.ok) throw new Error(res.status);
+    const events = await res.json();
+    const markets = events
+      .flatMap(e => e.markets || [])
+      .filter(m => m.active !== false && !m.closed && m.outcomePrices)
+      .sort((a, b) => (parseFloat(b.volume) || 0) - (parseFloat(a.volume) || 0))
+      .slice(0, 10);
+    if (!markets.length) throw new Error('empty');
+
+    polyLive = markets;
+    renderMarkets(markets);
+    const ids = buildPriceMap(markets);
+    if (ids.length) connectWS(ids);
+    setPMStatus('live', `LIVE · ${cat}`);
+  } catch (e) {
+    console.warn('카테고리 마켓 로드 실패:', e.message);
+    setPMStatus('disconnected');
+    document.getElementById('marketGrid').innerHTML =
+      `<div style="padding:32px;text-align:center;color:var(--text-muted)">${cat} 카테고리 시장을 불러오지 못했습니다.</div>`;
+  }
 }
 
 function selectPlan(el, name) {
