@@ -2293,18 +2293,8 @@
 
     <div class="sidebar-card">
       <h3>24시간 볼륨</h3>
-      <div class="big-stat">1억 4,403만 달러</div>
-      <div class="stat-change">폴리마켓 총 거래량 <span class="down">▼ 3.2%</span></div>
-      <svg class="mini-chart" viewBox="0 0 200 48" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#ea3943" stop-opacity="0.3"/>
-            <stop offset="100%" stop-color="#ea3943" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        <path d="M0,20 L20,18 L40,22 L60,15 L80,25 L100,12 L120,18 L140,30 L160,25 L180,35 L200,38" stroke="#ea3943" stroke-width="2" fill="none"/>
-        <path d="M0,20 L20,18 L40,22 L60,15 L80,25 L100,12 L120,18 L140,30 L160,25 L180,35 L200,38 L200,48 L0,48 Z" fill="url(#chartGrad)"/>
-      </svg>
+      <div class="big-stat" id="statVolume">불러오는 중...</div>
+      <div class="stat-change">현재 표시 중인 마켓 합산 기준</div>
     </div>
 
     <div class="sidebar-card" id="liveTradesCard">
@@ -2316,25 +2306,9 @@
     </div>
 
     <div class="sidebar-card">
-      <h3>이용 가능한 시장</h3>
-      <div class="big-stat">145,535</div>
-      <div class="stat-change">활성 예측 마켓 <span class="up">▲ 1.8%</span></div>
-      <svg class="mini-chart" viewBox="0 0 200 48" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="chartGrad2" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#16c784" stop-opacity="0.3"/>
-            <stop offset="100%" stop-color="#16c784" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        <path d="M0,35 L30,30 L60,28 L90,25 L120,20 L150,15 L170,12 L200,8" stroke="#16c784" stroke-width="2" fill="none"/>
-        <path d="M0,35 L30,30 L60,28 L90,25 L120,20 L150,15 L170,12 L200,8 L200,48 L0,48 Z" fill="url(#chartGrad2)"/>
-      </svg>
-    </div>
-
-    <div class="sidebar-card">
-      <h3>인기 트레이더 ›</h3>
-      <div class="trader-list" id="traderList"></div>
-      <a class="more-link">모든 거래자 →</a>
+      <h3>표시 중인 마켓</h3>
+      <div class="big-stat" id="statMarketCount">불러오는 중...</div>
+      <div class="stat-change">거래량 상위 마켓 기준</div>
     </div>
 
     <div class="sidebar-card">
@@ -2703,14 +2677,6 @@ const newsData = [
     time: '7시간 전', author: 'K. Park', prob: 52,
     views: '6.4k', comments: 167
   },
-];
-
-const traderData = [
-  { rank: 1, name: '0x2c33...5465', pnl: '610만 달러', change: '+4.90%', color: '#8b5cf6' },
-  { rank: 2, name: '0x99f0...9495', pnl: '5,100달러', change: '+26.40%', color: '#3b82f6' },
-  { rank: 3, name: '스포츠마스터777', pnl: '150만 달러', change: '+10.90%', color: '#16c784' },
-  { rank: 4, name: '멕시코산아보카도', pnl: '69만 1800달러', change: '+17.60%', color: '#f59e0b' },
-  { rank: 5, name: '릭손21', pnl: '2.1만 달러', change: '+15.70%', color: '#ea3943' },
 ];
 
 const marketData = [
@@ -3086,21 +3052,6 @@ async function fetchMainNews() {
   } catch (e) {
     console.warn('BBC News 로드 실패 — 정적 데이터 유지:', e.message);
   }
-}
-
-function renderTraders() {
-  const html = traderData.map(t => `
-    <div class="trader-item">
-      <span class="trader-rank">${t.rank}</span>
-      <div class="trader-avatar" style="background:${t.color}">${t.name[0]}</div>
-      <div class="trader-info">
-        <div class="trader-name">${t.name}</div>
-        <div class="trader-pnl">${t.pnl}</div>
-      </div>
-      <span class="trader-change" style="color:var(--green)">${t.change}</span>
-    </div>
-  `).join('');
-  document.getElementById('traderList').innerHTML = html;
 }
 
 function fmtVol(v) {
@@ -4125,6 +4076,18 @@ function rotateMarkets() {
   setTimeout(() => setPMStatus('live'), 2000);
 }
 
+// 사이드바 "24시간 볼륨"/"표시 중인 마켓" — 예전엔 고정된 가짜 숫자였음. 폴리마켓
+// 전체 거래량/전체 마켓 수를 한 번에 주는 공개 API가 없어서, 대신 우리가 실제로
+// 불러온 상위 30개 마켓 기준으로 정직하게 계산한 값을 보여줌(라벨도 그렇게 표기).
+function updateSidebarStats() {
+  const volEl = document.getElementById('statVolume');
+  const countEl = document.getElementById('statMarketCount');
+  if (!pmAllMarkets.length) return;
+  const total24h = pmAllMarkets.reduce((sum, m) => sum + (parseFloat(m.volume24hr) || 0), 0);
+  if (volEl) volEl.textContent = `$${Math.round(total24h).toLocaleString()}`;
+  if (countEl) countEl.textContent = `${pmAllMarkets.length}개`;
+}
+
 async function fetchPolymarkets() {
   setPMStatus('connecting');
   try {
@@ -4137,6 +4100,7 @@ async function fetchPolymarkets() {
     const data = await res.json();
     pmAllMarkets = Array.isArray(data) ? data : (data.markets || []);
     if (!pmAllMarkets.length) throw new Error('empty');
+    updateSidebarStats();
 
     // 첫 10개 표시
     pmWindowStart = 0;
@@ -4171,7 +4135,6 @@ async function fetchPolymarkets() {
 })();
 renderTicker();
 renderNews();
-renderTraders();
 renderMarkets();
 fetchPolymarkets();
 fetchPolyFeatured();
