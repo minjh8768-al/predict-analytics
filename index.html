@@ -2236,24 +2236,6 @@
         <span class="tag">기술</span>
       </div>
     </div>
-    <!-- Twitter Widget -->
-    <div class="twitter-card">
-      <div class="twitter-card-header">
-        <div class="twitter-card-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.259 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          소셜 피드
-        </div>
-        <div class="tw-tabs">
-          <button class="tw-tab active" onclick="loadTwitter('realDonaldTrump',this)">트럼프</button>
-          <button class="tw-tab" onclick="loadTwitter('elonmusk',this)">머스크</button>
-          <button class="tw-tab" onclick="loadTwitter('JDVance',this)">밴스</button>
-        </div>
-      </div>
-      <div id="twitterContainer">
-        <p class="tw-loading">불러오는 중...</p>
-      </div>
-    </div>
-
     <!-- 빠른 통계: 소셜 피드 바로 밑으로 이동 -->
     <div class="sidebar-card">
       <h3>빠른 통계</h3>
@@ -2332,6 +2314,24 @@
       <h3>누적 거래량 1위</h3>
       <div class="big-stat" id="statMarketCount">불러오는 중...</div>
       <div class="stat-change" id="statMarketCountTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+    </div>
+
+    <!-- Twitter Widget: 빠른 통계가 있던 자리로 이동 -->
+    <div class="twitter-card">
+      <div class="twitter-card-header">
+        <div class="twitter-card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.259 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          소셜 피드
+        </div>
+        <div class="tw-tabs">
+          <button class="tw-tab active" onclick="loadTwitter('realDonaldTrump',this)">트럼프</button>
+          <button class="tw-tab" onclick="loadTwitter('elonmusk',this)">머스크</button>
+          <button class="tw-tab" onclick="loadTwitter('JDVance',this)">밴스</button>
+        </div>
+      </div>
+      <div id="twitterContainer">
+        <p class="tw-loading">불러오는 중...</p>
+      </div>
     </div>
   </aside>
 </div>
@@ -5413,8 +5413,8 @@ function mobTab(tab, btn) {
   if (btn) btn.classList.add('active');
 
   const leftPanel  = document.querySelector('.main-layout > aside:first-child');
-  const mainEl     = document.querySelector('main');
   const marketsSec = document.querySelector('.market-section');
+  const twitterCard = document.querySelector('.twitter-card');
 
   if (tab === 'profile') {
     if (leftPanel) {
@@ -5425,15 +5425,9 @@ function mobTab(tab, btn) {
     if (leftPanel) leftPanel.classList.remove('mob-show');
     if (marketsSec) marketsSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } else if (tab === 'social') {
-    if (leftPanel) {
-      leftPanel.classList.add('mob-show');
-      // Switch twitter tab to trump and scroll
-      const twSection = document.getElementById('twitterContainer');
-      if (twSection) twSection.closest('aside')
-        ? leftPanel.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        : null;
-      leftPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    // 소셜 피드가 오른쪽 sidebar로 옮겨져서 이제 leftPanel 토글이 아니라 그쪽으로 스크롤
+    if (leftPanel) leftPanel.classList.remove('mob-show');
+    if (twitterCard) twitterCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } else { // home
     if (leftPanel) leftPanel.classList.remove('mob-show');
     window.scrollTo({ top: 0, behavior: 'smooth' });
