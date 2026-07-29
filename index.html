@@ -1558,6 +1558,7 @@
     .header-inner { padding: 0 14px; height: 50px; gap: 8px; }
     nav { display: none; }
     .btn-primary:not(#loginBtn) { display: none; }
+    #signupBtn { display: none !important; }
     #loginBtn { font-size: 12px; padding: 6px 12px; }
     .avatar { width: 30px; height: 30px; }
 
@@ -2103,6 +2104,7 @@
     <div class="header-right">
       <a href="https://t.me/+dQQkMVnpAqZhMDU9" target="_blank" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:none;background:#229ED9;color:#fff;font-size:12px;font-weight:700;text-decoration:none;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.012 9.483c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.48 14.697l-2.95-.924c-.642-.204-.654-.642.136-.953l11.5-4.432c.537-.194 1.006.131.396.86z"/></svg>텔레그램</a>
       <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="다크/라이트 모드">🌙</button>
+      <button class="btn-outline" id="signupBtn" onclick="showSubscribeModal('login')" style="padding:8px 16px;font-size:13px">회원가입</button>
       <button class="btn-primary" id="loginBtn" onclick="showSubscribeModal('login')">로그인</button>
       <div style="position:relative;display:none" id="userAvatarWrap">
         <div class="avatar" id="userAvatar" style="cursor:pointer" onclick="toggleUserMenu()"></div>
@@ -3529,10 +3531,12 @@ function copyWalletAddress() {
 
 function updateAuthUI(user) {
   const loginBtn = document.getElementById('loginBtn');
+  const signupBtn = document.getElementById('signupBtn');
   const wrap = document.getElementById('userAvatarWrap');
   const avatar = document.getElementById('userAvatar');
   if (user) {
     loginBtn.style.display = 'none';
+    if (signupBtn) signupBtn.style.display = 'none';
     wrap.style.display = 'block';
     avatar.style.background = 'linear-gradient(135deg,#7c3aed,#e040fb)';
     if (user.photo) {
@@ -3554,6 +3558,7 @@ function updateAuthUI(user) {
     if (upgradeBtn) upgradeBtn.style.display = isPaid ? 'none' : 'block';
   } else {
     loginBtn.style.display = '';
+    if (signupBtn) signupBtn.style.display = '';
     wrap.style.display = 'none';
   }
   refreshProfileCard(user);
