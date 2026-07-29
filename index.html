@@ -4051,7 +4051,7 @@ function buildPriceMap(slice) {
   return allIds;
 }
 
-// 30초마다 pool에서 다음 20개 슬라이스로 로테이션
+// 7초마다 pool에서 다음 20개 슬라이스로 로테이션
 function rotateMarkets() {
   if (pmAllMarkets.length <= 20) return;
   pmWindowStart = (pmWindowStart + 20) % pmAllMarkets.length;
@@ -4120,9 +4120,9 @@ async function fetchPolymarkets() {
     if (pmPollTimer) clearInterval(pmPollTimer);
     pmPollTimer = setInterval(pollCLOB, 1000);
 
-    // 30초마다 다음 10개 종목으로 교체
+    // 7초마다 다음 20개 종목으로 교체
     if (pmRotateTimer) clearInterval(pmRotateTimer);
-    pmRotateTimer = setInterval(rotateMarkets, 30000);
+    pmRotateTimer = setInterval(rotateMarkets, 7000);
 
     setPMStatus('live');
   } catch(e) {
@@ -4794,7 +4794,7 @@ async function loadMarketsForCategory(cat) {
     renderMarkets(first20);
     const ids = buildPriceMap(first20);
     if (ids.length) connectWS(ids);
-    pmRotateTimer = setInterval(rotateMarkets, 30000);
+    pmRotateTimer = setInterval(rotateMarkets, 7000);
     setPMStatus('live');
     return;
   }
