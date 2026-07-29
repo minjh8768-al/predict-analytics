@@ -3095,7 +3095,7 @@ function pmCard(q, outcomes, prices, vol, imgUrl) {
 function renderMarkets(liveData) {
   let html = '';
   if (liveData && liveData.length > 0) {
-    html = liveData.slice(0, 10).map(m => {
+    html = liveData.slice(0, 20).map(m => {
       let outcomes = [], prices = [];
       try { outcomes = JSON.parse(m.outcomes || '[]'); } catch(e) {}
       try { prices   = JSON.parse(m.outcomePrices || '[]'); } catch(e) {}
@@ -4051,14 +4051,14 @@ function buildPriceMap(slice) {
   return allIds;
 }
 
-// 30초마다 pool에서 다음 10개 슬라이스로 로테이션
+// 30초마다 pool에서 다음 20개 슬라이스로 로테이션
 function rotateMarkets() {
-  if (pmAllMarkets.length <= 10) return;
-  pmWindowStart = (pmWindowStart + 10) % pmAllMarkets.length;
-  const slice = pmAllMarkets.slice(pmWindowStart, pmWindowStart + 10);
+  if (pmAllMarkets.length <= 20) return;
+  pmWindowStart = (pmWindowStart + 20) % pmAllMarkets.length;
+  const slice = pmAllMarkets.slice(pmWindowStart, pmWindowStart + 20);
   // pool 끝에서 모자라면 앞에서 보충
-  const padded = slice.length < 10
-    ? slice.concat(pmAllMarkets.slice(0, 10 - slice.length))
+  const padded = slice.length < 20
+    ? slice.concat(pmAllMarkets.slice(0, 20 - slice.length))
     : slice;
   polyLive = padded;
   renderMarkets(padded);
@@ -4096,9 +4096,9 @@ function updateSidebarStats() {
 async function fetchPolymarkets() {
   setPMStatus('connecting');
   try {
-    // 상위 거래량 30개 fetch — 가격 변동이 활발한 종목들
+    // 상위 거래량 60개 fetch — 가격 변동이 활발한 종목들 (20개씩 3바퀴 로테이션)
     const res = await fetch(
-      'https://gamma-api.polymarket.com/markets?active=true&limit=30&order=volume&ascending=false',
+      'https://gamma-api.polymarket.com/markets?active=true&limit=60&order=volume&ascending=false',
       { headers: { Accept: 'application/json' } }
     );
     if (!res.ok) throw new Error(res.status);
@@ -4107,12 +4107,12 @@ async function fetchPolymarkets() {
     if (!pmAllMarkets.length) throw new Error('empty');
     updateSidebarStats();
 
-    // 첫 10개 표시
+    // 첫 20개 표시
     pmWindowStart = 0;
-    const first10 = pmAllMarkets.slice(0, 10);
-    polyLive = first10;
-    renderMarkets(first10);
-    const allIds = buildPriceMap(first10);
+    const first20 = pmAllMarkets.slice(0, 20);
+    polyLive = first20;
+    renderMarkets(first20);
+    const allIds = buildPriceMap(first20);
 
     if (allIds.length) connectWS(allIds);
 
@@ -4789,10 +4789,10 @@ async function loadMarketsForCategory(cat) {
 
   if (cat === '전체') {
     pmWindowStart = 0;
-    const first10 = pmAllMarkets.slice(0, 10);
-    polyLive = first10;
-    renderMarkets(first10);
-    const ids = buildPriceMap(first10);
+    const first20 = pmAllMarkets.slice(0, 20);
+    polyLive = first20;
+    renderMarkets(first20);
+    const ids = buildPriceMap(first20);
     if (ids.length) connectWS(ids);
     pmRotateTimer = setInterval(rotateMarkets, 30000);
     setPMStatus('live');
@@ -4803,7 +4803,7 @@ async function loadMarketsForCategory(cat) {
   const slug = CATEGORY_TAG_SLUGS[cat];
   try {
     const res = await fetch(
-      `https://gamma-api.polymarket.com/events?active=true&closed=false&limit=20&order=volume&ascending=false&tag_slug=${slug}`,
+      `https://gamma-api.polymarket.com/events?active=true&closed=false&limit=40&order=volume&ascending=false&tag_slug=${slug}`,
       { headers: { Accept: 'application/json' } }
     );
     if (!res.ok) throw new Error(res.status);
@@ -4812,7 +4812,7 @@ async function loadMarketsForCategory(cat) {
       .flatMap(e => e.markets || [])
       .filter(m => m.active !== false && !m.closed && m.outcomePrices)
       .sort((a, b) => (parseFloat(b.volume) || 0) - (parseFloat(a.volume) || 0))
-      .slice(0, 10);
+      .slice(0, 20);
     if (!markets.length) throw new Error('empty');
 
     polyLive = markets;
