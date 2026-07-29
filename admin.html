@@ -321,10 +321,10 @@
 
     try {
       const idToken = await auth.currentUser.getIdToken();
-      const res = await fetch('/api/admin-mint', {
+      const res = await fetch('/api/admin-boss', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-        body: JSON.stringify({ walletAddress, amount }),
+        body: JSON.stringify({ walletAddress, amount, action: 'mint' }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || '지급 실패');
@@ -362,10 +362,10 @@
 
     try {
       const idToken = await auth.currentUser.getIdToken();
-      const res = await fetch('/api/admin-burn', {
+      const res = await fetch('/api/admin-boss', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-        body: JSON.stringify({ walletAddress, amount }),
+        body: JSON.stringify({ walletAddress, amount, action: 'burn' }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || '차감 실패');

@@ -2975,7 +2975,7 @@ async function fetchABCNews() {
   // 프록시(allorigins, corsproxy.io)가 둘 다 죽어서(응답 없음/403) 대체함.
   // 혹시 몰라 예전 프록시들도 뒤에 폴백으로 남겨둠.
   const PROXIES = [
-    '/api/abc-news',
+    '/api/news-proxy?source=abc',
     'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://abcnews.go.com/abcnews/topstories'),
     'https://corsproxy.io/?' + encodeURIComponent('https://abcnews.go.com/abcnews/topstories'),
   ];
@@ -3041,7 +3041,7 @@ function dongaCatMap(link) {
 
 async function fetchDongaNews() {
   try {
-    const res = await fetch('/api/donga-news', { signal: AbortSignal.timeout(8000) });
+    const res = await fetch('/api/news-proxy?source=donga', { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
     const xml = new DOMParser().parseFromString(text, 'text/xml');
