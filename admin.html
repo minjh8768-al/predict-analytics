@@ -160,6 +160,13 @@
     </div>
 
     <div class="stat-card" style="margin-bottom:20px">
+      <div class="stat-label" style="margin-bottom:12px">🚀 SIGNAL 토큰 배포 (일회성)</div>
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:10px">폴리곤 메인넷에 새 SIGNAL 컨트랙트를 배포합니다. 한 번만 실행하세요.</div>
+      <button id="deploySignalBtn" onclick="deploySignalToken()" style="padding:8px 18px;border-radius:8px;border:none;background:var(--purple);color:#fff;font-size:13px;font-weight:700;cursor:pointer">SIGNAL 컨트랙트 배포</button>
+      <div id="deploySignalStatus" style="font-size:12px;color:var(--text-sub);margin-top:8px"></div>
+    </div>
+
+    <div class="stat-card" style="margin-bottom:20px">
       <div class="stat-label" style="margin-bottom:12px">🪙 BOSS 수동 지급</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <input id="mintWalletInput" placeholder="받는 지갑 주소 (0x...)" style="flex:2;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none">
@@ -298,6 +305,33 @@
     } catch (e) {
       document.getElementById('userTableBody').innerHTML =
         `<tr class="loading-row"><td colspan="10" style="color:var(--red)">오류: ${e.message}<br><small>Firestore 보안 규칙을 확인하세요</small></td></tr>`;
+    }
+  };
+
+  // ── SIGNAL 컨트랙트 배포 (일회성) ──
+  window.deploySignalToken = async function() {
+    const btn = document.getElementById('deploySignalBtn');
+    const statusEl = document.getElementById('deploySignalStatus');
+    if (!confirm('폴리곤 메인넷에 SIGNAL 컨트랙트를 배포합니다. 실제 가스비가 나가며 되돌릴 수 없습니다. 계속할까요?')) return;
+
+    btn.disabled = true;
+    statusEl.style.color = 'var(--text-sub)';
+    statusEl.textContent = '배포 중... (몇 초 정도 걸릴 수 있습니다)';
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch('/api/admin-deploy-signal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '배포 실패');
+      statusEl.style.color = 'var(--green)';
+      statusEl.innerHTML = `배포 완료!<br>컨트랙트 주소: <b>${data.address}</b><br>tx: ${data.txHash}`;
+    } catch (e) {
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = '오류: ' + e.message;
+    } finally {
+      btn.disabled = false;
     }
   };
 
