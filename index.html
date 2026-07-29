@@ -2902,15 +2902,32 @@ function buildNewsHTML(featured, thumbArr, moreArr) {
   return html;
 }
 
+// ABC 실시간 기사 풀 — fetchABCNews()가 채워줌. renderNews()가 최초 호출되는
+// 시점(스크립트 로드 직후)보다 이 선언이 늦게 나오면 안 되므로 여기 위치시킴.
+let abcArticlePool = [];
+let abcRotatePage  = 0;
+
+// 예전엔 이 메인 피드가 newsData(고정 데이터)만 그렸음 — ABC 실시간 기사가
+// 로드되면 그걸 우선 쓰고, 아직 없거나 해당 카테고리에 매칭되는 게 없으면
+// newsData로 폴백(암호화폐처럼 ABC RSS에 없는 카테고리 대비).
 function renderNews(filter = '전체') {
   const container = document.getElementById('newsList');
+  const pool = abcArticlePool.length > 0 ? abcArticlePool : newsData;
+
   if (filter !== '전체') {
     articleCache = [];
-    const filtered = newsData.filter(n => n.category === filter);
+    let filtered = pool.filter(n => n.category === filter);
+    if (!filtered.length && pool !== newsData) filtered = newsData.filter(n => n.category === filter);
     const _mob = window.innerWidth <= 767;
     container.innerHTML = filtered.map((n, idx) =>
       (n.featured && idx === 0 && !_mob) ? cardFeatured(n) : cardRegular(n)
     ).join('');
+    return;
+  }
+
+  if (abcArticlePool.length > 0) {
+    const [featured, ...rest] = abcArticlePool;
+    container.innerHTML = buildNewsHTML(featured, rest.slice(0, 4), rest.slice(4));
     return;
   }
   const featured = newsData.find(n => n.featured);
@@ -2990,9 +3007,12 @@ async function fetchABCNews() {
 
       if (!articles.length) continue;
 
-      // Store pool and start rotation
+      // Store pool, refresh the main feed with live articles, start the
+      // separate rotating-thumbnail widget too.
       abcArticlePool = articles;
       abcRotatePage  = 0;
+      const activeTab = document.querySelector('.filter-tab.active');
+      renderNews(activeTab ? activeTab.textContent.trim() : '전체');
       showAbcPage(0);
       startAbcRotation();
       console.info(`ABC News: ${articles.length}개 기사 로드됨`);
@@ -4149,8 +4169,6 @@ function loadTwitter(handle, btn) {
 loadTwitter('realDonaldTrump', null);
 
 // ─── ABC THUMB ROTATION ───────────────────────────────────────────────
-let abcArticlePool = [];
-let abcRotatePage  = 0;
 let abcRotateTimer = null;
 
 function showAbcPage(pageIdx) {
