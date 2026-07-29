@@ -2316,19 +2316,19 @@
       <div class="quick-stats-list">
         <div class="quick-stat-item">
           <span style="color:var(--text-secondary)">비트코인 현재가</span>
-          <span style="font-weight:700;color:var(--yellow)">$118,240</span>
+          <span style="font-weight:700;color:var(--yellow)" id="qsBTC">불러오는 중...</span>
         </div>
         <div class="quick-stat-item">
           <span style="color:var(--text-secondary)">S&P 500</span>
-          <span style="font-weight:700;color:var(--green)">▲ 5,843</span>
+          <span style="font-weight:700" id="qsSP500">불러오는 중...</span>
         </div>
         <div class="quick-stat-item">
           <span style="color:var(--text-secondary)">원/달러 환율</span>
-          <span style="font-weight:700">1,342원</span>
+          <span style="font-weight:700" id="qsKRW">불러오는 중...</span>
         </div>
         <div class="quick-stat-item">
           <span style="color:var(--text-secondary)">VIX 공포지수</span>
-          <span style="font-weight:700;color:var(--red)">▲ 18.4</span>
+          <span style="font-weight:700" id="qsVIX">불러오는 중...</span>
         </div>
       </div>
     </div>
@@ -4092,6 +4092,58 @@ function updateSidebarStats() {
   if (countEl) countEl.textContent = `$${Math.round(parseFloat(topAllTime.volume) || 0).toLocaleString()}`;
   if (countTitleEl) countTitleEl.textContent = topAllTime.question || '';
 }
+
+// 사이드바 "빠른 통계" — 예전엔 고정된 가짜 숫자($118,240 등)였음. 비트코인은
+// CoinGecko(CORS 허용), 원/달러는 open.er-api.com(CORS 허용)에서 브라우저가 직접
+// 가져오고, S&P500/VIX는 CORS가 없는 Yahoo Finance라서 /api/market-data 프록시를 거침.
+function quickStatPriceHTML(price, change, decimals) {
+  const up = change >= 0;
+  const color = up ? 'var(--green)' : 'var(--red)';
+  const arrow = up ? '▲' : '▼';
+  const priceStr = price.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  return `${priceStr} <span style="color:${color}">${arrow} ${Math.abs(change).toFixed(decimals)}</span>`;
+}
+
+async function updateQuickStats() {
+  const btcEl = document.getElementById('qsBTC');
+  const spEl = document.getElementById('qsSP500');
+  const krwEl = document.getElementById('qsKRW');
+  const vixEl = document.getElementById('qsVIX');
+
+  fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true')
+    .then(r => r.json())
+    .then(d => {
+      const price = d?.bitcoin?.usd;
+      const changePct = d?.bitcoin?.usd_24h_change;
+      if (!btcEl || price == null) return;
+      const up = (changePct || 0) >= 0;
+      btcEl.innerHTML = `$${Math.round(price).toLocaleString()}` +
+        (changePct != null ? ` <span style="color:${up ? 'var(--green)' : 'var(--red)'}">${up ? '▲' : '▼'} ${Math.abs(changePct).toFixed(1)}%</span>` : '');
+    })
+    .catch(() => { if (btcEl) btcEl.textContent = '불러오기 실패'; });
+
+  fetch('https://open.er-api.com/v6/latest/USD')
+    .then(r => r.json())
+    .then(d => {
+      const rate = d?.rates?.KRW;
+      if (krwEl && rate != null) krwEl.textContent = `${Math.round(rate).toLocaleString()}원`;
+    })
+    .catch(() => { if (krwEl) krwEl.textContent = '불러오기 실패'; });
+
+  fetch('/api/market-data')
+    .then(r => r.json())
+    .then(d => {
+      if (spEl && d?.sp500) spEl.innerHTML = quickStatPriceHTML(d.sp500.price, d.sp500.change, 2);
+      if (vixEl && d?.vix) vixEl.innerHTML = quickStatPriceHTML(d.vix.price, d.vix.change, 2);
+    })
+    .catch(() => {
+      if (spEl) spEl.textContent = '불러오기 실패';
+      if (vixEl) vixEl.textContent = '불러오기 실패';
+    });
+}
+
+updateQuickStats();
+setInterval(updateQuickStats, 60000);
 
 async function fetchPolymarkets() {
   setPMStatus('connecting');
