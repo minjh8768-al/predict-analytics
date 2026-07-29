@@ -3028,8 +3028,15 @@ function fmtVol(v) {
          n >= 1e3 ? `$${(n/1e3).toFixed(0)}K` : `$${n.toFixed(0)}`;
 }
 
+// 무료 플랜만 페이월 대상 — 스탠다드/프리미엄/서포터는 이미 결제한 유저라 다시 막으면 안 됨.
+function hasMarketAccess() {
+  const user = getUser();
+  return !!(user && user.plan && user.plan !== 'free');
+}
+
 function pmCard(q, outcomes, prices, vol, imgUrl) {
-  return `<div class="market-card" onclick="openSubModal('시장 데이터')" style="cursor:pointer">
+  const locked = !hasMarketAccess();
+  return `<div class="market-card" ${locked ? `onclick="openSubModal('시장 데이터')"` : ''} style="cursor:${locked ? 'pointer' : 'default'}">
     <div class="market-card-header">
       <div class="market-icon" style="background:var(--bg-card);overflow:hidden;padding:0">
         ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML='🎯'">` : '🎯'}
@@ -3062,8 +3069,9 @@ function renderMarkets(liveData) {
       return pmCard(m.question, outcomes, prices, m.volume, m.image);
     }).join('');
   } else {
+    const locked = !hasMarketAccess();
     html = marketData.map(m => `
-      <div class="market-card" onclick="openSubModal('시장 데이터')" style="cursor:pointer">
+      <div class="market-card" ${locked ? `onclick="openSubModal('시장 데이터')"` : ''} style="cursor:${locked ? 'pointer' : 'default'}">
         <div class="market-card-header">
           <div class="market-icon" style="background:${m.bg}">${m.icon}</div>
           <div class="market-title">${m.title}</div>
@@ -4620,7 +4628,7 @@ function openSubModal(label) {
 }
 
 function marketTabClick(btn, cat) {
-  if (cat === '전체') {
+  if (cat === '전체' || hasMarketAccess()) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     return;
