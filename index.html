@@ -2068,20 +2068,15 @@
 
   // 사이트 계정(Firestore 기록 + Firebase 로그인 자체)을 삭제.
   // 지갑 주소와 그 안의 BOSS 잔액은 블록체인에 남는 것이라 여기서 지울 수 없음 — 호출부에서 안내.
+  // 탈퇴 직전 항상 구글 재인증을 먼저 요구함 — 세션이 오래돼서 필요한 경우에만
+  // 재인증하던 이전 방식은, 세션이 갓 로그인된 상태면 확인 절차 없이 바로
+  // 삭제돼버리는 문제가 있었음. 재인증에서 취소/실패하면 아무것도 안 지워짐.
   window._deleteAccount = async function() {
     const u = auth.currentUser;
     if (!u) throw new Error('로그인이 필요합니다.');
+    await reauthenticateWithPopup(u, provider);
     await deleteDoc(doc(db, 'users', u.uid)).catch(() => {});
-    try {
-      await deleteUser(u);
-    } catch (e) {
-      if (e.code === 'auth/requires-recent-login') {
-        await reauthenticateWithPopup(u, provider);
-        await deleteUser(u);
-      } else {
-        throw e;
-      }
-    }
+    await deleteUser(u);
   };
 
   window.getFirebaseToken = async function() {
@@ -2954,15 +2949,18 @@ function relativeTime(dateStr) {
 }
 
 async function fetchABCNews() {
+  // 우리 자체 서버리스 프록시(/api/abc-news)를 우선 사용 — 예전에 쓰던 무료 공개
+  // 프록시(allorigins, corsproxy.io)가 둘 다 죽어서(응답 없음/403) 대체함.
+  // 혹시 몰라 예전 프록시들도 뒤에 폴백으로 남겨둠.
   const PROXIES = [
-    'https://api.allorigins.win/raw?url=',
-    'https://corsproxy.io/?',
+    '/api/abc-news',
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://abcnews.go.com/abcnews/topstories'),
+    'https://corsproxy.io/?' + encodeURIComponent('https://abcnews.go.com/abcnews/topstories'),
   ];
-  const RSS = 'https://abcnews.go.com/abcnews/topstories';
 
   for (const proxy of PROXIES) {
     try {
-      const res = await fetch(proxy + encodeURIComponent(RSS), { signal: AbortSignal.timeout(8000) });
+      const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
       if (!res.ok) continue;
       const text = await res.text();
       const xml = new DOMParser().parseFromString(text, 'text/xml');
@@ -3241,7 +3239,7 @@ function closeSubscribeModal() {
 
 async function deleteAccountFromMenu() {
   if (!window._deleteAccount) return;
-  const warning = '정말 탈퇴하시겠습니까?\n\n- 사이트에 저장된 계정 정보(결제 내역, 플랜 등)는 삭제됩니다.\n- 단, 연결된 지갑 주소와 그 안의 BOSS 잔액은 블록체인에 남아있는 것이라 삭제되지 않습니다.\n\n이 작업은 되돌릴 수 없습니다.';
+  const warning = '정말 탈퇴하시겠습니까?\n\n- 계속하면 구글 로그인 확인 창이 한 번 더 뜹니다.\n- 사이트에 저장된 계정 정보(결제 내역, 플랜 등)는 삭제됩니다.\n- 단, 연결된 지갑 주소와 그 안의 BOSS 잔액은 블록체인에 남아있는 것이라 삭제되지 않습니다.\n\n이 작업은 되돌릴 수 없습니다.';
   if (!confirm(warning)) return;
   try {
     await window._deleteAccount();
