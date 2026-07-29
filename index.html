@@ -1949,6 +1949,13 @@
     return code;
   };
 
+  window._getMyCreatedAt = async function() {
+    if (!auth.currentUser) return null;
+    const snap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+    const d = snap.exists() ? snap.data() : {};
+    return d.createdAt?.toDate ? d.createdAt.toDate() : null;
+  };
+
   // 이미 추천인이 등록돼 있는지 (있으면 코드 입력 UI를 숨기기 위함)
   window._hasReferrer = async function() {
     if (!auth.currentUser) return false;
@@ -2189,43 +2196,36 @@
   <!-- LEFT: Profile -->
   <aside>
     <div class="profile-card">
-      <div class="profile-header">
-        <div class="profile-avatar">🎯</div>
-        <div>
-          <div class="profile-name">분석가 Pro</div>
-          <div class="profile-sub">0x2c33...5465</div>
-        </div>
+      <div id="profileCardLoggedOut" style="text-align:center;padding:10px 4px">
+        <div style="font-size:32px;margin-bottom:10px">👋</div>
+        <div style="font-weight:700;color:var(--text);margin-bottom:6px">로그인하고 내 정보를 확인하세요</div>
+        <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:16px">플랜, BOSS 지갑 잔액, 추천 코드까지</div>
+        <button class="btn-primary" style="width:100%" onclick="showSubscribeModal('login')">로그인</button>
       </div>
-      <div class="profile-stats">
-        <div class="profile-stat">
-          <span class="label">포트폴리오 가치</span>
-          <span class="value value-green">$12,840</span>
+      <div id="profileCardLoggedIn" style="display:none">
+        <div class="profile-header">
+          <div class="profile-avatar" id="profileCardAvatar">🎯</div>
+          <div>
+            <div class="profile-name" id="profileCardName">-</div>
+            <div class="profile-sub" id="profileCardPlan">-</div>
+          </div>
         </div>
-        <div class="profile-stat">
-          <span class="label">총 PnL</span>
-          <span class="value value-green">▲ +24.5%</span>
+        <div class="profile-stats">
+          <div class="profile-stat">
+            <span class="label">BOSS 지갑 잔액</span>
+            <span class="value value-green" id="profileCardBoss">-</span>
+          </div>
+          <div class="profile-stat">
+            <span class="label">가입일</span>
+            <span class="value" id="profileCardJoined">-</span>
+          </div>
+          <div class="profile-stat">
+            <span class="label">내 추천 코드</span>
+            <span class="value" id="profileCardRefCode">-</span>
+          </div>
         </div>
-        <div class="profile-stat">
-          <span class="label">승률</span>
-          <span class="value">68.2%</span>
-        </div>
-        <div class="profile-stat">
-          <span class="label">활성 포지션</span>
-          <span class="value">14</span>
-        </div>
-        <div class="profile-stat">
-          <span class="label">총 거래</span>
-          <span class="value">387</span>
-        </div>
-      </div>
-      <div class="divider"></div>
-      <div class="profile-stat">
-        <span class="label">30일 볼륨</span>
-        <span class="value">$48,200</span>
-      </div>
-      <div class="profile-stat" style="margin-top:8px">
-        <span class="label">팔로워</span>
-        <span class="value">1,240</span>
+        <div class="divider"></div>
+        <button id="profileCardWalletBtn" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text-secondary);font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">지갑 연결하기</button>
       </div>
       <div class="tag-list">
         <span class="tag">정치</span>
@@ -3561,6 +3561,70 @@ function updateAuthUI(user) {
   } else {
     loginBtn.style.display = '';
     wrap.style.display = 'none';
+  }
+  refreshProfileCard(user);
+}
+
+// 사이드바 "분석가 Pro" 카드 — 원래 처음 만들 때 넣어둔 고정 데모 데이터(가짜 지갑,
+// 포트폴리오 가치, PnL 등)였는데, 실제 계정 정보(플랜/BOSS 잔액/추천 코드/가입일)로 교체.
+async function refreshProfileCard(user) {
+  const loggedOut = document.getElementById('profileCardLoggedOut');
+  const loggedIn = document.getElementById('profileCardLoggedIn');
+  if (!loggedOut || !loggedIn) return;
+
+  if (!user) {
+    loggedOut.style.display = 'block';
+    loggedIn.style.display = 'none';
+    return;
+  }
+  loggedOut.style.display = 'none';
+  loggedIn.style.display = 'block';
+
+  const avatarEl = document.getElementById('profileCardAvatar');
+  if (user.photo) {
+    avatarEl.innerHTML = `<img src="${user.photo}" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:50%;object-fit:cover" onerror="this.parentElement.textContent='${(user.name||'U')[0].toUpperCase()}'">`;
+  } else {
+    avatarEl.textContent = (user.name || 'U')[0].toUpperCase();
+  }
+
+  document.getElementById('profileCardName').textContent = user.name || '사용자';
+  const planLabelMap = { standard: '✦ 스탠다드 플랜', premium: '✦ 프리미엄 플랜', supporter: '✦ 서포터 플랜' };
+  document.getElementById('profileCardPlan').textContent = planLabelMap[user.plan] || '무료 플랜';
+
+  const walletBtn = document.getElementById('profileCardWalletBtn');
+  const bossEl = document.getElementById('profileCardBoss');
+  if (user.bossWallet) {
+    walletBtn.textContent = '🪙 내 지갑 전체 보기';
+    walletBtn.onclick = openWalletModal;
+    bossEl.textContent = '조회 중...';
+    try {
+      const bal = await getBossBalance(user.bossWallet);
+      bossEl.textContent = `${bal.toLocaleString()} BOSS`;
+    } catch (e) {
+      bossEl.textContent = '조회 실패';
+    }
+  } else {
+    walletBtn.textContent = '지갑 연결하기';
+    walletBtn.onclick = connectWalletForMenu;
+    bossEl.textContent = '연결 안 됨';
+  }
+
+  const refCodeEl = document.getElementById('profileCardRefCode');
+  refCodeEl.textContent = '불러오는 중...';
+  if (window._getMyReferralCode) {
+    window._getMyReferralCode().then(code => {
+      refCodeEl.textContent = code || '-';
+    }).catch(() => { refCodeEl.textContent = '-'; });
+  }
+
+  const joinedEl = document.getElementById('profileCardJoined');
+  joinedEl.textContent = '-';
+  if (window._getMyCreatedAt) {
+    window._getMyCreatedAt().then(date => {
+      joinedEl.textContent = date
+        ? `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')}`
+        : '-';
+    }).catch(() => {});
   }
 }
 
