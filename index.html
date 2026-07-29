@@ -2902,17 +2902,22 @@ function buildNewsHTML(featured, thumbArr, moreArr) {
   return html;
 }
 
-// ABC 실시간 기사 풀 — fetchABCNews()가 채워줌. renderNews()가 최초 호출되는
-// 시점(스크립트 로드 직후)보다 이 선언이 늦게 나오면 안 되므로 여기 위치시킴.
+// ABC 실시간 기사 풀 — 상단의 작은 회전 썸네일 위젯 전용 (fetchABCNews()가 채움).
+// 동아일보 실시간 기사 풀 — 메인 뉴스 피드 전용 (fetchDongaNews()가 채움). 둘을
+// 분리해둔 이유: 처음엔 메인 피드도 ABC 걸 그대로 썼더니 위/아래가 똑같은 내용이
+// 중복으로 보여서, 메인 피드는 한국어 기사(동아일보)로 따로 채우도록 바꿈.
+// renderNews()가 최초 호출되는 시점(스크립트 로드 직후)보다 이 선언들이 늦게
+// 나오면 안 되므로 여기 위치시킴.
 let abcArticlePool = [];
 let abcRotatePage  = 0;
+let dongaArticlePool = [];
 
-// 예전엔 이 메인 피드가 newsData(고정 데이터)만 그렸음 — ABC 실시간 기사가
+// 예전엔 이 메인 피드가 newsData(고정 데이터)만 그렸음 — 동아일보 실시간 기사가
 // 로드되면 그걸 우선 쓰고, 아직 없거나 해당 카테고리에 매칭되는 게 없으면
-// newsData로 폴백(암호화폐처럼 ABC RSS에 없는 카테고리 대비).
+// newsData로 폴백(암호화폐처럼 실제 언론사 RSS엔 없는 카테고리 대비).
 function renderNews(filter = '전체') {
   const container = document.getElementById('newsList');
-  const pool = abcArticlePool.length > 0 ? abcArticlePool : newsData;
+  const pool = dongaArticlePool.length > 0 ? dongaArticlePool : newsData;
 
   if (filter !== '전체') {
     articleCache = [];
@@ -2925,8 +2930,8 @@ function renderNews(filter = '전체') {
     return;
   }
 
-  if (abcArticlePool.length > 0) {
-    const [featured, ...rest] = abcArticlePool;
+  if (dongaArticlePool.length > 0) {
+    const [featured, ...rest] = dongaArticlePool;
     container.innerHTML = buildNewsHTML(featured, rest.slice(0, 4), rest.slice(4));
     return;
   }
@@ -3007,12 +3012,9 @@ async function fetchABCNews() {
 
       if (!articles.length) continue;
 
-      // Store pool, refresh the main feed with live articles, start the
-      // separate rotating-thumbnail widget too.
+      // 상단 회전 썸네일 위젯 전용 풀 — 메인 피드는 건드리지 않음(동아일보가 담당).
       abcArticlePool = articles;
       abcRotatePage  = 0;
-      const activeTab = document.querySelector('.filter-tab.active');
-      renderNews(activeTab ? activeTab.textContent.trim() : '전체');
       showAbcPage(0);
       startAbcRotation();
       console.info(`ABC News: ${articles.length}개 기사 로드됨`);
@@ -3022,6 +3024,62 @@ async function fetchABCNews() {
     }
   }
   console.warn('ABC News 로드 실패 — 정적 데이터 유지');
+}
+
+// ─── 동아일보 실시간 기사 (메인 뉴스 피드 전용) ──────────────────────
+function dongaCatMap(link) {
+  const m = (link || '').match(/\/news\/([A-Za-z]+)\//);
+  const seg = (m ? m[1] : '').toLowerCase();
+  const map = {
+    politics: { cat: '정치', cls: 'cat-politics', emoji: '🏛️' },
+    economy:  { cat: '경제', cls: 'cat-economy', emoji: '📈' },
+    international: { cat: '세계', cls: 'cat-world', emoji: '🌏' },
+    sports:   { cat: '스포츠', cls: 'cat-sports', emoji: '⚽' },
+  };
+  return map[seg] || { cat: '뉴스', cls: 'cat-world', emoji: '📰' };
+}
+
+async function fetchDongaNews() {
+  try {
+    const res = await fetch('/api/donga-news', { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const xml = new DOMParser().parseFromString(text, 'text/xml');
+    const items = Array.from(xml.querySelectorAll('item'));
+    if (!items.length) throw new Error('기사 없음');
+
+    const articles = items.slice(0, 10).map(item => {
+      const g = tag => item.querySelector(tag)?.textContent?.trim() || '';
+      const link = g('link');
+      const mapped = dongaCatMap(link);
+      const rawDesc = g('description');
+      // media:content는 네임스페이스 태그라 querySelector가 브라우저마다 다르게
+      // 동작할 수 있어서, ABC 파서와 동일하게 직렬화된 XML 문자열에서 정규식으로 추출.
+      const str = new XMLSerializer().serializeToString(item);
+      const imgM = str.match(/url="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp|gif)[^"]*?)"/i)
+                || rawDesc.match(/<img[^>]+src=['"]([^'"]+)['"]/i);
+      const imgUrl = imgM ? imgM[1] : '';
+      const excerpt = rawDesc.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 220);
+      const title = g('title');
+      return {
+        category: mapped.cat, catClass: mapped.cls, emoji: mapped.emoji,
+        img: imgUrl, title, excerpt: excerpt || title,
+        time: relativeTime(g('pubDate')), author: '동아일보',
+        prob: Math.floor(Math.random() * 30) + 45,
+        views: '-', comments: '-',
+        source: '동아일보', link, featured: false,
+      };
+    }).filter(a => a.title);
+
+    if (!articles.length) throw new Error('파싱된 기사 없음');
+
+    dongaArticlePool = articles;
+    const activeTab = document.querySelector('.filter-tab.active');
+    renderNews(activeTab ? activeTab.textContent.trim() : '전체');
+    console.info(`동아일보: ${articles.length}개 기사 로드됨`);
+  } catch (e) {
+    console.warn('동아일보 로드 실패 — 정적 데이터 유지:', e.message);
+  }
 }
 
 function renderTraders() {
@@ -4112,6 +4170,7 @@ renderMarkets();
 fetchPolymarkets();
 fetchPolyFeatured();
 fetchABCNews();
+fetchDongaNews();
 
 // ─── TWITTER / X 소셜 피드 (정적) ────────────────────────────────────
 const PROFILES = {
