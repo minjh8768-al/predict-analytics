@@ -2903,21 +2903,21 @@ function buildNewsHTML(featured, thumbArr, moreArr) {
 }
 
 // ABC 실시간 기사 풀 — 상단의 작은 회전 썸네일 위젯 전용 (fetchABCNews()가 채움).
-// 동아일보 실시간 기사 풀 — 메인 뉴스 피드 전용 (fetchDongaNews()가 채움). 둘을
-// 분리해둔 이유: 처음엔 메인 피드도 ABC 걸 그대로 썼더니 위/아래가 똑같은 내용이
-// 중복으로 보여서, 메인 피드는 한국어 기사(동아일보)로 따로 채우도록 바꿈.
+// BBC 실시간 기사 풀 — 메인 뉴스 피드 전용 (fetchMainNews()가 채움). 둘을 분리해둔
+// 이유: 처음엔 메인 피드도 ABC 걸 그대로 썼더니 위/아래가 똑같은 내용이 중복으로
+// 보여서 따로 채우도록 바꿈 (동아일보 → CNN 시도했으나 죽은 피드 → BBC News로 정착).
 // renderNews()가 최초 호출되는 시점(스크립트 로드 직후)보다 이 선언들이 늦게
 // 나오면 안 되므로 여기 위치시킴.
 let abcArticlePool = [];
 let abcRotatePage  = 0;
-let dongaArticlePool = [];
+let mainArticlePool = [];
 
-// 예전엔 이 메인 피드가 newsData(고정 데이터)만 그렸음 — 동아일보 실시간 기사가
+// 예전엔 이 메인 피드가 newsData(고정 데이터)만 그렸음 — BBC 실시간 기사가
 // 로드되면 그걸 우선 쓰고, 아직 없거나 해당 카테고리에 매칭되는 게 없으면
 // newsData로 폴백(암호화폐처럼 실제 언론사 RSS엔 없는 카테고리 대비).
 function renderNews(filter = '전체') {
   const container = document.getElementById('newsList');
-  const pool = dongaArticlePool.length > 0 ? dongaArticlePool : newsData;
+  const pool = mainArticlePool.length > 0 ? mainArticlePool : newsData;
 
   if (filter !== '전체') {
     articleCache = [];
@@ -2930,8 +2930,8 @@ function renderNews(filter = '전체') {
     return;
   }
 
-  if (dongaArticlePool.length > 0) {
-    const [featured, ...rest] = dongaArticlePool;
+  if (mainArticlePool.length > 0) {
+    const [featured, ...rest] = mainArticlePool;
     container.innerHTML = buildNewsHTML(featured, rest.slice(0, 4), rest.slice(4));
     return;
   }
@@ -3012,7 +3012,7 @@ async function fetchABCNews() {
 
       if (!articles.length) continue;
 
-      // 상단 회전 썸네일 위젯 전용 풀 — 메인 피드는 건드리지 않음(동아일보가 담당).
+      // 상단 회전 썸네일 위젯 전용 풀 — 메인 피드는 건드리지 않음(BBC News가 담당).
       abcArticlePool = articles;
       abcRotatePage  = 0;
       showAbcPage(0);
@@ -3026,22 +3026,25 @@ async function fetchABCNews() {
   console.warn('ABC News 로드 실패 — 정적 데이터 유지');
 }
 
-// ─── 동아일보 실시간 기사 (메인 뉴스 피드 전용) ──────────────────────
-function dongaCatMap(link) {
-  const m = (link || '').match(/\/news\/([A-Za-z]+)\//);
+// ─── BBC News 실시간 기사 (메인 뉴스 피드 전용) ──────────────────────
+// 동아일보를 먼저 썼는데 "한국 뉴스라 안 어울린다"는 피드백으로 CNN을 시도 →
+// CNN의 공개 RSS(rss.cnn.com)가 2023년 이후로 업데이트가 끊긴 죽은 피드라는 걸
+// 확인하고 BBC News로 교체(2026-07-29, 실시간 갱신 확인함).
+function bbcCatMap(link) {
+  const m = (link || '').match(/bbc\.co\.uk\/(sport|weather|news\/business|news\/politics|news\/world)/i);
   const seg = (m ? m[1] : '').toLowerCase();
   const map = {
-    politics: { cat: '정치', cls: 'cat-politics', emoji: '🏛️' },
-    economy:  { cat: '경제', cls: 'cat-economy', emoji: '📈' },
-    international: { cat: '세계', cls: 'cat-world', emoji: '🌏' },
-    sports:   { cat: '스포츠', cls: 'cat-sports', emoji: '⚽' },
+    sport: { cat: '스포츠', cls: 'cat-sports', emoji: '⚽' },
+    'news/business': { cat: '경제', cls: 'cat-economy', emoji: '📈' },
+    'news/politics': { cat: '정치', cls: 'cat-politics', emoji: '🏛️' },
+    'news/world': { cat: '세계', cls: 'cat-world', emoji: '🌏' },
   };
   return map[seg] || { cat: '뉴스', cls: 'cat-world', emoji: '📰' };
 }
 
-async function fetchDongaNews() {
+async function fetchMainNews() {
   try {
-    const res = await fetch('/api/news-proxy?source=donga', { signal: AbortSignal.timeout(8000) });
+    const res = await fetch('/api/news-proxy?source=bbc', { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
     const xml = new DOMParser().parseFromString(text, 'text/xml');
@@ -3051,9 +3054,9 @@ async function fetchDongaNews() {
     const articles = items.slice(0, 10).map(item => {
       const g = tag => item.querySelector(tag)?.textContent?.trim() || '';
       const link = g('link');
-      const mapped = dongaCatMap(link);
+      const mapped = bbcCatMap(link);
       const rawDesc = g('description');
-      // media:content는 네임스페이스 태그라 querySelector가 브라우저마다 다르게
+      // media:thumbnail은 네임스페이스 태그라 querySelector가 브라우저마다 다르게
       // 동작할 수 있어서, ABC 파서와 동일하게 직렬화된 XML 문자열에서 정규식으로 추출.
       const str = new XMLSerializer().serializeToString(item);
       const imgM = str.match(/url="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp|gif)[^"]*?)"/i)
@@ -3064,21 +3067,21 @@ async function fetchDongaNews() {
       return {
         category: mapped.cat, catClass: mapped.cls, emoji: mapped.emoji,
         img: imgUrl, title, excerpt: excerpt || title,
-        time: relativeTime(g('pubDate')), author: '동아일보',
+        time: relativeTime(g('pubDate')), author: 'BBC News',
         prob: Math.floor(Math.random() * 30) + 45,
         views: '-', comments: '-',
-        source: '동아일보', link, featured: false,
+        source: 'BBC News', link, featured: false,
       };
     }).filter(a => a.title);
 
     if (!articles.length) throw new Error('파싱된 기사 없음');
 
-    dongaArticlePool = articles;
+    mainArticlePool = articles;
     const activeTab = document.querySelector('.filter-tab.active');
     renderNews(activeTab ? activeTab.textContent.trim() : '전체');
-    console.info(`동아일보: ${articles.length}개 기사 로드됨`);
+    console.info(`BBC News: ${articles.length}개 기사 로드됨`);
   } catch (e) {
-    console.warn('동아일보 로드 실패 — 정적 데이터 유지:', e.message);
+    console.warn('BBC News 로드 실패 — 정적 데이터 유지:', e.message);
   }
 }
 
@@ -4170,7 +4173,7 @@ renderMarkets();
 fetchPolymarkets();
 fetchPolyFeatured();
 fetchABCNews();
-fetchDongaNews();
+fetchMainNews();
 
 // ─── TWITTER / X 소셜 피드 (정적) ────────────────────────────────────
 const PROFILES = {
