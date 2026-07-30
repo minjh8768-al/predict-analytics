@@ -2184,17 +2184,17 @@
       <div class="stat-change" id="statMarketCountTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
     </div>
 
-    <!-- Twitter Widget -->
+    <!-- Reddit 실제 인기글 위젯 (예전엔 트럼프/머스크/밴스 가짜 트윗이었음) -->
     <div class="twitter-card">
       <div class="twitter-card-header">
         <div class="twitter-card-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.259 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          소셜 피드
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#ff4500;flex-shrink:0"></span>
+          Reddit 인기글
         </div>
         <div class="tw-tabs">
-          <button class="tw-tab active" onclick="loadTwitter('realDonaldTrump',this)">트럼프</button>
-          <button class="tw-tab" onclick="loadTwitter('elonmusk',this)">머스크</button>
-          <button class="tw-tab" onclick="loadTwitter('JDVance',this)">밴스</button>
+          <button class="tw-tab active" onclick="loadRedditFeed('reddit_predictionmarkets',this)">예측시장</button>
+          <button class="tw-tab" onclick="loadRedditFeed('reddit_wallstreetbets',this)">월가베팅</button>
+          <button class="tw-tab" onclick="loadRedditFeed('reddit_economics',this)">경제</button>
         </div>
       </div>
       <div id="twitterContainer">
@@ -4112,60 +4112,59 @@ fetchPolyFeatured();
 fetchABCNews();
 fetchMainNews();
 
-// ─── TWITTER / X 소셜 피드 (정적) ────────────────────────────────────
-const PROFILES = {
-  realDonaldTrump: { name: 'Donald J. Trump', handle: '@realDonaldTrump', color: '#c0392b', i: 'T' },
-  elonmusk:        { name: 'Elon Musk',        handle: '@elonmusk',        color: '#2c3e50', i: 'E' },
-  JDVance:         { name: 'JD Vance',          handle: '@JDVance',         color: '#1a5276', i: 'V' }
-};
-const TWEETS = {
-  realDonaldTrump: [
-    { text: 'The Election Infrastructure of this Country is far more VULNERABLE than anyone knows. We will release full findings to the American people. STAY TUNED!', time: '2시간 전', likes: '84.2K', rt: '31.5K' },
-    { text: 'GREAT meeting at the White House today with world leaders. America is back, stronger than EVER. The Fake News will never report the truth!', time: '5시간 전', likes: '67.1K', rt: '22.3K' },
-    { text: 'Stock Market is UP. Jobs are UP. Inflation is DOWN. Crime is DOWN. Our Economy is doing FANTASTICALLY well. MAKE AMERICA GREAT AGAIN!', time: '어제', likes: '92.4K', rt: '38.7K' }
-  ],
-  elonmusk: [
-    { text: 'DOGE has identified over $2 trillion in potential government savings. The bureaucracy is not happy, but the American taxpayer will be.', time: '1시간 전', likes: '156.3K', rt: '45.2K' },
-    { text: 'Grok 3.5 is now the most capable AI in the world on key benchmarks. Open-source weights releasing next month.', time: '4시간 전', likes: '203.7K', rt: '67.8K' },
-    { text: 'Starship Flight 9 is go for next week. Full orbital trajectory. The future is multiplanetary — this is the way.', time: '어제', likes: '178.4K', rt: '52.1K' }
-  ],
-  JDVance: [
-    { text: 'We have reduced illegal border crossings by over 90% since January. The mainstream media refuses to cover it. The numbers speak for themselves.', time: '3시간 전', likes: '42.8K', rt: '15.3K' },
-    { text: 'Great meetings with European allies on NATO and collective defense. America stands with its partners — but every nation must carry its share.', time: '6시간 전', likes: '38.5K', rt: '12.7K' },
-    { text: 'The American worker deserves a government that fights for them every single day. That is exactly what this administration delivers.', time: '어제', likes: '55.2K', rt: '19.4K' }
-  ]
+// ─── Reddit 실제 인기글 피드 ──────────────────────────────────────────
+// 예전엔 트럼프/머스크/밴스가 실제로 하지도 않은 말을 지어내서 인증된 트윗처럼
+// 보여주고 있었음 (좋아요/RT 수까지 고정값). X API는 2026년부터 무료 티어가
+// 없어져서(읽기 1건당 유료), 대신 CORS 없이 접근 가능하고 사이트 주제와도 잘
+// 맞는 Reddit의 실제 인기글로 교체 — 진짜 글쓴이, 진짜 제목, 진짜 시각.
+const REDDIT_SUB_LABEL = {
+  reddit_predictionmarkets: 'r/PredictionMarkets',
+  reddit_wallstreetbets: 'r/wallstreetbets',
+  reddit_economics: 'r/economics',
 };
 
-const VERIFIED_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="#1d9bf0" style="flex-shrink:0"><path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91C1.88 9.33 1 10.57 1 12s.88 2.67 2.19 3.34c-.46 1.39-.2 2.9.81 3.91s2.52 1.27 3.91.81c.66 1.31 1.91 2.19 3.34 2.19s2.67-.88 3.33-2.19c1.4.46 2.91.2 3.92-.81s1.26-2.52.8-3.91C21.37 14.67 22.25 13.43 22.25 12zm-6.19-1.71l-6 6a.75.75 0 01-1.06 0l-3-3a.75.75 0 011.06-1.06l2.47 2.47 5.47-5.47a.75.75 0 011.06 1.06z"/></svg>`;
-const RT_SVG  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 1l4 4-4 4M21 5H9a4 4 0 000 8h1M7 23l-4-4 4-4M3 19h12a4 4 0 000-8h-1"/></svg>`;
-const LIKE_SVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
-
-function loadTwitter(handle, btn) {
+async function loadRedditFeed(source, btn) {
   document.querySelectorAll('.tw-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  const p = PROFILES[handle];
-  const tweets = TWEETS[handle] || [];
-  const profileUrl = `https://x.com/${handle}`;
-  document.getElementById('twitterContainer').innerHTML =
-    `<div class="tweet-list">${tweets.map(t => `
-      <div class="tweet-item" style="cursor:pointer" onclick="window.open('${profileUrl}','_blank')">
+  const container = document.getElementById('twitterContainer');
+  container.innerHTML = '<p class="tw-loading">불러오는 중...</p>';
+
+  try {
+    const res = await fetch(`/api/news-proxy?source=${source}`, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const xml = new DOMParser().parseFromString(text, 'text/xml');
+    const entries = Array.from(xml.querySelectorAll('entry'))
+      .filter(e => (e.querySelector('author name')?.textContent || '') !== '/u/AutoModerator')
+      .slice(0, 8);
+    if (!entries.length) throw new Error('게시물 없음');
+
+    const posts = entries.map(e => ({
+      title: e.querySelector('title')?.textContent?.trim() || '',
+      link: e.querySelector('link')?.getAttribute('href') || '#',
+      author: (e.querySelector('author name')?.textContent || '').replace(/^\/u\//, 'u/'),
+      time: relativeTime(e.querySelector('updated')?.textContent || ''),
+    })).filter(p => p.title);
+
+    container.innerHTML = `<div class="tweet-list">${posts.map(p => `
+      <div class="tweet-item" style="cursor:pointer" onclick="window.open('${p.link}','_blank')">
         <div class="tweet-header">
-          <div class="tweet-avatar" style="background:${p.color}">${p.i}</div>
+          <div class="tweet-avatar" style="background:#ff4500">R</div>
           <div class="tweet-name-wrap">
-            <div class="tweet-name">${p.name}&nbsp;${VERIFIED_SVG}</div>
-            <div class="tweet-handle">${p.handle}</div>
+            <div class="tweet-name">${REDDIT_SUB_LABEL[source] || 'Reddit'}</div>
+            <div class="tweet-handle">${p.author}</div>
           </div>
-          <div class="tweet-time">${t.time}</div>
+          <div class="tweet-time">${p.time}</div>
         </div>
-        <div class="tweet-body">${t.text}</div>
-        <div class="tweet-stats">
-          <span class="tweet-stat">${RT_SVG}&nbsp;${t.rt}</span>
-          <span class="tweet-stat">${LIKE_SVG}&nbsp;${t.likes}</span>
-        </div>
+        <div class="tweet-body">${p.title}</div>
       </div>`).join('')}</div>`;
+  } catch (e) {
+    console.warn('Reddit 피드 로드 실패:', e.message);
+    container.innerHTML = '<p class="tw-loading">불러오지 못했습니다.</p>';
+  }
 }
 
-loadTwitter('realDonaldTrump', null);
+loadRedditFeed('reddit_predictionmarkets', null);
 
 // ─── ABC THUMB ROTATION ───────────────────────────────────────────────
 let abcRotateTimer = null;
