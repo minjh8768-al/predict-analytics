@@ -10,7 +10,7 @@ const SOURCES = {
   reddit_wallstreetbets: 'https://www.reddit.com/r/wallstreetbets/.rss',
   reddit_economics: 'https://www.reddit.com/r/economics/.rss',
 };
-const REDDIT_CACHE_TTL_MS = 120000;
+const REDDIT_CACHE_TTL_MS = 30 * 60000; // 30분 — Reddit이 IP당 요청 제한이 너무 빡빡해서 길게 잡음
 const redditCache = new Map(); // source -> { text, fetchedAt }
 
 export default async function handler(req, res) {
