@@ -770,6 +770,23 @@ section {
   opacity: 0.9;
 }
 
+.article-thumb--video {
+  background-size: cover;
+  background-position: center;
+}
+
+.article-thumb--video::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.15));
+}
+
+.article-thumb--video span {
+  position: relative;
+  z-index: 1;
+}
+
 .article-body {
   padding: 26px 26px 30px;
   display: flex;
