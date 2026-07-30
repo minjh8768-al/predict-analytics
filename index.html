@@ -1541,7 +1541,7 @@
   @media (max-width: 960px) {
     .main-layout { grid-template-columns: 1fr; padding: 12px; }
     .profile-card, .sidebar { position: static; }
-    aside:first-child { display: none; }
+    #profileAside { display: none; }
     .pm-feat-card { flex-direction: column !important; }
     .pm-feat-left { width: 100% !important; min-width: 0 !important; border-right: none; border-bottom: 1px solid var(--border); }
     .pm-feat-right { min-height: 200px; }
@@ -1574,8 +1574,8 @@
       padding: 10px 12px 72px; gap: 10px;
       width: 100%; box-sizing: border-box;
     }
-    .main-layout > aside:first-child { display: none; order: 10; }
-    .main-layout > aside:first-child.mob-show { display: block; order: 10; }
+    #profileAside { display: none; order: 10; }
+    #profileAside.mob-show { display: block; order: 10; }
     main { order: 2; min-width: 0; width: 100%; }
     .sidebar {
       order: 1; display: flex !important; flex-direction: row;
@@ -2161,8 +2161,83 @@
 <!-- ─── MAIN LAYOUT ─── -->
 <div class="main-layout">
 
-  <!-- LEFT: Profile -->
-  <aside>
+  <!-- LEFT: Sidebar (원래 오른쪽에 있던 내용) -->
+  <aside class="sidebar">
+
+    <div class="sidebar-card">
+      <h3>24시간 거래량 1위</h3>
+      <div class="big-stat" id="statVolume">불러오는 중...</div>
+      <div class="stat-change" id="statVolumeTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+    </div>
+
+    <div class="sidebar-card" id="liveTradesCard">
+      <div class="lt-header">
+        <h3>실시간 베팅</h3>
+        <span class="lt-dot"></span>
+      </div>
+      <div id="liveTradesContent" style="color:var(--text-muted);font-size:12px;text-align:center;padding:16px 0">로딩 중...</div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>누적 거래량 1위</h3>
+      <div class="big-stat" id="statMarketCount">불러오는 중...</div>
+      <div class="stat-change" id="statMarketCountTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+    </div>
+
+    <!-- Twitter Widget -->
+    <div class="twitter-card">
+      <div class="twitter-card-header">
+        <div class="twitter-card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.259 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          소셜 피드
+        </div>
+        <div class="tw-tabs">
+          <button class="tw-tab active" onclick="loadTwitter('realDonaldTrump',this)">트럼프</button>
+          <button class="tw-tab" onclick="loadTwitter('elonmusk',this)">머스크</button>
+          <button class="tw-tab" onclick="loadTwitter('JDVance',this)">밴스</button>
+        </div>
+      </div>
+      <div id="twitterContainer">
+        <p class="tw-loading">불러오는 중...</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER: News Feed -->
+  <main>
+    <div class="news-section">
+      <div class="news-header-card">
+        <div class="section-title">
+          <div class="live-dot"></div>
+          오늘의 주요 뉴스 &amp; 분석
+        </div>
+        <span id="todayDateLabel" style="color:var(--text-muted);font-size:12px"></span>
+      </div>
+
+      <!-- Polymarket 핫 마켓 featured card -->
+      <div id="polyFeaturedSection"></div>
+
+      <!-- Rotating ABC News thumbnails -->
+      <div id="abcThumbGrid" class="thumb-grid"></div>
+
+      <div class="filter-tabs" style="margin-top:14px">
+        <button class="filter-tab active" onclick="filterNews('전체')">전체</button>
+        <button class="filter-tab" onclick="filterNews('정치')">정치</button>
+        <button class="filter-tab" onclick="filterNews('경제')">경제</button>
+        <button class="filter-tab" onclick="filterNews('암호화폐')">암호화폐</button>
+        <button class="filter-tab" onclick="filterNews('스포츠')">스포츠</button>
+        <button class="filter-tab" onclick="filterNews('세계')">세계</button>
+      </div>
+
+      <div class="news-list" id="newsList"></div>
+      <div class="load-more">
+        <button class="btn-outline" onclick="loadMore()">더 보기 ↓</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT: Profile (원래 왼쪽에 있던 내용) -->
+  <aside id="profileAside">
     <div class="profile-card">
       <div id="profileCardLoggedOut" style="text-align:center;padding:10px 4px">
         <div style="font-size:32px;margin-bottom:10px">👋</div>
@@ -2203,7 +2278,7 @@
         <span class="tag">기술</span>
       </div>
     </div>
-    <!-- 빠른 통계: 소셜 피드 바로 밑으로 이동 -->
+    <!-- 빠른 통계 -->
     <div class="sidebar-card">
       <h3>빠른 통계</h3>
       <div class="quick-stats-list">
@@ -2223,81 +2298,6 @@
           <span style="color:var(--text-secondary)">VIX 공포지수</span>
           <span style="font-weight:700" id="qsVIX">불러오는 중...</span>
         </div>
-      </div>
-    </div>
-  </aside>
-
-  <!-- CENTER: News Feed -->
-  <main>
-    <div class="news-section">
-      <div class="news-header-card">
-        <div class="section-title">
-          <div class="live-dot"></div>
-          오늘의 주요 뉴스 &amp; 분석
-        </div>
-        <span id="todayDateLabel" style="color:var(--text-muted);font-size:12px"></span>
-      </div>
-
-      <!-- Polymarket 핫 마켓 featured card -->
-      <div id="polyFeaturedSection"></div>
-
-      <!-- Rotating ABC News thumbnails -->
-      <div id="abcThumbGrid" class="thumb-grid"></div>
-
-      <div class="filter-tabs" style="margin-top:14px">
-        <button class="filter-tab active" onclick="filterNews('전체')">전체</button>
-        <button class="filter-tab" onclick="filterNews('정치')">정치</button>
-        <button class="filter-tab" onclick="filterNews('경제')">경제</button>
-        <button class="filter-tab" onclick="filterNews('암호화폐')">암호화폐</button>
-        <button class="filter-tab" onclick="filterNews('스포츠')">스포츠</button>
-        <button class="filter-tab" onclick="filterNews('세계')">세계</button>
-      </div>
-
-      <div class="news-list" id="newsList"></div>
-      <div class="load-more">
-        <button class="btn-outline" onclick="loadMore()">더 보기 ↓</button>
-      </div>
-    </div>
-  </main>
-
-  <!-- RIGHT: Sidebar -->
-  <aside class="sidebar">
-
-    <div class="sidebar-card">
-      <h3>24시간 거래량 1위</h3>
-      <div class="big-stat" id="statVolume">불러오는 중...</div>
-      <div class="stat-change" id="statVolumeTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
-    </div>
-
-    <div class="sidebar-card" id="liveTradesCard">
-      <div class="lt-header">
-        <h3>실시간 베팅</h3>
-        <span class="lt-dot"></span>
-      </div>
-      <div id="liveTradesContent" style="color:var(--text-muted);font-size:12px;text-align:center;padding:16px 0">로딩 중...</div>
-    </div>
-
-    <div class="sidebar-card">
-      <h3>누적 거래량 1위</h3>
-      <div class="big-stat" id="statMarketCount">불러오는 중...</div>
-      <div class="stat-change" id="statMarketCountTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
-    </div>
-
-    <!-- Twitter Widget: 빠른 통계가 있던 자리로 이동 -->
-    <div class="twitter-card">
-      <div class="twitter-card-header">
-        <div class="twitter-card-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.259 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          소셜 피드
-        </div>
-        <div class="tw-tabs">
-          <button class="tw-tab active" onclick="loadTwitter('realDonaldTrump',this)">트럼프</button>
-          <button class="tw-tab" onclick="loadTwitter('elonmusk',this)">머스크</button>
-          <button class="tw-tab" onclick="loadTwitter('JDVance',this)">밴스</button>
-        </div>
-      </div>
-      <div id="twitterContainer">
-        <p class="tw-loading">불러오는 중...</p>
       </div>
     </div>
   </aside>
@@ -5382,7 +5382,7 @@ function mobTab(tab, btn) {
   document.querySelectorAll('.mob-nav-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
 
-  const leftPanel  = document.querySelector('.main-layout > aside:first-child');
+  const leftPanel  = document.getElementById('profileAside');
   const marketsSec = document.querySelector('.market-section');
   const twitterCard = document.querySelector('.twitter-card');
 
