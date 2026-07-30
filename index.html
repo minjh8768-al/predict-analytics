@@ -1569,6 +1569,9 @@
     .btn-primary:not(#loginBtn) { display: none; }
     #signupBtn { display: none !important; }
     #loginBtn { font-size: 12px; padding: 6px 12px; }
+    #telegramHeaderLink { display: none; }
+    .install-btn-text { display: none; }
+    #installBtn { padding: 6px 10px; }
     .avatar { width: 30px; height: 30px; }
 
     /* ─ Hero ─ */
@@ -2113,8 +2116,8 @@
       <a href="#newsList" onclick="document.getElementById('newsList').scrollIntoView({behavior:'smooth'});return false;">뉴스</a>
     </nav>
     <div class="header-right">
-      <button onclick="openInstallModal()" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:none;background:var(--purple);color:#fff;font-size:12px;font-weight:700;flex-shrink:0;cursor:pointer">⬇ 앱 설치</button>
-      <a href="https://t.me/+dQQkMVnpAqZhMDU9" target="_blank" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:none;background:#229ED9;color:#fff;font-size:12px;font-weight:700;text-decoration:none;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.012 9.483c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.48 14.697l-2.95-.924c-.642-.204-.654-.642.136-.953l11.5-4.432c.537-.194 1.006.131.396.86z"/></svg>텔레그램</a>
+      <button id="installBtn" onclick="openInstallModal()" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:none;background:var(--purple);color:#fff;font-size:12px;font-weight:700;flex-shrink:0;cursor:pointer">⬇ <span class="install-btn-text">앱 설치</span></button>
+      <a id="telegramHeaderLink" href="https://t.me/+dQQkMVnpAqZhMDU9" target="_blank" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:none;background:#229ED9;color:#fff;font-size:12px;font-weight:700;text-decoration:none;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.012 9.483c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.48 14.697l-2.95-.924c-.642-.204-.654-.642.136-.953l11.5-4.432c.537-.194 1.006.131.396.86z"/></svg>텔레그램</a>
       <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="다크/라이트 모드">🌙</button>
       <button class="btn-outline" id="signupBtn" onclick="showSubscribeModal('login')" style="padding:8px 16px;font-size:13px">회원가입</button>
       <button class="btn-primary" id="loginBtn" onclick="showSubscribeModal('login')">로그인</button>
