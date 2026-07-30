@@ -646,6 +646,57 @@ section {
   line-height: 1.65;
 }
 
+.feature-grid--services {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.feature--live {
+  display: block;
+  transition: background 0.15s ease;
+}
+
+.feature--live:hover {
+  background: var(--gray-100);
+}
+
+.feature--soon {
+  opacity: 0.55;
+}
+
+.feature-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.feature-status--live {
+  color: var(--accent);
+}
+
+.feature-status--soon {
+  color: var(--gray-400);
+}
+
+.feature-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.feature-link {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
 /* ---------- BOSS token panel ---------- */
 
 .boss {
