@@ -1555,7 +1555,7 @@
     .pm-feat-left { width: 100% !important; min-width: 0 !important; border-right: none; border-bottom: 1px solid var(--border); }
     .pm-feat-right { min-height: 200px; }
     .thumb-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-    .market-grid { grid-template-columns: repeat(3,1fr); }
+    .market-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .sidebar { display: flex; flex-direction: row; overflow-x: auto; gap: 10px; scrollbar-width: none; }
     .sidebar::-webkit-scrollbar { display: none; }
     .sidebar-card { min-width: 190px; flex-shrink: 0; }
@@ -1658,8 +1658,8 @@
 
     /* ─ Market section ─ */
     .market-section { padding: 10px 12px 14px; }
-    .market-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .market-card { padding: 11px 10px; }
+    .market-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+    .market-card { padding: 11px 10px; min-width: 0; }
     .market-name { font-size: 11.5px; -webkit-line-clamp: 2; }
     .market-price { font-size: 17px; }
     .market-vol { font-size: 10px; }
