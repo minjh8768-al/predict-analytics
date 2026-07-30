@@ -2113,6 +2113,7 @@
       <a href="#newsList" onclick="document.getElementById('newsList').scrollIntoView({behavior:'smooth'});return false;">뉴스</a>
     </nav>
     <div class="header-right">
+      <button onclick="openInstallModal()" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:none;background:var(--purple);color:#fff;font-size:12px;font-weight:700;flex-shrink:0;cursor:pointer">⬇ 앱 설치</button>
       <a href="https://t.me/+dQQkMVnpAqZhMDU9" target="_blank" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:none;background:#229ED9;color:#fff;font-size:12px;font-weight:700;text-decoration:none;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.012 9.483c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.48 14.697l-2.95-.924c-.642-.204-.654-.642.136-.953l11.5-4.432c.537-.194 1.006.131.396.86z"/></svg>텔레그램</a>
       <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="다크/라이트 모드">🌙</button>
       <button class="btn-outline" id="signupBtn" onclick="showSubscribeModal('login')" style="padding:8px 16px;font-size:13px">회원가입</button>
@@ -4123,6 +4124,59 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// ─── 앱 설치 (PWA) ────────────────────────────────────────────────
+// 안드로이드/PC 크롬은 beforeinstallprompt로 진짜 설치 팝업을 띄울 수 있지만,
+// iOS 사파리는 이 API 자체를 지원 안 해서(애플 정책) 수동 안내 + QR코드로 대체.
+let _deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+});
+
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+function openInstallModal() {
+  const body = document.getElementById('installBody');
+  const siteUrl = 'https://predictanalytics-news.vercel.app';
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(siteUrl)}`;
+
+  if (_deferredInstallPrompt) {
+    body.innerHTML = `
+      <p style="margin-bottom:16px">이 브라우저는 바로 설치할 수 있어요.</p>
+      <button class="btn-primary" style="width:100%" onclick="triggerInstallPrompt()">지금 설치하기</button>
+    `;
+  } else if (isIOS()) {
+    body.innerHTML = `
+      <img src="${qrUrl}" alt="QR" width="140" height="140" style="border-radius:8px;margin-bottom:14px" onerror="this.style.display='none'">
+      <p style="margin-bottom:10px">아이폰은 자동 설치가 안 돼요. 아래 순서로 해주세요:</p>
+      <p style="text-align:left;background:var(--bg-secondary);border-radius:8px;padding:12px 14px">
+        1. 하단 <b>공유</b> 버튼(⬆️) 탭<br>
+        2. <b>홈 화면에 추가</b> 선택
+      </p>
+    `;
+  } else {
+    body.innerHTML = `
+      <img src="${qrUrl}" alt="QR" width="140" height="140" style="border-radius:8px;margin-bottom:14px" onerror="this.style.display='none'">
+      <p>QR코드를 스캔하거나, 브라우저 메뉴에서 <b>"앱 설치"</b> 또는 <b>"홈 화면에 추가"</b>를 선택해주세요.</p>
+    `;
+  }
+  document.getElementById('installOverlay').classList.add('open');
+}
+
+function closeInstallModal() {
+  document.getElementById('installOverlay').classList.remove('open');
+}
+
+async function triggerInstallPrompt() {
+  if (!_deferredInstallPrompt) return;
+  _deferredInstallPrompt.prompt();
+  await _deferredInstallPrompt.userChoice;
+  _deferredInstallPrompt = null;
+  closeInstallModal();
+}
+
 renderNews();
 renderMarkets();
 fetchPolymarkets();
@@ -5336,6 +5390,17 @@ function mobTab(tab, btn) {
       <button class="modal-close" onclick="closeArticleModal()">✕</button>
     </div>
     <div id="modalBody" class="modal-body-inner"></div>
+  </div>
+</div>
+
+<!-- ─── 앱 설치 모달 ─── -->
+<div id="installOverlay" class="modal-overlay" onclick="if(event.target===this)closeInstallModal()">
+  <div class="modal-content" style="max-width:360px;padding:28px 24px;text-align:center">
+    <div class="modal-close-wrap">
+      <button class="modal-close" onclick="closeInstallModal()">✕</button>
+    </div>
+    <div style="font-size:20px;font-weight:800;margin-bottom:6px">📲 앱으로 설치하기</div>
+    <div id="installBody" style="font-size:13.5px;color:var(--text-muted);line-height:1.6"></div>
   </div>
 </div>
 
