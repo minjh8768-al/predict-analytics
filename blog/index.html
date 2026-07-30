@@ -9,7 +9,7 @@
 </head>
 <body>
 
-<nav class="nav nav-hero">
+<nav class="nav">
   <button class="nav-toggle" aria-label="메뉴 열기">
     <span></span><span></span><span></span>
   </button>
@@ -26,42 +26,17 @@
 </nav>
 
 <header class="hero">
-  <div class="hero-visual" aria-hidden="true">
-    <svg class="hero-chart" viewBox="0 0 800 300" preserveAspectRatio="none">
-      <polyline class="hero-chart-fill" points="0,260 80,230 160,245 240,190 320,205 400,140 480,160 560,95 640,110 720,55 800,70 800,300 0,300" />
-      <polyline class="hero-chart-line" points="0,260 80,230 160,245 240,190 320,205 400,140 480,160 560,95 640,110 720,55 800,70" />
-    </svg>
-
-    <div class="hero-nodes">
-      <svg class="node-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-        <line x1="58" y1="22" x2="72" y2="38"></line>
-        <line x1="72" y1="38" x2="80" y2="15"></line>
-        <line x1="72" y1="38" x2="66" y2="52"></line>
-        <line x1="80" y1="15" x2="88" y2="30"></line>
-      </svg>
-      <span class="node" style="top: 22%; left: 58%;"></span>
-      <span class="node" style="top: 38%; left: 72%;"></span>
-      <span class="node" style="top: 15%; left: 80%;"></span>
-      <span class="node" style="top: 52%; left: 66%;"></span>
-      <span class="node" style="top: 30%; left: 88%;"></span>
-    </div>
-
-    <div class="hero-coins">
-      <span class="coin" style="left: 10%; animation-delay: 0s;"></span>
-      <span class="coin" style="left: 20%; animation-delay: 2.4s;"></span>
-      <span class="coin" style="left: 33%; animation-delay: 4.8s;"></span>
-      <span class="coin" style="left: 5%; animation-delay: 7.2s;"></span>
-      <span class="coin" style="left: 42%; animation-delay: 1.6s;"></span>
-    </div>
-
-    <div class="signal-orb">
-      <span></span><span></span><span></span><span></span>
-    </div>
-  </div>
+  <div class="hero-pattern" aria-hidden="true"></div>
 
   <div class="wrap hero-content">
     <span class="hero-eyebrow">factorysignal Group</span>
     <h1 class="hero-statement">Read the<br>Signal<span>.</span></h1>
+    <p class="hero-sub">노이즈 속에서, 신호를 찾습니다. factorysignal은 데이터를 분석 가능한 신호로 바꾸는 서비스들을 만드는 그룹입니다.</p>
+
+    <div class="hero-actions">
+      <a href="#services" class="btn btn-primary">서비스 살펴보기 →</a>
+      <a href="articles/index.html" class="btn btn-ghost">아티클 읽기 →</a>
+    </div>
 
     <div class="hero-subscribe">
       <p>저희가 만드는 서비스들의 소식과 인사이트를, 매주 이메일로 받아보세요.</p>
@@ -72,17 +47,8 @@
         </button>
       </form>
       <p class="subscribe-note">구독해주셔서 감사합니다 — 뉴스레터는 준비 중입니다.</p>
-      <div class="hero-links">
-        <a href="#services">서비스 살펴보기 →</a>
-        <a href="articles/index.html">아티클 읽기 →</a>
-      </div>
     </div>
   </div>
-
-  <button type="button" class="intro-hint">
-    <span>스크롤하여 계속</span>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-  </button>
 </header>
 
 <section class="about" id="services">

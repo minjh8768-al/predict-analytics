@@ -27,34 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  const intro = document.querySelector(".hero");
-  if (intro) {
-    document.body.classList.add("intro-active");
-    let dismissed = false;
-
-    const dismissIntro = () => {
-      if (dismissed) return;
-      dismissed = true;
-      intro.classList.add("intro-hide");
-      document.body.classList.remove("intro-active");
-      intro.addEventListener(
-        "transitionend",
-        () => {
-          intro.style.display = "none";
-          nav.classList.remove("nav-hero");
-        },
-        { once: true }
-      );
-    };
-
-    document.querySelector(".intro-hint")?.addEventListener("click", dismissIntro);
-
-    intro.addEventListener("click", (e) => {
-      if (e.target.closest(".hero-subscribe")) return;
-      dismissIntro();
-    });
-  }
-
   const filterTabs = document.querySelectorAll(".filter-tab");
   const articleCards = document.querySelectorAll(".article-card[data-category]");
   const emptyNotice = document.querySelector(".article-empty");
