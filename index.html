@@ -16,6 +16,11 @@
 <meta name="twitter:title" content="FactorySignal - 예측 시장 분석">
 <meta name="twitter:description" content="폴리마켓 실시간 예측 확률, 뉴스 분석, AI 인사이트를 한눈에">
 <meta name="twitter:image" content="https://predictanalytics-news.vercel.app/api/og?v=3">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#6c5ce7">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FactorySignal">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -4109,6 +4114,13 @@ async function fetchPolymarkets() {
   const el = document.getElementById('todayDateLabel');
   if (el) el.textContent = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 업데이트`;
 })();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((e) => console.warn('SW 등록 실패:', e.message));
+  });
+}
+
 renderNews();
 renderMarkets();
 fetchPolymarkets();
