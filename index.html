@@ -1564,14 +1564,13 @@
   /* ── MOBILE (767px) ── */
   @media (max-width: 767px) {
     /* ─ Header ─ */
-    .header-inner { padding: 0 14px; height: 50px; gap: 8px; }
+    .header-inner { padding: 8px 14px; height: auto; gap: 8px; flex-wrap: wrap; }
     nav { display: none; }
     .btn-primary:not(#loginBtn) { display: none; }
     #signupBtn { display: none !important; }
     #loginBtn { font-size: 12px; padding: 6px 12px; }
-    #telegramHeaderLink { display: none; }
-    .install-btn-text { display: none; }
-    #installBtn { padding: 6px 10px; }
+    .header-right { flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; }
+    #telegramHeaderLink { order: 1; }
     .avatar { width: 30px; height: 30px; }
 
     /* ─ Hero ─ */
