@@ -2184,17 +2184,12 @@
       <div class="stat-change" id="statMarketCountTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
     </div>
 
-    <!-- Reddit 실제 인기글 위젯 (예전엔 트럼프/머스크/밴스 가짜 트윗이었음) -->
+    <!-- Polymarket 공식 Bluesky 피드 (예전엔 트럼프/머스크/밴스 가짜 트윗이었음) -->
     <div class="twitter-card">
       <div class="twitter-card-header">
         <div class="twitter-card-title">
-          <span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#ff4500;flex-shrink:0"></span>
-          Reddit 인기글
-        </div>
-        <div class="tw-tabs">
-          <button class="tw-tab active" onclick="loadRedditFeed('reddit_predictionmarkets',this)">예측시장</button>
-          <button class="tw-tab" onclick="loadRedditFeed('reddit_wallstreetbets',this)">월가베팅</button>
-          <button class="tw-tab" onclick="loadRedditFeed('reddit_economics',this)">경제</button>
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#0085ff;flex-shrink:0"></span>
+          Polymarket 소셜 피드
         </div>
       </div>
       <div id="twitterContainer">
@@ -4112,59 +4107,65 @@ fetchPolyFeatured();
 fetchABCNews();
 fetchMainNews();
 
-// ─── Reddit 실제 인기글 피드 ──────────────────────────────────────────
+// ─── Polymarket 공식 Bluesky 피드 ────────────────────────────────────
 // 예전엔 트럼프/머스크/밴스가 실제로 하지도 않은 말을 지어내서 인증된 트윗처럼
-// 보여주고 있었음 (좋아요/RT 수까지 고정값). X API는 2026년부터 무료 티어가
-// 없어져서(읽기 1건당 유료), 대신 CORS 없이 접근 가능하고 사이트 주제와도 잘
-// 맞는 Reddit의 실제 인기글로 교체 — 진짜 글쓴이, 진짜 제목, 진짜 시각.
-const REDDIT_SUB_LABEL = {
-  reddit_predictionmarkets: 'r/PredictionMarkets',
-  reddit_wallstreetbets: 'r/wallstreetbets',
-  reddit_economics: 'r/economics',
-};
-
-async function loadRedditFeed(source, btn) {
-  document.querySelectorAll('.tw-tab').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+// 보여주고 있었음. X API는 무료 티어가 없어졌고(2026년부터), Reddit은 무료지만
+// Vercel 서버 IP를 403/429로 계속 막아서 서버 프록시로는 안정적으로 못 가져옴.
+// Bluesky의 공개 API는 CORS가 열려 있어서 브라우저가 직접 호출 가능하고(서버
+// IP 차단 문제 자체가 없음), Polymarket 공식 계정(@polymarket.com)이 실제로
+// 오늘도 올리고 있는 진짜 활성 계정이라 이걸로 교체 — 진짜 글, 진짜 좋아요/리포스트 수.
+async function loadPolymarketFeed() {
   const container = document.getElementById('twitterContainer');
   container.innerHTML = '<p class="tw-loading">불러오는 중...</p>';
 
   try {
-    const res = await fetch(`/api/news-proxy?source=${source}`, { signal: AbortSignal.timeout(8000) });
+    const res = await fetch(
+      'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=polymarket.com&limit=8',
+      { signal: AbortSignal.timeout(8000) }
+    );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    const xml = new DOMParser().parseFromString(text, 'text/xml');
-    const entries = Array.from(xml.querySelectorAll('entry'))
-      .filter(e => (e.querySelector('author name')?.textContent || '') !== '/u/AutoModerator')
-      .slice(0, 8);
-    if (!entries.length) throw new Error('게시물 없음');
+    const data = await res.json();
+    const items = (data.feed || [])
+      .map(f => f.post)
+      .filter(p => p?.record?.text)
+      .map(p => {
+        const rkey = p.uri.split('/').pop();
+        return {
+          text: p.record.text,
+          time: relativeTime(p.record.createdAt),
+          likes: p.likeCount || 0,
+          reposts: p.repostCount || 0,
+          link: `https://bsky.app/profile/${p.author.handle}/post/${rkey}`,
+          avatar: p.author.avatar || '',
+        };
+      });
+    if (!items.length) throw new Error('게시물 없음');
 
-    const posts = entries.map(e => ({
-      title: e.querySelector('title')?.textContent?.trim() || '',
-      link: e.querySelector('link')?.getAttribute('href') || '#',
-      author: (e.querySelector('author name')?.textContent || '').replace(/^\/u\//, 'u/'),
-      time: relativeTime(e.querySelector('updated')?.textContent || ''),
-    })).filter(p => p.title);
-
-    container.innerHTML = `<div class="tweet-list">${posts.map(p => `
-      <div class="tweet-item" style="cursor:pointer" onclick="window.open('${p.link}','_blank')">
+    container.innerHTML = `<div class="tweet-list">${items.map(t => `
+      <div class="tweet-item" style="cursor:pointer" onclick="window.open('${t.link}','_blank')">
         <div class="tweet-header">
-          <div class="tweet-avatar" style="background:#ff4500">R</div>
+          ${t.avatar
+            ? `<img src="${t.avatar}" class="tweet-avatar" style="object-fit:cover">`
+            : `<div class="tweet-avatar" style="background:#0085ff">P</div>`}
           <div class="tweet-name-wrap">
-            <div class="tweet-name">${REDDIT_SUB_LABEL[source] || 'Reddit'}</div>
-            <div class="tweet-handle">${p.author}</div>
+            <div class="tweet-name">Polymarket</div>
+            <div class="tweet-handle">@polymarket.com · Bluesky</div>
           </div>
-          <div class="tweet-time">${p.time}</div>
+          <div class="tweet-time">${t.time}</div>
         </div>
-        <div class="tweet-body">${p.title}</div>
+        <div class="tweet-body">${t.text.replace(/</g, '&lt;')}</div>
+        <div class="tweet-stats">
+          <span class="tweet-stat">🔁 ${t.reposts}</span>
+          <span class="tweet-stat">❤ ${t.likes}</span>
+        </div>
       </div>`).join('')}</div>`;
   } catch (e) {
-    console.warn('Reddit 피드 로드 실패:', e.message);
+    console.warn('Polymarket 소셜 피드 로드 실패:', e.message);
     container.innerHTML = '<p class="tw-loading">불러오지 못했습니다.</p>';
   }
 }
 
-loadRedditFeed('reddit_predictionmarkets', null);
+loadPolymarketFeed();
 
 // ─── ABC THUMB ROTATION ───────────────────────────────────────────────
 let abcRotateTimer = null;
