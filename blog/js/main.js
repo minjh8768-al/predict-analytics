@@ -54,4 +54,30 @@ document.addEventListener("DOMContentLoaded", () => {
       dismissIntro();
     });
   }
+
+  const filterTabs = document.querySelectorAll(".filter-tab");
+  const articleCards = document.querySelectorAll(".article-card[data-category]");
+  const emptyNotice = document.querySelector(".article-empty");
+
+  if (filterTabs.length && articleCards.length) {
+    filterTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        filterTabs.forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+
+        const category = tab.dataset.filter;
+        let visibleCount = 0;
+
+        articleCards.forEach((card) => {
+          const show = category === "전체" || card.dataset.category === category;
+          card.classList.toggle("is-hidden", !show);
+          if (show) visibleCount++;
+        });
+
+        if (emptyNotice) {
+          emptyNotice.style.display = visibleCount === 0 ? "block" : "none";
+        }
+      });
+    });
+  }
 });
