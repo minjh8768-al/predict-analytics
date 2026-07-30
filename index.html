@@ -2184,12 +2184,18 @@
       <div class="stat-change" id="statMarketCountTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
     </div>
 
-    <!-- Polymarket 공식 Bluesky 피드 (예전엔 트럼프/머스크/밴스 가짜 트윗이었음) -->
+    <!-- 실제 Bluesky 공식 계정 피드 (예전엔 트럼프/머스크/밴스 가짜 트윗이었음) -->
     <div class="twitter-card">
       <div class="twitter-card-header">
         <div class="twitter-card-title">
           <span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#0085ff;flex-shrink:0"></span>
-          Polymarket 소셜 피드
+          소셜 피드
+        </div>
+        <div class="tw-tabs">
+          <button class="tw-tab active" onclick="loadBlueskyFeed('polymarket.com',this)">Polymarket</button>
+          <button class="tw-tab" onclick="loadBlueskyFeed('bloomberg.com',this)">Bloomberg</button>
+          <button class="tw-tab" onclick="loadBlueskyFeed('reuters.com',this)">Reuters</button>
+          <button class="tw-tab" onclick="loadBlueskyFeed('cnbc.com',this)">CNBC</button>
         </div>
       </div>
       <div id="twitterContainer">
@@ -4107,20 +4113,30 @@ fetchPolyFeatured();
 fetchABCNews();
 fetchMainNews();
 
-// ─── Polymarket 공식 Bluesky 피드 ────────────────────────────────────
+// ─── 실제 Bluesky 계정 피드 (Polymarket / Bloomberg / Reuters / CNBC) ───────
 // 예전엔 트럼프/머스크/밴스가 실제로 하지도 않은 말을 지어내서 인증된 트윗처럼
 // 보여주고 있었음. X API는 무료 티어가 없어졌고(2026년부터), Reddit은 무료지만
 // Vercel 서버 IP를 403/429로 계속 막아서 서버 프록시로는 안정적으로 못 가져옴.
 // Bluesky의 공개 API는 CORS가 열려 있어서 브라우저가 직접 호출 가능하고(서버
-// IP 차단 문제 자체가 없음), Polymarket 공식 계정(@polymarket.com)이 실제로
-// 오늘도 올리고 있는 진짜 활성 계정이라 이걸로 교체 — 진짜 글, 진짜 좋아요/리포스트 수.
-async function loadPolymarketFeed() {
+// IP 차단 문제 자체가 없음). 아래 네 계정은 실제로 오늘도 게시물을 올리는 것을
+// 직접 확인한 진짜 활성 계정 — 진짜 글, 진짜 좋아요/리포스트 수.
+const BLUESKY_DISPLAY_NAME = {
+  'polymarket.com': 'Polymarket',
+  'bloomberg.com': 'Bloomberg',
+  'reuters.com': 'Reuters',
+  'cnbc.com': 'CNBC',
+};
+
+async function loadBlueskyFeed(handle, btn) {
+  document.querySelectorAll('.tw-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
   const container = document.getElementById('twitterContainer');
   container.innerHTML = '<p class="tw-loading">불러오는 중...</p>';
+  const displayName = BLUESKY_DISPLAY_NAME[handle] || handle;
 
   try {
     const res = await fetch(
-      'https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=polymarket.com&limit=8',
+      `https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=${handle}&limit=8`,
       { signal: AbortSignal.timeout(8000) }
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -4146,10 +4162,10 @@ async function loadPolymarketFeed() {
         <div class="tweet-header">
           ${t.avatar
             ? `<img src="${t.avatar}" class="tweet-avatar" style="object-fit:cover">`
-            : `<div class="tweet-avatar" style="background:#0085ff">P</div>`}
+            : `<div class="tweet-avatar" style="background:#0085ff">${displayName[0]}</div>`}
           <div class="tweet-name-wrap">
-            <div class="tweet-name">Polymarket</div>
-            <div class="tweet-handle">@polymarket.com · Bluesky</div>
+            <div class="tweet-name">${displayName}</div>
+            <div class="tweet-handle">@${handle} · Bluesky</div>
           </div>
           <div class="tweet-time">${t.time}</div>
         </div>
@@ -4160,12 +4176,12 @@ async function loadPolymarketFeed() {
         </div>
       </div>`).join('')}</div>`;
   } catch (e) {
-    console.warn('Polymarket 소셜 피드 로드 실패:', e.message);
+    console.warn('Bluesky 피드 로드 실패:', e.message);
     container.innerHTML = '<p class="tw-loading">불러오지 못했습니다.</p>';
   }
 }
 
-loadPolymarketFeed();
+loadBlueskyFeed('polymarket.com', null);
 
 // ─── ABC THUMB ROTATION ───────────────────────────────────────────────
 let abcRotateTimer = null;
