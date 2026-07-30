@@ -3696,10 +3696,11 @@ async function loadAISummary(idx) {
   }
 }
 
-// ─── Feature 2: Polymarket 마켓 AI 분석 ───────────────────────────
-async function loadMarketAnalysis(btn, question, probability, volume, outcomes) {
+// ─── Feature 2: 오늘의 시장 리포트 (코스피 · 미국증시 · 비트코인) ───────
+async function loadDailyReport(btn) {
   const panel = btn.nextElementSibling;
-  if (panel.style.display !== 'none') { panel.style.display = 'none'; btn.innerHTML = '✦ AI 리포트'; return; }
+  const originalLabel = '✦ 오늘의 시장 리포트 (코스피·미국증시·비트코인)';
+  if (panel.style.display !== 'none') { panel.style.display = 'none'; btn.innerHTML = originalLabel; return; }
   if (!checkAIAccess()) return;
 
   panel.style.display = 'block';
@@ -3707,17 +3708,30 @@ async function loadMarketAnalysis(btn, question, probability, volume, outcomes) 
   btn.innerHTML = '✦ 닫기';
 
   try {
+    const [marketRes, btcRes] = await Promise.all([
+      fetch('/api/market-data', { signal: AbortSignal.timeout(8000) }),
+      fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true', { signal: AbortSignal.timeout(8000) }),
+    ]);
+    const marketData = await marketRes.json();
+    const btcData = await btcRes.json();
+    if (marketData.error) throw new Error(marketData.error);
+    const btc = { price: btcData?.bitcoin?.usd, change: btcData?.bitcoin?.usd_24h_change };
+    if (btc.price == null) throw new Error('비트코인 시세를 가져오지 못했습니다.');
+
+    const d = new Date();
+    const dateLabel = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+
     const _tok2 = window.getFirebaseToken ? await window.getFirebaseToken() : null;
     const res = await fetch(`${AI_API}/api/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(_tok2 ? { 'Authorization': `Bearer ${_tok2}` } : {}) },
-      body: JSON.stringify({ question, probability, volume, outcomes })
+      body: JSON.stringify({ type: 'daily', kospi: marketData.kospi, sp500: marketData.sp500, btc, dateLabel })
     });
     const data = await res.json();
     incUsage();
-    panel.innerHTML = `<div class="ai-result">${(data.analysis || data.error || '분석 실패').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>`;
+    panel.innerHTML = `<div class="ai-result">${(data.analysis || data.error || '리포트 생성 실패').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>`;
   } catch (e) {
-    panel.innerHTML = `<div class="ai-result" style="color:var(--red)">API 연결 실패</div>`;
+    panel.innerHTML = `<div class="ai-result" style="color:var(--red)">리포트 생성 실패: ${e.message}</div>`;
   }
 }
 
@@ -4533,8 +4547,8 @@ function renderPolyFeatured(m, outcomes, prices, histories) {
     <button class="pm-nav-next" onclick="navFeat(1)"><span id="pmNavNext"></span> ›</button>
   </div>
   <div style="padding:0 14px 12px">
-    <button class="ai-market-btn" onclick="loadMarketAnalysis(this,${JSON.stringify(m.question)},${Math.round((prices[0]||0)*100)},${m.volume||0},${JSON.stringify(outcomes.join(', '))})">
-      ✦ AI 리포트
+    <button class="ai-market-btn" onclick="loadDailyReport(this)">
+      ✦ 오늘의 시장 리포트 (코스피·미국증시·비트코인)
     </button>
     <div class="ai-analyze-panel"></div>
   </div>`;
