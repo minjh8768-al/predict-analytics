@@ -2196,8 +2196,7 @@
           소셜 피드
         </div>
         <div class="tw-tabs">
-          <button class="tw-tab active" onclick="loadBlueskyFeed('polymarket.com',this)">Polymarket</button>
-          <button class="tw-tab" onclick="loadBlueskyFeed('bloomberg.com',this)">Bloomberg</button>
+          <button class="tw-tab active" onclick="loadBlueskyFeed('bloomberg.com',this)">Bloomberg</button>
           <button class="tw-tab" onclick="loadBlueskyFeed('reuters.com',this)">Reuters</button>
           <button class="tw-tab" onclick="loadBlueskyFeed('cnbc.com',this)">CNBC</button>
         </div>
@@ -4125,7 +4124,6 @@ fetchMainNews();
 // IP 차단 문제 자체가 없음). 아래 네 계정은 실제로 오늘도 게시물을 올리는 것을
 // 직접 확인한 진짜 활성 계정 — 진짜 글, 진짜 좋아요/리포스트 수.
 const BLUESKY_DISPLAY_NAME = {
-  'polymarket.com': 'Polymarket',
   'bloomberg.com': 'Bloomberg',
   'reuters.com': 'Reuters',
   'cnbc.com': 'CNBC',
@@ -4185,7 +4183,7 @@ async function loadBlueskyFeed(handle, btn) {
   }
 }
 
-loadBlueskyFeed('polymarket.com', null);
+loadBlueskyFeed('bloomberg.com', null);
 
 // ─── ABC THUMB ROTATION ───────────────────────────────────────────────
 let abcRotateTimer = null;
