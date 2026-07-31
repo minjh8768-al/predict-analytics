@@ -20,7 +20,7 @@
   --serif: Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
   --sans: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo",
     "Segoe UI", Helvetica, Arial, sans-serif;
-  --max-w: 1280px;
+  --max-w: 1600px;
   --pad: clamp(20px, 5vw, 64px);
 }
 
@@ -634,8 +634,8 @@ section {
 
 .article-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
 }
 
 .article-card {
@@ -1102,6 +1102,14 @@ footer {
 
   .article-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .article-layout {
+    gap: 24px;
+  }
+
+  .sidebar {
+    flex-basis: 160px;
   }
 
   .boss {
