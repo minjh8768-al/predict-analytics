@@ -10,8 +10,13 @@
   --gray-200: #e5e5e5;
   --gray-400: #999999;
   --gray-600: #555555;
-  --accent: #4f46e5;
-  --accent-dim: #ede9fe;
+  --accent: #1f8ce6;
+  --accent-dim: #eaf1fe;
+  --cat-politics: #6c5ce7;
+  --cat-economy: #0ea968;
+  --cat-crypto: #d97706;
+  --cat-sports: #3b82f6;
+  --cat-world: #e03040;
   --serif: Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
   --sans: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo",
     "Segoe UI", Helvetica, Arial, sans-serif;
@@ -169,7 +174,7 @@ a {
 }
 
 .nav-cta:hover {
-  background: #4338ca;
+  background: #0b6fc4;
 }
 
 /* ---------- Hero ---------- */
@@ -361,7 +366,7 @@ a {
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  background: #4338ca;
+  background: #0b6fc4;
 }
 
 .btn-ghost {
@@ -693,12 +698,54 @@ section {
 }
 
 .article-tag {
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--accent-dim);
   color: var(--accent);
   margin-bottom: 12px;
+}
+
+.article-card[data-category="정치"] .article-tag { background: rgba(108, 92, 231, 0.12); color: var(--cat-politics); }
+.article-card[data-category="경제"] .article-tag { background: rgba(14, 169, 104, 0.12); color: var(--cat-economy); }
+.article-card[data-category="암호화폐"] .article-tag { background: rgba(217, 119, 6, 0.12); color: var(--cat-crypto); }
+.article-card[data-category="스포츠"] .article-tag { background: rgba(59, 130, 246, 0.12); color: var(--cat-sports); }
+.article-card[data-category="세계"] .article-tag { background: rgba(224, 48, 64, 0.12); color: var(--cat-world); }
+
+.filter-tab[data-filter]:not([data-filter="전체"])::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+  background: var(--gray-400);
+}
+
+.filter-tab[data-filter="정치"]::before { background: var(--cat-politics); }
+.filter-tab[data-filter="경제"]::before { background: var(--cat-economy); }
+.filter-tab[data-filter="암호화폐"]::before { background: var(--cat-crypto); }
+.filter-tab[data-filter="스포츠"]::before { background: var(--cat-sports); }
+.filter-tab[data-filter="세계"]::before { background: var(--cat-world); }
+
+.byline-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--black);
+  color: var(--white);
+  font-size: 0.6rem;
+  font-weight: 800;
+  flex-shrink: 0;
 }
 
 .article-body h3 {
@@ -721,7 +768,8 @@ section {
   font-size: 0.82rem;
   color: var(--gray-400);
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
 }
 
 .articles-footer-cta {
