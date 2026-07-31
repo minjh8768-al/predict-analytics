@@ -629,15 +629,24 @@ section {
   display: flex;
   align-items: flex-end;
   padding: 20px;
+  overflow: hidden;
 }
 
 .article-thumb span {
   color: var(--white);
   font-family: var(--sans);
   font-weight: 800;
-  font-size: 2rem;
-  opacity: 0.9;
+  font-size: 1.9rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  max-width: 85%;
 }
+
+.article-card[data-category="정치"] .article-thumb { background: linear-gradient(135deg, var(--cat-politics), #4c3fb0); }
+.article-card[data-category="경제"] .article-thumb { background: linear-gradient(135deg, var(--cat-economy), #087a4c); }
+.article-card[data-category="암호화폐"] .article-thumb { background: linear-gradient(135deg, var(--cat-crypto), #a05e04); }
+.article-card[data-category="스포츠"] .article-thumb { background: linear-gradient(135deg, var(--cat-sports), #1e5bb8); }
+.article-card[data-category="세계"] .article-thumb { background: linear-gradient(135deg, var(--cat-world), #a02330); }
 
 .article-thumb--video {
   background-size: cover;
@@ -738,14 +747,19 @@ section {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: var(--black);
   color: var(--white);
-  font-size: 0.6rem;
+  font-size: 0.62rem;
   font-weight: 800;
   flex-shrink: 0;
+}
+
+.byline-name {
+  color: var(--black);
+  font-weight: 600;
 }
 
 .article-body h3 {
