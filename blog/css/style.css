@@ -177,6 +177,37 @@ a {
   background: #0b6fc4;
 }
 
+@media (min-width: 769px) {
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-toggle,
+  .nav-search {
+    display: none;
+  }
+
+  .nav-links {
+    position: static;
+    height: auto;
+    width: auto;
+    background: none;
+    color: inherit;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 28px;
+    padding: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transform: none;
+    transition: none;
+    z-index: auto;
+  }
+}
+
 /* ---------- Hero ---------- */
 
 .hero {
