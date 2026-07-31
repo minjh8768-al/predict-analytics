@@ -35,58 +35,71 @@
 
 <section style="padding-top: 0;">
   <div class="wrap">
-    <div class="article-filters">
-      <button type="button" class="filter-tab active" data-filter="전체">전체</button>
-      <button type="button" class="filter-tab" data-filter="정치">정치</button>
-      <button type="button" class="filter-tab" data-filter="경제">경제</button>
-      <button type="button" class="filter-tab" data-filter="암호화폐">암호화폐</button>
-      <button type="button" class="filter-tab" data-filter="스포츠">스포츠</button>
-      <button type="button" class="filter-tab" data-filter="세계">세계</button>
+    <div class="article-layout">
+
+      <aside class="sidebar">
+        <button type="button" class="sidebar-link filter-tab active" data-filter="전체">인기 포스팅</button>
+        <div class="sidebar-group">
+          <button type="button" class="sidebar-link filter-tab" data-filter="정치">정치</button>
+          <button type="button" class="sidebar-link filter-tab" data-filter="경제">경제</button>
+          <button type="button" class="sidebar-link filter-tab" data-filter="암호화폐">암호화폐</button>
+          <button type="button" class="sidebar-link filter-tab" data-filter="스포츠">스포츠</button>
+          <button type="button" class="sidebar-link filter-tab" data-filter="세계">세계</button>
+        </div>
+        <div class="sidebar-divider"></div>
+        <a href="../index.html#services" class="sidebar-link">비즈니스 안내</a>
+        <a href="../index.html#boss" class="sidebar-link">멤버십결제</a>
+        <a href="https://predictanalytics-news.vercel.app" class="sidebar-link" target="_blank" rel="noopener">로그인 / 가입</a>
+      </aside>
+
+      <div class="article-main">
+        <div class="article-grid">
+
+          <a href="why-signal-token.html" class="article-card" data-category="암호화폐">
+            <div class="article-thumb"><span>TOKEN</span></div>
+            <div class="article-body">
+              <div class="article-tag">Token Design</div>
+              <h3>왜 $SIGNAL은 거래소에 상장되지 않는가</h3>
+              <p>자유롭게 거래되는 토큰을 만들 수도 있었습니다. 대신 저희는 현금화되지 않는 "게임 재화"를 선택했습니다.</p>
+              <div class="article-meta"><span class="byline-avatar">FS</span><span class="byline-name">factorysignal 팀</span><span>·</span><span>5분 읽기</span></div>
+            </div>
+          </a>
+
+          <a href="prediction-market-analytics.html" class="article-card" data-category="암호화폐">
+            <div class="article-thumb"><span>PRODUCT</span></div>
+            <div class="article-body">
+              <div class="article-tag">Product</div>
+              <h3>예측 시장 데이터를 서비스로 만들기까지</h3>
+              <p>Polymarket의 원시 데이터가 구독자가 실제로 쓸 수 있는 분석으로 바뀌는 과정.</p>
+              <div class="article-meta"><span class="byline-avatar">FS</span><span class="byline-name">factorysignal 팀</span><span>·</span><span>6분 읽기</span></div>
+            </div>
+          </a>
+
+          <a href="polygon-subscriptions.html" class="article-card" data-category="암호화폐">
+            <div class="article-thumb"><span>INFRA</span></div>
+            <div class="article-body">
+              <div class="article-tag">Infrastructure</div>
+              <h3>Polygon 위에서 구독을 다시 설계하다</h3>
+              <p>지갑 주소도, 가스비도 몰라도 되는 구독 경험을 만들기 위한 선택들.</p>
+              <div class="article-meta"><span class="byline-avatar">FS</span><span class="byline-name">factorysignal 팀</span><span>·</span><span>7분 읽기</span></div>
+            </div>
+          </a>
+
+          <a href="bitcoin-the-perfect-ledger.html" class="article-card" data-category="암호화폐">
+            <div class="article-thumb article-thumb--video" style="background-image:url('https://img.youtube.com/vi/9N5yh59WMoI/hqdefault.jpg');"><span>▶</span></div>
+            <div class="article-body">
+              <div class="article-tag">Market Watch</div>
+              <h3>비트코인은 "가장 완벽한 장부"다 — 오태민 교수에게 듣는 2026년 크립토 전망</h3>
+              <p>지식인사이드 인터뷰 요약. 왜 이더리움도 함께 담아야 하는지, 2026년 체크리스트 5가지.</p>
+              <div class="article-meta"><span class="byline-avatar">FS</span><span class="byline-name">factorysignal 팀</span><span>·</span><span>8분 읽기</span></div>
+            </div>
+          </a>
+
+        </div>
+        <p class="article-empty" style="display:none;">아직 이 카테고리의 아티클이 없습니다.</p>
+      </div>
+
     </div>
-    <div class="article-grid">
-
-      <a href="why-signal-token.html" class="article-card" data-category="암호화폐">
-        <div class="article-thumb"><span>TOKEN</span></div>
-        <div class="article-body">
-          <div class="article-tag">Token Design</div>
-          <h3>왜 $SIGNAL은 거래소에 상장되지 않는가</h3>
-          <p>자유롭게 거래되는 토큰을 만들 수도 있었습니다. 대신 저희는 현금화되지 않는 "게임 재화"를 선택했습니다.</p>
-          <div class="article-meta"><span class="byline-avatar">FS</span><span class="byline-name">factorysignal 팀</span><span>·</span><span>5분 읽기</span></div>
-        </div>
-      </a>
-
-      <a href="prediction-market-analytics.html" class="article-card" data-category="암호화폐">
-        <div class="article-thumb"><span>PRODUCT</span></div>
-        <div class="article-body">
-          <div class="article-tag">Product</div>
-          <h3>예측 시장 데이터를 서비스로 만들기까지</h3>
-          <p>Polymarket의 원시 데이터가 구독자가 실제로 쓸 수 있는 분석으로 바뀌는 과정.</p>
-          <div class="article-meta"><span class="byline-avatar">FS</span><span class="byline-name">factorysignal 팀</span><span>·</span><span>6분 읽기</span></div>
-        </div>
-      </a>
-
-      <a href="polygon-subscriptions.html" class="article-card" data-category="암호화폐">
-        <div class="article-thumb"><span>INFRA</span></div>
-        <div class="article-body">
-          <div class="article-tag">Infrastructure</div>
-          <h3>Polygon 위에서 구독을 다시 설계하다</h3>
-          <p>지갑 주소도, 가스비도 몰라도 되는 구독 경험을 만들기 위한 선택들.</p>
-          <div class="article-meta"><span class="byline-avatar">FS</span><span class="byline-name">factorysignal 팀</span><span>·</span><span>7분 읽기</span></div>
-        </div>
-      </a>
-
-      <a href="bitcoin-the-perfect-ledger.html" class="article-card" data-category="암호화폐">
-        <div class="article-thumb article-thumb--video" style="background-image:url('https://img.youtube.com/vi/9N5yh59WMoI/hqdefault.jpg');"><span>▶</span></div>
-        <div class="article-body">
-          <div class="article-tag">Market Watch</div>
-          <h3>비트코인은 "가장 완벽한 장부"다 — 오태민 교수에게 듣는 2026년 크립토 전망</h3>
-          <p>지식인사이드 인터뷰 요약. 왜 이더리움도 함께 담아야 하는지, 2026년 체크리스트 5가지.</p>
-          <div class="article-meta"><span class="byline-avatar">FS</span><span class="byline-name">factorysignal 팀</span><span>·</span><span>8분 읽기</span></div>
-        </div>
-      </a>
-
-    </div>
-    <p class="article-empty" style="display:none;">아직 이 카테고리의 아티클이 없습니다.</p>
   </div>
 </section>
 
