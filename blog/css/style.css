@@ -17,6 +17,7 @@
   --cat-crypto: #d97706;
   --cat-sports: #3b82f6;
   --cat-world: #e03040;
+  --cat-startup: #0d9488;
   --serif: Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
   --sans: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo",
     "Segoe UI", Helvetica, Arial, sans-serif;
@@ -678,6 +679,7 @@ section {
 .article-card[data-category="암호화폐"] .article-thumb { background: linear-gradient(135deg, var(--cat-crypto), #a05e04); }
 .article-card[data-category="스포츠"] .article-thumb { background: linear-gradient(135deg, var(--cat-sports), #1e5bb8); }
 .article-card[data-category="세계"] .article-thumb { background: linear-gradient(135deg, var(--cat-world), #a02330); }
+.article-card[data-category="스타트업"] .article-thumb { background: linear-gradient(135deg, var(--cat-startup), #0a6b62); }
 
 .article-thumb--video {
   background-size: cover;
@@ -756,6 +758,20 @@ section {
   font-weight: 700;
 }
 
+.sidebar-link[data-filter="정치"]:hover { background: rgba(108, 92, 231, 0.1); color: var(--cat-politics); }
+.sidebar-link[data-filter="경제"]:hover { background: rgba(14, 169, 104, 0.1); color: var(--cat-economy); }
+.sidebar-link[data-filter="암호화폐"]:hover { background: rgba(217, 119, 6, 0.1); color: var(--cat-crypto); }
+.sidebar-link[data-filter="스포츠"]:hover { background: rgba(59, 130, 246, 0.1); color: var(--cat-sports); }
+.sidebar-link[data-filter="세계"]:hover { background: rgba(224, 48, 64, 0.1); color: var(--cat-world); }
+.sidebar-link[data-filter="스타트업"]:hover { background: rgba(13, 148, 136, 0.1); color: var(--cat-startup); }
+
+.sidebar-link[data-filter="정치"].active { background: rgba(108, 92, 231, 0.12); color: var(--cat-politics); }
+.sidebar-link[data-filter="경제"].active { background: rgba(14, 169, 104, 0.12); color: var(--cat-economy); }
+.sidebar-link[data-filter="암호화폐"].active { background: rgba(217, 119, 6, 0.12); color: var(--cat-crypto); }
+.sidebar-link[data-filter="스포츠"].active { background: rgba(59, 130, 246, 0.12); color: var(--cat-sports); }
+.sidebar-link[data-filter="세계"].active { background: rgba(224, 48, 64, 0.12); color: var(--cat-world); }
+.sidebar-link[data-filter="스타트업"].active { background: rgba(13, 148, 136, 0.12); color: var(--cat-startup); }
+
 .article-main {
   flex: 1;
   min-width: 0;
@@ -814,6 +830,7 @@ section {
 .article-card[data-category="암호화폐"] .article-tag { background: rgba(217, 119, 6, 0.12); color: var(--cat-crypto); }
 .article-card[data-category="스포츠"] .article-tag { background: rgba(59, 130, 246, 0.12); color: var(--cat-sports); }
 .article-card[data-category="세계"] .article-tag { background: rgba(224, 48, 64, 0.12); color: var(--cat-world); }
+.article-card[data-category="스타트업"] .article-tag { background: rgba(13, 148, 136, 0.12); color: var(--cat-startup); }
 
 .filter-tab[data-filter]:not([data-filter="전체"])::before {
   content: "";
@@ -831,6 +848,7 @@ section {
 .filter-tab[data-filter="암호화폐"]::before { background: var(--cat-crypto); }
 .filter-tab[data-filter="스포츠"]::before { background: var(--cat-sports); }
 .filter-tab[data-filter="세계"]::before { background: var(--cat-world); }
+.filter-tab[data-filter="스타트업"]::before { background: var(--cat-startup); }
 
 .byline-avatar {
   display: inline-flex;
