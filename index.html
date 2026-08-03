@@ -3,24 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FactorySignal - 예측 시장 데이터 및 분석</title>
+<title>Factory Signal - 예측 시장 데이터 및 분석</title>
 <meta name="description" content="폴리마켓 실시간 예측 확률, 뉴스 분석, AI 인사이트를 한눈에">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://predictanalytics-news.vercel.app">
-<meta property="og:title" content="FactorySignal - 예측 시장 분석">
+<meta property="og:title" content="Factory Signal - 예측 시장 분석">
 <meta property="og:description" content="폴리마켓 실시간 예측 확률, 뉴스 분석, AI 인사이트를 한눈에">
 <meta property="og:image" content="https://predictanalytics-news.vercel.app/api/og?v=3">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="FactorySignal - 예측 시장 분석">
+<meta name="twitter:title" content="Factory Signal - 예측 시장 분석">
 <meta name="twitter:description" content="폴리마켓 실시간 예측 확률, 뉴스 분석, AI 인사이트를 한눈에">
 <meta name="twitter:image" content="https://predictanalytics-news.vercel.app/api/og?v=3">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#6c5ce7">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="FactorySignal">
+<meta name="apple-mobile-web-app-title" content="Factory Signal">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -2109,7 +2109,7 @@
   <div class="header-inner">
     <a href="#" class="logo">
       <div class="logo-icon">📊</div>
-      <span>FactorySignal</span>
+      <span>Factory Signal</span>
     </a>
     <nav>
       <a href="#traderList" onclick="document.getElementById('traderList').scrollIntoView({behavior:'smooth'});return false;" class="active">거래자</a>
@@ -2343,7 +2343,7 @@
     <a href="/privacy.html">개인정보처리방침</a>
     <a href="mailto:minjh8768@skycamp.co.kr">문의하기</a>
   </div>
-  <div class="site-footer-copy">© 2026 FactorySignal. All rights reserved.</div>
+  <div class="site-footer-copy">© 2026 Factory Signal. All rights reserved.</div>
 </footer>
 
 <!-- ─── 지갑 준비 방식 선택 (구글 임베디드 지갑 vs 기존 외부 지갑) ─── -->
@@ -4906,7 +4906,7 @@ function handleSubCTA() {
       return actions.order.create({
         purchase_units: [{
           amount: { value: priceMap[_selectedPlan] || '199.00', currency_code: 'USD' },
-          description: `FactorySignal ${_selectedPlan} 플랜`
+          description: `Factory Signal ${_selectedPlan} 플랜`
         }]
       });
     },
@@ -4977,7 +4977,7 @@ function showBossStatus(message, type) {
 }
 
 // ─── 지갑 없는 사용자용: 구글/카카오 로그인만으로 지갑 자동 생성 (Web3Auth) ───
-const WEB3AUTH_CLIENT_ID = 'BA4oIQJB-dv78ZRm2QbWKoglfSrMhLEvMkiomuCukqzRw6ZyH0zLxgUZstZK4mk2PG2xqIJPSuWGz5dTQTGiFls'; // FactorySignal Mainnet 프로젝트
+const WEB3AUTH_CLIENT_ID = 'BA4oIQJB-dv78ZRm2QbWKoglfSrMhLEvMkiomuCukqzRw6ZyH0zLxgUZstZK4mk2PG2xqIJPSuWGz5dTQTGiFls'; // Factory Signal Mainnet 프로젝트
 let _web3auth = null;
 
 async function getWeb3Auth() {
@@ -5296,7 +5296,7 @@ function renderBossTopUpPayPal(walletAddress, needed, price) {
       return actions.order.create({
         purchase_units: [{
           amount: { value: needed.toFixed(2), currency_code: 'USD' },
-          description: `FactorySignal SIGNAL 충전 (${needed} SIGNAL)`,
+          description: `Factory Signal SIGNAL 충전 (${needed} SIGNAL)`,
         }],
       });
     },

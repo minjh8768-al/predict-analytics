@@ -5,21 +5,38 @@ This repo is the live product, a Polymarket prediction-market analytics and subs
 `update_news.py` + `.github/workflows/update-news.yml` auto-refresh news content on a daily
 cron). Deployed on Vercel, auto-deploys on push to `main`.
 Live at `https://predictanalytics-news.vercel.app` (`predictanalytics-news` is only ever the
-domain/repo name — the app's real brand, shown in its own header logo, is **"factorysignal"**.
-Use that name in any cross-property copy, not the domain name).
+domain/repo name — the app's real brand, shown in its own header logo and throughout
+`index.html`/`admin.html`/`terms.html`/`privacy.html`, is **"Factory Signal"**, capitalized,
+two words. Not "FactorySignal" camelCase, not one-word "factorysignal". Use "Factory Signal"
+in any cross-property copy, never the domain name.)
+
+## Naming convention (applies across all three company properties)
+
+**"Factory ___"**, both words always capitalized, always a space:
+- **Factory Signal** — this app
+- **Factory Magazine** — the content/media brand (see below)
+- **Factory Holdings** — the parent-company site (separate repo)
+
+Don't reintroduce camelCase, one-word, or lowercase-leading variants anywhere — this was an
+explicit, deliberate rename applied to all three sites at once.
 
 ## Related sites (separate repos, same company)
 
-- **factory Magazine** — the content/media brand. Lives in its OWN repo/Vercel project,
+- **Factory Magazine** — the content/media brand. Lives in its OWN repo/Vercel project,
   `factorysignal-magazine` (deliberately split out from this repo so writers/editors can get
-  repo access without seeing this app's code, and deliberately NOT named "factorysignal" or
-  "factorysignal Magazine" — the founder wants it clearly distinct from this app). Public URL
-  stays `predictanalytics-news.vercel.app/blog/` via the `rewrites` entry in this repo's
+  repo access without seeing this app's code, and deliberately NOT sharing the "Factory Signal"
+  name — the founder wants it clearly distinct from this app). Public URL stays
+  `predictanalytics-news.vercel.app/blog/` via the `rewrites` entry in this repo's
   `vercel.json`, which proxies `/blog/*` to the `factorysignal-magazine` Vercel deployment.
   There is no `blog/` folder here anymore — don't recreate one; edit the other repo instead.
-- **factorysignal Holdings** — the parent-company corporate site, a completely separate
+- **Factory Holdings** — the parent-company corporate site, a completely separate
   repo/Vercel project (`factorysignal-holdings`), not part of this codebase. Links to both
   this app and the magazine.
+
+Repo names, GitHub URLs, and the live domain (`predictanalytics-news.vercel.app`,
+`predict-analytics`, `factorysignal-magazine`, `factorysignal-holdings`) are infrastructure
+identifiers, not display text — leave those spelled exactly as they are. Only human-visible
+copy changes.
 
 ## Category system (reused across the whole company, keep colors consistent)
 
@@ -34,7 +51,7 @@ The app defines 5 real content categories with fixed colors (see `index.html`, C
 | 스포츠 (sports) | blue `#3b82f6` |
 | 세계 (world) | red `#e03040` |
 
-factory Magazine (separate repo, see above) reuses these exact hex values for its own article
+Factory Magazine (separate repo, see above) reuses these exact hex values for its own article
 tags/filters, plus adds a 6th category (스타트업/startup, teal `#0d9488`) that only exists
 on the magazine side. If either the app or the magazine adds/changes a category color,
 update the other for consistency — this was a deliberate cross-brand decision, not a
@@ -44,9 +61,11 @@ coincidence.
 
 Polygon-based utility token, PayPal-only purchase, explicitly non-cashable/non-transferable
 by design (VASP/regulatory-avoidance rationale — see the `why-signal-token.html` article on
-factory Magazine, in the `factorysignal-magazine` repo, for the full reasoning). Don't
+Factory Magazine, in the `factorysignal-magazine` repo, for the full reasoning). Don't
 casually change this constraint in copy without flagging it — it's a deliberate
-legal-positioning decision, not a product limitation to "fix."
+legal-positioning decision, not a product limitation to "fix." Note: "$SIGNAL" the token
+ticker is unrelated to the "Factory Signal" brand-name rename — don't touch "$SIGNAL" text
+when doing brand-name find/replace passes.
 
 ## Git note
 
