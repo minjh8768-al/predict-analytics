@@ -1,17 +1,20 @@
 # predict-analytics (predictanalytics-news) — project context
 
-This repo is **predictanalytics-news**, the live product: a Polymarket prediction-market
-analytics and subscription app (`index.html` at repo root is the single-page app, `api/`
-holds serverless functions, `update_news.py` + `.github/workflows/update-news.yml` auto-refresh
-news content on a daily cron). Deployed on Vercel, auto-deploys on push to `main`.
-Live at `https://predictanalytics-news.vercel.app`.
+This repo is the live product, a Polymarket prediction-market analytics and subscription app
+(`index.html` at repo root is the single-page app, `api/` holds serverless functions,
+`update_news.py` + `.github/workflows/update-news.yml` auto-refresh news content on a daily
+cron). Deployed on Vercel, auto-deploys on push to `main`.
+Live at `https://predictanalytics-news.vercel.app` (`predictanalytics-news` is only ever the
+domain/repo name — the app's real brand, shown in its own header logo, is **"factorysignal"**.
+Use that name in any cross-property copy, not the domain name).
 
 ## Related sites (separate repos, same company)
 
-- **factorysignal** — the content/media brand (magazine). Lives in its OWN repo/Vercel
-  project, `factorysignal-magazine` (deliberately split out from this repo so
-  writers/editors can get repo access without seeing this app's code). Public URL stays
-  `predictanalytics-news.vercel.app/blog/` via the `rewrites` entry in this repo's
+- **factory Magazine** — the content/media brand. Lives in its OWN repo/Vercel project,
+  `factorysignal-magazine` (deliberately split out from this repo so writers/editors can get
+  repo access without seeing this app's code, and deliberately NOT named "factorysignal" or
+  "factorysignal Magazine" — the founder wants it clearly distinct from this app). Public URL
+  stays `predictanalytics-news.vercel.app/blog/` via the `rewrites` entry in this repo's
   `vercel.json`, which proxies `/blog/*` to the `factorysignal-magazine` Vercel deployment.
   There is no `blog/` folder here anymore — don't recreate one; edit the other repo instead.
 - **factorysignal Holdings** — the parent-company corporate site, a completely separate
@@ -31,7 +34,7 @@ The app defines 5 real content categories with fixed colors (see `index.html`, C
 | 스포츠 (sports) | blue `#3b82f6` |
 | 세계 (world) | red `#e03040` |
 
-The factorysignal magazine (`blog/`) reuses these exact hex values for its own article
+factory Magazine (separate repo, see above) reuses these exact hex values for its own article
 tags/filters, plus adds a 6th category (스타트업/startup, teal `#0d9488`) that only exists
 on the magazine side. If either the app or the magazine adds/changes a category color,
 update the other for consistency — this was a deliberate cross-brand decision, not a
@@ -40,9 +43,10 @@ coincidence.
 ## $SIGNAL token
 
 Polygon-based utility token, PayPal-only purchase, explicitly non-cashable/non-transferable
-by design (VASP/regulatory-avoidance rationale — see `blog/articles/why-signal-token.html`
-for the full reasoning). Don't casually change this constraint in copy without flagging it —
-it's a deliberate legal-positioning decision, not a product limitation to "fix."
+by design (VASP/regulatory-avoidance rationale — see the `why-signal-token.html` article on
+factory Magazine, in the `factorysignal-magazine` repo, for the full reasoning). Don't
+casually change this constraint in copy without flagging it — it's a deliberate
+legal-positioning decision, not a product limitation to "fix."
 
 ## Git note
 
