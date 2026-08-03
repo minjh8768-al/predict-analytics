@@ -12,6 +12,7 @@
   ],
   "rewrites": [
     { "source": "/blog", "destination": "https://factorysignal-magazine.vercel.app/" },
-    { "source": "/blog/:path*", "destination": "https://factorysignal-magazine.vercel.app/:path*" }
+    { "source": "/blog/", "destination": "https://factorysignal-magazine.vercel.app/" },
+    { "source": "/blog/(.*)", "destination": "https://factorysignal-magazine.vercel.app/$1" }
   ]
 }
