@@ -8,9 +8,12 @@ Live at `https://predictanalytics-news.vercel.app`.
 
 ## Related sites (separate repos, same company)
 
-- **factorysignal** — the content/media brand (magazine), lives in `blog/` in THIS repo,
-  served at `/blog/`. See `blog/CLAUDE.md` for its own conventions — it has a distinctly
-  different visual identity (Outstanding.kr-inspired) from the main app.
+- **factorysignal** — the content/media brand (magazine). Lives in its OWN repo/Vercel
+  project, `factorysignal-magazine` (deliberately split out from this repo so
+  writers/editors can get repo access without seeing this app's code). Public URL stays
+  `predictanalytics-news.vercel.app/blog/` via the `rewrites` entry in this repo's
+  `vercel.json`, which proxies `/blog/*` to the `factorysignal-magazine` Vercel deployment.
+  There is no `blog/` folder here anymore — don't recreate one; edit the other repo instead.
 - **factorysignal Holdings** — the parent-company corporate site, a completely separate
   repo/Vercel project (`factorysignal-holdings`), not part of this codebase. Links to both
   this app and the magazine.
