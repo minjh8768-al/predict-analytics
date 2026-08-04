@@ -11,12 +11,12 @@
     --border: #e2e6f0; --text: #1a1d2e; --text-sub: #5a6075; --text-muted: #9aa0b8;
     --purple: #6c5ce7; --green: #0ea968; --red: #e03040; --yellow: #d97706;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0d0d1a; --surface: #16162a; --surface2: #1e1e35;
-      --border: #2a2a45; --text: #e8e8f8; --text-sub: #9090b8; --text-muted: #5a5a80;
-    }
+  [data-theme="dark"] {
+    --bg: #0d0d1a; --surface: #16162a; --surface2: #1e1e35;
+    --border: #2a2a45; --text: #e8e8f8; --text-sub: #9090b8; --text-muted: #5a5a80;
   }
+  .theme-toggle { width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-sub); font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .theme-toggle:hover { border-color: var(--purple); }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif; font-size: 13.5px; min-height: 100vh; }
 
@@ -109,6 +109,7 @@
   <a href="index.html" class="logo">Factory<span> Signal</span> · 예측배틀</a>
   <div class="header-right">
     <span class="user-name" id="userName" style="display:none"></span>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="다크/라이트 모드">🌙</button>
     <button class="btn-google" id="loginBtn" onclick="battleLogin()">Google로 로그인</button>
     <button class="btn-logout" id="logoutBtn" style="display:none" onclick="battleLogout()">로그아웃</button>
   </div>
@@ -440,6 +441,23 @@ function renderResultsList() {
     `;
   }).join('');
 }
+
+// ─── 다크/라이트 테마 토글 (index.html과 동일한 localStorage 키 공유) ───
+function applyTheme(dark) {
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = dark ? '☀️' : '🌙';
+}
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = !isDark;
+  localStorage.setItem('pa_theme', next ? 'dark' : 'light');
+  applyTheme(next);
+}
+(function() {
+  const saved = localStorage.getItem('pa_theme');
+  applyTheme(saved === 'dark');
+})();
 </script>
 
 </body>
