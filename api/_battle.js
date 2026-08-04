@@ -219,7 +219,16 @@ async function getActiveSession(db, uid) {
     .limit(1)
     .get();
   if (snap.empty) return null;
-  return { id: snap.docs[0].id, ...snap.docs[0].data() };
+  const doc = snap.docs[0];
+  const session = { id: doc.id, ...doc.data() };
+  // 이전 스키마(라운드 구조 변경 전)로 만들어진 활성 세션이 남아있으면
+  // rounds 배열이 없어 publicSessionView가 깨진다 — 그런 낡은 문서는
+  // 그냥 폐기 취급하고 새 게임을 시작하게 한다.
+  if (!Array.isArray(session.rounds)) {
+    await doc.ref.update({ status: 'abandoned' });
+    return null;
+  }
+  return session;
 }
 
 export async function handleBattleStatus(req, res, db) {
