@@ -279,9 +279,9 @@ function renderCenter() {
   if (!u) {
     el.innerHTML = `
       <div class="start-screen">
-        <h2>예측배틀에 오신 걸 환영합니다</h2>
-        <p>이미 결과가 나온 실제 예측시장 35개(7라운드 x 5개)를 무작위로 맞혀보세요. AI의 예측도 함께 공개됩니다.</p>
-        <button class="btn-primary-lg" onclick="battleLogin()">Google로 로그인</button>
+        <h2>AI를 이길 수 있을까요? 🎯</h2>
+        <p>트럼프 대선부터 월드컵까지 — 이미 결과가 나온 실제 사건 35개가 무작위로 등장합니다. 직감으로 예/아니요를 골라보세요. AI도 똑같이 베팅에 참여해요. 승부는 당신 몫!</p>
+        <button class="btn-primary-lg" onclick="battleLogin()">Google로 로그인하고 도전하기</button>
       </div>`;
     return;
   }
@@ -289,9 +289,9 @@ function renderCenter() {
   if (!_session) {
     el.innerHTML = `
       <div class="start-screen">
-        <h2>새 게임을 시작해볼까요?</h2>
-        <p>실제로 있었던 예측시장이 한 라운드에 5개씩, 총 7라운드(35개) 무작위로 나옵니다. 예/아니요를 선택하면 결과가 바로 공개돼요.</p>
-        <button class="btn-primary-lg" onclick="startNewSession()">게임 시작하기</button>
+        <h2>7라운드, 35번의 승부 🔥</h2>
+        <p>한 라운드에 5개씩, 총 7라운드. 실제로 있었던 사건이 무작위로 등장하고, 예/아니요를 고르면 결과가 바로 공개돼요. AI의 예측과 분석도 같이 볼 수 있어요 — 이번엔 누가 더 정확할까요?</p>
+        <button class="btn-primary-lg" onclick="startNewSession()">게임 시작하기 🚀</button>
       </div>`;
     return;
   }
