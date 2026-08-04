@@ -1,0 +1,17 @@
+name: Settle Virtual Bets
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call settlement endpoint
+        run: |
+          curl -sf -X POST https://predictanalytics-news.vercel.app/api/bet \
+            -H "Content-Type: application/json" \
+            -H "X-Cron-Secret: ${{ secrets.SETTLE_CRON_SECRET }}" \
+            -d '{"action":"settle"}'

@@ -2153,6 +2153,12 @@
               <div id="menuReferralApplyStatus" style="font-size:12.5px;margin-top:8px"></div>
             </div>
           </div>
+          <div style="padding:12px 16px;border-top:1px solid var(--border);margin-top:4px;margin-bottom:4px">
+            <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:8px">🎮 모의투자</div>
+            <div id="menuVirtualBalance" style="font-size:14px;color:var(--text-secondary);margin-bottom:4px">불러오는 중...</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">가상 포인트이며 실제 현금 가치가 없습니다.</div>
+            <button onclick="openMyBetsModal()" style="width:100%;text-align:left;padding:10px 14px;background:none;border:1px solid var(--border);border-radius:10px;color:#a78bfa;font-size:14px;cursor:pointer">내 베팅 보기</button>
+          </div>
           <button onclick="logoutUser()" style="width:100%;text-align:left;padding:12px 16px;background:none;border:none;border-radius:10px;color:var(--text-muted);font-size:14px;cursor:pointer">로그아웃</button>
           <button onclick="deleteAccountFromMenu()" style="width:100%;text-align:left;padding:8px 16px;background:none;border:none;border-radius:10px;color:var(--text-muted);font-size:12px;opacity:0.65;cursor:pointer">회원 탈퇴</button>
         </div>
@@ -3047,7 +3053,32 @@ function hasMarketAccess() {
   return !!(user && user.plan && user.plan !== 'free');
 }
 
-function pmCard(q, outcomes, prices, vol, imgUrl) {
+// 속성값(따옴표/꺾쇠 등)이 포함된 텍스트를 onclick 문자열이 아니라 data-* 속성에
+// 안전하게 넣기 위한 이스케이프 — 마켓 질문에 따옴표가 섞여도 마크업이 깨지지 않게.
+function escapeAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// 한 outcome(행)에 대한 베팅 버튼 하나. 원래 코드는 두 행 모두에 "예"+"아니요"
+// 버튼을 통째로(중복으로) 찍어내는 미완성 placeholder였음 — 각 행은 그 행의
+// outcome 하나에만 거는 버튼 하나씩 갖도록 정리.
+// 모의투자는 실시간(Gamma) 마켓에만 건다 — id/conditionId가 있는 경우만.
+// 잠긴(무료 플랜) 카드는 버튼에 onclick을 안 달아서, 클릭이 카드 전체의
+// openSubModal로 그대로 버블링되게 둔다(기존 페이월 동작 유지).
+function betButton(id, conditionId, q, outcomes, prices, i) {
+  const label = outcomes[i] || (i === 0 ? 'Yes' : 'No');
+  const cls = i === 0 ? 'btn-yes' : 'btn-no';
+  const text = i === 0 ? '예' : '아니요';
+  const canBet = hasMarketAccess() && id && conditionId;
+  if (!canBet) return `<button class="${cls}">${text}</button>`;
+  return `<button class="${cls}" data-market-id="${escapeAttr(id)}" data-condition-id="${escapeAttr(conditionId)}"
+    data-outcome-index="${i}" data-price="${prices[i] || 0}" data-label="${escapeAttr(label)}"
+    data-question="${escapeAttr(q)}" onclick="event.stopPropagation();openBetModal(this)">${text}</button>`;
+}
+
+function pmCard(q, outcomes, prices, vol, imgUrl, id, conditionId) {
   const locked = !hasMarketAccess();
   return `<div class="market-card" ${locked ? `onclick="openSubModal('시장 데이터')"` : ''} style="cursor:${locked ? 'pointer' : 'default'}">
     <div class="market-card-header">
@@ -3061,8 +3092,7 @@ function pmCard(q, outcomes, prices, vol, imgUrl) {
         <div class="market-option">
           <span class="option-label">${label}</span>
           <span class="option-pct">${Math.round((prices[i]||0)*100)}%</span>
-          <button class="btn-yes">예</button>
-          <button class="btn-no">아니요</button>
+          ${betButton(id, conditionId, q, outcomes, prices, i)}
         </div>`).join('')}
     </div>
     <div class="market-footer">
@@ -3079,7 +3109,7 @@ function renderMarkets(liveData) {
       let outcomes = [], prices = [];
       try { outcomes = JSON.parse(m.outcomes || '[]'); } catch(e) {}
       try { prices   = JSON.parse(m.outcomePrices || '[]'); } catch(e) {}
-      return pmCard(m.question, outcomes, prices, m.volume, m.image);
+      return pmCard(m.question, outcomes, prices, m.volume, m.image, m.id, m.conditionId);
     }).join('');
   } else {
     const locked = !hasMarketAccess();
@@ -3217,6 +3247,7 @@ function toggleUserMenu() {
   if (opening) {
     refreshMenuWalletInfo();
     refreshMenuReferralInfo();
+    refreshMenuVirtualBalance();
   }
 }
 
@@ -4193,6 +4224,159 @@ async function triggerInstallPrompt() {
   await _deferredInstallPrompt.userChoice;
   _deferredInstallPrompt = null;
   closeInstallModal();
+}
+
+// ─── 모의투자 (가상 시드머니 예측 베팅) ────────────────────────────
+// 실제 마켓(Gamma API) 카드에서만 베팅 가능 — betButton()이 id/conditionId가
+// 있을 때만 onclick을 달아준다. 서버(api/bet.js)가 가격/상태를 다시 검증하므로
+// 여기서 읽는 data-price는 화면 표시/예상 페이아웃 미리보기용일 뿐.
+const VBET_MIN_STAKE = 10;
+const VBET_MAX_STAKE = 2000;
+let _betCtx = null;
+
+function openBetModal(btnEl) {
+  if (!(window._fbAuth && window._fbAuth.currentUser)) {
+    showSubscribeModal('login');
+    return;
+  }
+  _betCtx = {
+    marketId: btnEl.dataset.marketId,
+    conditionId: btnEl.dataset.conditionId,
+    outcomeIndex: Number(btnEl.dataset.outcomeIndex),
+    price: Number(btnEl.dataset.price),
+    label: btnEl.dataset.label,
+    question: btnEl.dataset.question,
+  };
+  document.getElementById('betModalQuestion').textContent = _betCtx.question;
+  document.getElementById('betModalOutcome').textContent = `${_betCtx.label} · 현재가 ${Math.round(_betCtx.price * 100)}%`;
+  document.getElementById('betStakeInput').value = 100;
+  document.getElementById('betModalError').textContent = '';
+  updateBetPayoutPreview();
+  document.getElementById('betOverlay').classList.add('open');
+}
+
+function closeBetModal() {
+  document.getElementById('betOverlay').classList.remove('open');
+  _betCtx = null;
+}
+
+function updateBetPayoutPreview() {
+  const el = document.getElementById('betPayoutPreview');
+  if (!_betCtx || !(_betCtx.price > 0)) { el.textContent = '-'; return; }
+  const stake = Number(document.getElementById('betStakeInput').value);
+  if (!(stake > 0)) { el.textContent = '-'; return; }
+  const payout = Math.round((stake / _betCtx.price) * 100) / 100;
+  el.textContent = `적중 시 ${payout.toLocaleString()} 포인트 획득 (스테이크 포함)`;
+}
+
+async function submitBet() {
+  if (!_betCtx) return;
+  const errEl = document.getElementById('betModalError');
+  const stake = Number(document.getElementById('betStakeInput').value);
+  errEl.textContent = '';
+
+  if (!(stake >= VBET_MIN_STAKE && stake <= VBET_MAX_STAKE)) {
+    errEl.textContent = `베팅 금액은 ${VBET_MIN_STAKE}~${VBET_MAX_STAKE} 포인트 사이여야 합니다.`;
+    return;
+  }
+  const u = window._fbAuth && window._fbAuth.currentUser;
+  if (!u) { errEl.textContent = '로그인이 필요합니다.'; return; }
+
+  const btn = document.getElementById('betSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = '베팅 중...';
+  try {
+    const idToken = await u.getIdToken();
+    const r = await fetch('/api/bet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      body: JSON.stringify({
+        action: 'place',
+        marketId: _betCtx.marketId,
+        conditionId: _betCtx.conditionId,
+        outcomeIndex: _betCtx.outcomeIndex,
+        stake,
+      }),
+    });
+    const body = await r.json();
+    if (!r.ok) throw new Error(body.error || '베팅 실패');
+    closeBetModal();
+    refreshMenuVirtualBalance();
+  } catch (e) {
+    errEl.textContent = e.message || '베팅 실패';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '베팅하기';
+  }
+}
+
+async function refreshMenuVirtualBalance() {
+  const el = document.getElementById('menuVirtualBalance');
+  if (!el) return;
+  const u = window._fbAuth && window._fbAuth.currentUser;
+  if (!u) { el.textContent = '-'; return; }
+  try {
+    const idToken = await u.getIdToken();
+    const r = await fetch('/api/bet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      body: JSON.stringify({ action: 'myBets' }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || '조회 실패');
+    el.textContent = `${data.balance.toLocaleString()} 포인트`;
+  } catch (e) {
+    el.textContent = '조회 실패';
+  }
+}
+
+const VBET_STATUS_LABEL = { open: '진행중', won: '적중', lost: '실패', void: '무효' };
+const VBET_STATUS_COLOR = { open: '#a78bfa', won: '#22c55e', lost: '#ef4444', void: '#888' };
+
+async function openMyBetsModal() {
+  const overlay = document.getElementById('myBetsOverlay');
+  const body = document.getElementById('myBetsBody');
+  overlay.classList.add('open');
+  body.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px 0">불러오는 중...</p>';
+
+  const u = window._fbAuth && window._fbAuth.currentUser;
+  if (!u) {
+    body.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px 0">로그인이 필요합니다.</p>';
+    return;
+  }
+  try {
+    const idToken = await u.getIdToken();
+    const r = await fetch('/api/bet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      body: JSON.stringify({ action: 'myBets' }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || '조회 실패');
+
+    document.getElementById('menuVirtualBalance').textContent = `${data.balance.toLocaleString()} 포인트`;
+
+    if (!data.bets.length) {
+      body.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px 0">아직 베팅 내역이 없습니다.</p>';
+      return;
+    }
+    body.innerHTML = data.bets.map(b => `
+      <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:13.5px;font-weight:600;color:var(--text-primary);margin-bottom:4px">${escapeAttr(b.marketQuestion)}</div>
+        <div style="font-size:12.5px;color:var(--text-muted)">
+          ${escapeAttr(b.outcomeLabel)} · ${b.stake.toLocaleString()}p 베팅
+          <span style="color:${VBET_STATUS_COLOR[b.status] || '#888'};font-weight:700"> · ${VBET_STATUS_LABEL[b.status] || b.status}</span>
+          ${b.status !== 'open' ? ` · ${(b.payout || 0).toLocaleString()}p 정산` : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    body.innerHTML = `<p style="text-align:center;color:var(--red);padding:20px 0">${escapeAttr(e.message || '조회 실패')}</p>`;
+  }
+}
+
+function closeMyBetsModal() {
+  document.getElementById('myBetsOverlay').classList.remove('open');
 }
 
 renderNews();
@@ -5419,6 +5603,42 @@ function mobTab(tab, btn) {
     </div>
     <div style="font-size:20px;font-weight:800;margin-bottom:6px">📲 앱으로 설치하기</div>
     <div id="installBody" style="font-size:13.5px;color:var(--text-muted);line-height:1.6"></div>
+  </div>
+</div>
+
+<!-- ─── 모의투자 베팅 모달 ─── -->
+<div id="betOverlay" class="modal-overlay" onclick="if(event.target===this)closeBetModal()">
+  <div class="modal-content" style="max-width:400px;padding:0">
+    <div class="modal-close-wrap">
+      <button class="modal-close" onclick="closeBetModal()">✕</button>
+    </div>
+    <div style="padding:0 24px 24px">
+      <div style="font-size:18px;font-weight:800;margin-bottom:14px">🎮 모의투자 베팅</div>
+      <div id="betModalQuestion" style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:6px;line-height:1.4"></div>
+      <div id="betModalOutcome" style="font-size:13px;color:#a78bfa;font-weight:700;margin-bottom:16px"></div>
+      <label style="font-size:12.5px;color:var(--text-muted);display:block;margin-bottom:6px">베팅 금액 (10 ~ 2,000 포인트)</label>
+      <input id="betStakeInput" type="number" min="10" max="2000" step="10" value="100" oninput="updateBetPayoutPreview()"
+        style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:15px;box-sizing:border-box;margin-bottom:10px">
+      <div id="betPayoutPreview" style="font-size:12.5px;color:var(--text-secondary);margin-bottom:16px">-</div>
+      <div id="betModalError" style="font-size:12.5px;color:var(--red);margin-bottom:10px;min-height:16px"></div>
+      <button id="betSubmitBtn" class="btn-primary" style="width:100%" onclick="submitBet()">베팅하기</button>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:14px;text-align:center;line-height:1.5">
+        가상 포인트이며 실제 현금 가치가 없습니다. 실제 자산으로 출금·환전할 수 없습니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 내 베팅 모달 ─── -->
+<div id="myBetsOverlay" class="modal-overlay" onclick="if(event.target===this)closeMyBetsModal()">
+  <div class="modal-content" style="max-width:480px">
+    <div class="modal-close-wrap">
+      <button class="modal-close" onclick="closeMyBetsModal()">✕</button>
+    </div>
+    <div style="padding:0 24px 24px">
+      <div style="font-size:18px;font-weight:800;margin-bottom:14px">🎮 내 베팅</div>
+      <div id="myBetsBody"></div>
+    </div>
   </div>
 </div>
 
