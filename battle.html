@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>예측배틀 — Factory Signal</title>
-<meta name="description" content="AI의 방향 예측을 이길 수 있을까? 실시간 마켓 확률 가격의 방향에 가상 포인트로 베팅하는 라운드제 예측배틀.">
+<meta name="description" content="AI의 방향 예측을 이길 수 있을까? 라운드마다 큐레이션되는 5개 실시간 마켓에 가상 포인트로 베팅.">
 <style>
   :root {
     --bg: #f5f6fa; --surface: #ffffff; --surface2: #f0f2ff;
@@ -28,54 +28,58 @@
   .btn-logout { font-size: 12px; color: var(--text-muted); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
   .user-name { font-size: 13px; color: var(--text-sub); }
 
-  .container { max-width: 640px; margin: 0 auto; padding: 32px 20px 60px; }
+  .container { max-width: 720px; margin: 0 auto; padding: 32px 20px 60px; }
 
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
-  .eyebrow { font-size: 11px; color: var(--purple); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
-  .question { font-size: 18px; font-weight: 700; line-height: 1.4; margin-bottom: 18px; }
-
-  .ai-row { display: flex; align-items: center; gap: 10px; background: var(--surface2); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; }
-  .ai-direction { font-size: 20px; }
-  .ai-direction.up { color: var(--green); }
-  .ai-direction.down { color: var(--red); }
-  .ai-label { font-size: 13px; font-weight: 700; }
-  .ai-stars { margin-left: auto; font-size: 14px; color: var(--yellow); }
-
-  .meta-row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px; }
-  #countdown { font-weight: 700; color: var(--text); }
-
-  .pool-bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; margin-bottom: 6px; background: var(--border); }
-  .pool-up { background: var(--green); }
-  .pool-down { background: var(--red); }
-  .pool-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
-
-  .direction-btns { display: flex; gap: 10px; margin-bottom: 14px; }
-  .dir-btn { flex: 1; padding: 14px; border-radius: 10px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 15px; font-weight: 700; cursor: pointer; }
-  .dir-btn.up.selected { border-color: var(--green); background: rgba(14,169,104,.1); color: var(--green); }
-  .dir-btn.down.selected { border-color: var(--red); background: rgba(224,48,64,.1); color: var(--red); }
-
-  input#stakeInput { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 15px; box-sizing: border-box; margin-bottom: 12px; }
-  .btn-submit { width: 100%; padding: 13px; border-radius: 10px; border: none; background: var(--purple); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
-  .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
-  #placeError { font-size: 12.5px; color: var(--red); margin-top: 8px; min-height: 16px; }
-
-  .balance-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin-bottom: 16px; }
+  .balance-row { display: flex; justify-content: space-between; align-items: center; }
   .balance-val { font-size: 20px; font-weight: 800; color: var(--purple); }
-  .disclaimer { font-size: 11px; color: var(--text-muted); text-align: center; line-height: 1.5; margin-top: 14px; }
+  .disclaimer { font-size: 11px; color: var(--text-muted); text-align: center; line-height: 1.5; margin-top: 10px; }
 
-  .position-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 700; margin-bottom: 14px; }
-  .position-badge.up { background: rgba(14,169,104,.12); color: var(--green); }
-  .position-badge.down { background: rgba(224,48,64,.12); color: var(--red); }
+  .section-title { font-size: 14px; font-weight: 700; margin: 24px 0 12px; }
+  .picks-grid { display: flex; flex-direction: column; gap: 14px; }
+
+  .pick-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+  .eyebrow { font-size: 10.5px; color: var(--purple); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+  .question { font-size: 15px; font-weight: 700; line-height: 1.4; margin-bottom: 12px; }
+  .ai-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-sub); margin-bottom: 12px; }
+  .ai-row .arrow.up { color: var(--green); }
+  .ai-row .arrow.down { color: var(--red); }
+  .ai-row .stars { margin-left: auto; color: var(--yellow); }
+
+  .outcome-row { display: flex; gap: 8px; }
+  .outcome-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 13.5px; font-weight: 700; cursor: pointer; }
+  .outcome-btn.yes:hover { border-color: var(--green); color: var(--green); }
+  .outcome-btn.no:hover { border-color: var(--red); color: var(--red); }
+  .outcome-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .pct { display: block; font-size: 11.5px; color: var(--text-muted); font-weight: 400; margin-top: 2px; }
+
+  .my-position-badge { display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .my-position-badge.won { background: rgba(14,169,104,.12); color: var(--green); }
+  .my-position-badge.lost { background: rgba(224,48,64,.12); color: var(--red); }
+  .my-position-badge.open { background: rgba(108,92,231,.12); color: var(--purple); }
 
   .history-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
   .history-item:last-child { border-bottom: none; }
   .history-q { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
   .history-meta { font-size: 12px; color: var(--text-muted); }
-  .tag-ok { color: var(--green); font-weight: 700; }
-  .tag-fail { color: var(--red); font-weight: 700; }
-
-  .section-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+  .tag-won { color: var(--green); font-weight: 700; }
+  .tag-lost { color: var(--red); font-weight: 700; }
+  .tag-open { color: var(--purple); font-weight: 700; }
+  .tag-void { color: var(--text-muted); font-weight: 700; }
   .empty-state { text-align: center; padding: 30px 0; color: var(--text-muted); font-size: 13px; }
+
+  /* ── 베팅 모달 ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,10,20,.55); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+  .modal-overlay.open { display: flex; }
+  .modal-content { background: var(--surface); border-radius: 16px; max-width: 380px; width: 92vw; padding: 22px 22px 26px; position: relative; }
+  .modal-close { position: absolute; top: 12px; right: 12px; background: var(--surface2); border: 1px solid var(--border); width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; }
+  .modal-title { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: var(--purple); font-weight: 700; margin-bottom: 16px; }
+  input#stakeInput { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 15px; box-sizing: border-box; margin-bottom: 10px; }
+  #payoutPreview { font-size: 12.5px; color: var(--text-sub); margin-bottom: 16px; }
+  .btn-submit { width: 100%; padding: 13px; border-radius: 10px; border: none; background: var(--purple); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+  #placeError { font-size: 12.5px; color: var(--red); margin-top: 8px; min-height: 16px; }
 </style>
 </head>
 <body>
@@ -92,58 +96,36 @@
 <div class="container">
 
   <div class="card">
-    <div class="eyebrow">이번 라운드</div>
-    <div class="question" id="roundQuestion">불러오는 중...</div>
-
-    <div class="ai-row">
-      <span class="ai-direction" id="aiArrow">—</span>
-      <span class="ai-label" id="aiLabel">AI 예측</span>
-      <span class="ai-stars" id="aiStars"></span>
-    </div>
-
-    <div class="meta-row">
-      <span>남은 시간</span>
-      <span id="countdown">—</span>
-    </div>
-
-    <div class="pool-bar">
-      <div class="pool-up" id="poolUpBar" style="width:50%"></div>
-      <div class="pool-down" id="poolDownBar" style="width:50%"></div>
-    </div>
-    <div class="pool-labels">
-      <span>📈 상승 <span id="poolUpVal">0</span>p</span>
-      <span>📉 하락 <span id="poolDownVal">0</span>p</span>
-    </div>
-
-    <div id="myPositionWrap" style="display:none">
-      <span class="position-badge" id="myPositionBadge"></span>
-    </div>
-
-    <div id="betForm">
-      <div class="direction-btns">
-        <button class="dir-btn up" id="btnUp" onclick="selectDirection('up')">📈 상승</button>
-        <button class="dir-btn down" id="btnDown" onclick="selectDirection('down')">📉 하락</button>
-      </div>
-      <input id="stakeInput" type="number" min="10" max="2000" step="10" value="100" placeholder="베팅 금액 (10~2,000)">
-      <button class="btn-submit" id="submitBtn" onclick="submitPosition()" disabled>방향을 선택하세요</button>
-      <div id="placeError"></div>
-    </div>
-
-    <div class="disclaimer">가상 포인트이며 실제 현금 가치가 없습니다. 실제 자산으로 출금·환전할 수 없습니다.</div>
-  </div>
-
-  <div class="card">
     <div class="balance-row">
       <span>내 포인트</span>
       <span class="balance-val" id="myBalance">로그인 필요</span>
     </div>
+    <div class="disclaimer">가상 포인트이며 실제 현금 가치가 없습니다. 실제 자산으로 출금·환전할 수 없습니다.</div>
   </div>
 
+  <div class="section-title">이번 라운드 · AI를 이길 수 있을까?</div>
+  <div class="picks-grid" id="picksGrid">
+    <div class="empty-state">불러오는 중...</div>
+  </div>
+
+  <div class="section-title">내 베팅 내역</div>
   <div class="card">
-    <div class="section-title">지난 라운드</div>
-    <div id="historyList"><div class="empty-state">아직 지난 라운드가 없습니다.</div></div>
+    <div id="historyList"><div class="empty-state">아직 베팅 내역이 없습니다.</div></div>
   </div>
 
+</div>
+
+<div class="modal-overlay" id="betOverlay" onclick="if(event.target===this)closeBetModal()">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeBetModal()">✕</button>
+    <div class="modal-title" id="betModalQuestion"></div>
+    <div class="modal-sub" id="betModalOutcome"></div>
+    <label style="font-size:12.5px;color:var(--text-muted);display:block;margin-bottom:6px">베팅 금액 (10~2,000)</label>
+    <input id="stakeInput" type="number" min="10" max="2000" step="10" value="100" oninput="updatePayoutPreview()">
+    <div id="payoutPreview">-</div>
+    <div id="placeError"></div>
+    <button class="btn-submit" id="submitBtn" onclick="submitPosition()">베팅하기</button>
+  </div>
 </div>
 
 <script type="module">
@@ -182,38 +164,18 @@
 </script>
 
 <script>
-let _selectedDirection = null;
-let _currentRoundId = null;
-let _hasOpenPosition = false;
+let _betCtx = null;
 
-function selectDirection(dir) {
-  if (_hasOpenPosition) return;
-  _selectedDirection = dir;
-  document.getElementById('btnUp').classList.toggle('selected', dir === 'up');
-  document.getElementById('btnDown').classList.toggle('selected', dir === 'down');
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = false;
-  btn.textContent = '베팅하기';
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function fmtRemaining(endAt) {
-  const ms = endAt - Date.now();
-  if (ms <= 0) return '정산 대기 중...';
-  const m = Math.floor(ms / 60000);
-  const s = Math.floor((ms % 60000) / 1000);
-  return `${m}분 ${s}초`;
-}
-
-let _countdownTimer = null;
-let _endAtMs = null;
-
-function startCountdown() {
-  if (_countdownTimer) clearInterval(_countdownTimer);
-  _countdownTimer = setInterval(() => {
-    const el = document.getElementById('countdown');
-    if (!_endAtMs) { el.textContent = '—'; return; }
-    el.textContent = fmtRemaining(_endAtMs);
-  }, 1000);
+function escAttrJson(obj) {
+  return JSON.stringify(obj)
+    .replace(/&/g, '&amp;')
+    .replace(/'/g, '&apos;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 async function loadBattleStatus() {
@@ -222,98 +184,114 @@ async function loadBattleStatus() {
   if (u) headers['Authorization'] = `Bearer ${await u.getIdToken()}`;
 
   try {
-    const r = await fetch('/api/bet', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ action: 'battleStatus' }),
-    });
+    const r = await fetch('/api/bet', { method: 'POST', headers, body: JSON.stringify({ action: 'battleStatus' }) });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || '조회 실패');
-    renderRound(data.round);
-    renderHistory(data.history);
+    _currentRoundId = data.roundId;
+    renderPicks(data.picks);
+    renderHistory(data.recentBets);
     renderBalance(data.battleBalance);
   } catch (e) {
-    document.getElementById('roundQuestion').textContent = '불러오기 실패: ' + (e.message || '');
+    document.getElementById('picksGrid').innerHTML = `<div class="empty-state">불러오기 실패: ${esc(e.message)}</div>`;
   }
 }
 
-function renderRound(round) {
-  if (!round) {
-    document.getElementById('roundQuestion').textContent = '곧 새 라운드가 시작됩니다...';
-    _currentRoundId = null;
-    _endAtMs = null;
-    document.getElementById('betForm').style.display = 'none';
+let _currentRoundId = null;
+
+function renderPicks(picks) {
+  const grid = document.getElementById('picksGrid');
+  if (!picks || !picks.length) {
+    grid.innerHTML = '<div class="empty-state">곧 새 라운드가 시작됩니다...</div>';
     return;
   }
-  _currentRoundId = round.id;
-  document.getElementById('betForm').style.display = 'block';
-  document.getElementById('roundQuestion').textContent = round.question;
-
-  const arrowEl = document.getElementById('aiArrow');
-  const labelEl = document.getElementById('aiLabel');
-  arrowEl.textContent = round.aiDirection === 'up' ? '📈' : '📉';
-  arrowEl.className = 'ai-direction ' + round.aiDirection;
-  labelEl.textContent = `AI 예측: ${round.aiDirection === 'up' ? '상승' : '하락'}`;
-  document.getElementById('aiStars').textContent = '★'.repeat(round.aiConfidence) + '☆'.repeat(3 - round.aiConfidence);
-
-  const endAtMs = typeof round.endAt === 'number' ? round.endAt : (round.endAt?._seconds ? round.endAt._seconds * 1000 : Date.now());
-  _endAtMs = endAtMs;
-  startCountdown();
-
-  const up = round.upPool || 0, down = round.downPool || 0;
-  const total = up + down || 1;
-  document.getElementById('poolUpBar').style.width = `${(up / total) * 100}%`;
-  document.getElementById('poolDownBar').style.width = `${(down / total) * 100}%`;
-  document.getElementById('poolUpVal').textContent = up.toLocaleString();
-  document.getElementById('poolDownVal').textContent = down.toLocaleString();
-
-  _hasOpenPosition = !!round.myPosition;
-  const wrap = document.getElementById('myPositionWrap');
-  const submitBtn = document.getElementById('submitBtn');
-  if (round.myPosition) {
-    wrap.style.display = 'block';
-    const badge = document.getElementById('myPositionBadge');
-    badge.className = 'position-badge ' + round.myPosition.direction;
-    badge.textContent = `내 포지션: ${round.myPosition.direction === 'up' ? '상승' : '하락'} · ${round.myPosition.stake.toLocaleString()}p`;
-    submitBtn.disabled = true;
-    submitBtn.textContent = '이번 라운드는 이미 참여했습니다';
-  } else {
-    wrap.style.display = 'none';
-    submitBtn.disabled = !_selectedDirection;
-    submitBtn.textContent = _selectedDirection ? '베팅하기' : '방향을 선택하세요';
-  }
+  grid.innerHTML = picks.map((p) => {
+    const pct = Math.round((p.entryPrice || 0) * 100);
+    const arrow = p.aiDirection === 'up' ? '📈' : '📉';
+    const stars = '★'.repeat(p.aiConfidence) + '☆'.repeat(3 - p.aiConfidence);
+    const disabled = p.myPosition ? 'disabled' : '';
+    const badge = p.myPosition
+      ? `<div class="my-position-badge ${p.myPosition.status === 'won' ? 'won' : p.myPosition.status === 'lost' ? 'lost' : 'open'}">
+           내 포지션: ${esc(p.myPosition.outcomeLabel)} · ${p.myPosition.stake.toLocaleString()}p
+         </div>`
+      : '';
+    return `
+      <div class="pick-card">
+        <div class="eyebrow">실시간 마켓</div>
+        <div class="question">${esc(p.question)}</div>
+        <div class="ai-row">
+          <span class="arrow ${p.aiDirection}">${arrow}</span>
+          <span>AI 예측: ${p.aiDirection === 'up' ? '상승' : '하락'}</span>
+          <span class="stars">${stars}</span>
+        </div>
+        <div class="outcome-row">
+          <button class="outcome-btn yes" ${disabled} onclick='openBetModal(${escAttrJson({ marketId: p.marketId, outcomeIndex: 0, label: p.outcomes[0], price: p.entryPrice, question: p.question })})'>
+            ${esc(p.outcomes[0])}<span class="pct">${pct}%</span>
+          </button>
+          <button class="outcome-btn no" ${disabled} onclick='openBetModal(${escAttrJson({ marketId: p.marketId, outcomeIndex: 1, label: p.outcomes[1], price: 1 - (p.entryPrice || 0), question: p.question })})'>
+            ${esc(p.outcomes[1])}<span class="pct">${100 - pct}%</span>
+          </button>
+        </div>
+        ${badge}
+      </div>
+    `;
+  }).join('');
 }
 
-function renderHistory(history) {
+function renderHistory(bets) {
   const el = document.getElementById('historyList');
-  if (!history || !history.length) {
-    el.innerHTML = '<div class="empty-state">아직 지난 라운드가 없습니다.</div>';
+  if (!bets || !bets.length) {
+    el.innerHTML = '<div class="empty-state">아직 베팅 내역이 없습니다.</div>';
     return;
   }
-  el.innerHTML = history.map(h => `
+  const tagClass = { open: 'tag-open', won: 'tag-won', lost: 'tag-lost', void: 'tag-void' };
+  const tagLabel = { open: '진행중', won: '적중', lost: '실패', void: '무효' };
+  el.innerHTML = bets.map((b) => `
     <div class="history-item">
-      <div class="history-q">${(h.question || '').replace(/</g, '&lt;')}</div>
+      <div class="history-q">${esc(b.marketQuestion)}</div>
       <div class="history-meta">
-        결과: ${h.actualDirection === 'up' ? '상승 📈' : h.actualDirection === 'down' ? '하락 📉' : '보합'}
-        · AI 예측 ${h.aiDirection === 'up' ? '상승' : '하락'}
-        <span class="${h.aiCorrect ? 'tag-ok' : 'tag-fail'}">${h.aiCorrect ? '적중' : '실패'}</span>
+        ${esc(b.outcomeLabel)} · ${b.stake.toLocaleString()}p 베팅
+        <span class="${tagClass[b.status] || ''}"> · ${tagLabel[b.status] || b.status}</span>
+        ${b.status !== 'open' ? ` · ${(b.payout || 0).toLocaleString()}p 정산` : ''}
       </div>
     </div>
   `).join('');
 }
 
 function renderBalance(balance) {
-  const el = document.getElementById('myBalance');
-  el.textContent = balance == null ? '로그인 필요' : `${balance.toLocaleString()} 포인트`;
+  document.getElementById('myBalance').textContent = balance == null ? '로그인 필요' : `${balance.toLocaleString()} 포인트`;
+}
+
+function openBetModal(ctx) {
+  const u = window._battleAuth && window._battleAuth.currentUser;
+  if (!u) { window.battleLogin(); return; }
+  _betCtx = ctx;
+  document.getElementById('betModalQuestion').textContent = ctx.question;
+  document.getElementById('betModalOutcome').textContent = `${ctx.label} · 현재가 ${Math.round(ctx.price * 100)}%`;
+  document.getElementById('stakeInput').value = 100;
+  document.getElementById('placeError').textContent = '';
+  updatePayoutPreview();
+  document.getElementById('betOverlay').classList.add('open');
+}
+
+function closeBetModal() {
+  document.getElementById('betOverlay').classList.remove('open');
+  _betCtx = null;
+}
+
+function updatePayoutPreview() {
+  const el = document.getElementById('payoutPreview');
+  if (!_betCtx || !(_betCtx.price > 0)) { el.textContent = '-'; return; }
+  const stake = Number(document.getElementById('stakeInput').value);
+  if (!(stake > 0)) { el.textContent = '-'; return; }
+  const payout = Math.round((stake / _betCtx.price) * 100) / 100;
+  el.textContent = `적중 시 ${payout.toLocaleString()} 포인트 획득 (스테이크 포함)`;
 }
 
 async function submitPosition() {
   const u = window._battleAuth && window._battleAuth.currentUser;
   const errEl = document.getElementById('placeError');
   errEl.textContent = '';
-
-  if (!u) { errEl.textContent = '로그인이 필요합니다.'; return; }
-  if (!_currentRoundId || !_selectedDirection) return;
+  if (!u || !_betCtx || !_currentRoundId) return;
 
   const stake = Number(document.getElementById('stakeInput').value);
   const btn = document.getElementById('submitBtn');
@@ -325,19 +303,21 @@ async function submitPosition() {
     const r = await fetch('/api/bet', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-      body: JSON.stringify({ action: 'battlePlace', roundId: _currentRoundId, direction: _selectedDirection, stake }),
+      body: JSON.stringify({ action: 'battlePlace', roundId: _currentRoundId, marketId: _betCtx.marketId, outcomeIndex: _betCtx.outcomeIndex, stake }),
     });
     const body = await r.json();
     if (!r.ok) throw new Error(body.error || '베팅 실패');
+    closeBetModal();
     await loadBattleStatus();
   } catch (e) {
     errEl.textContent = e.message || '베팅 실패';
+  } finally {
     btn.disabled = false;
     btn.textContent = '베팅하기';
   }
 }
 
-setInterval(loadBattleStatus, 20000);
+setInterval(loadBattleStatus, 30000);
 </script>
 
 </body>
