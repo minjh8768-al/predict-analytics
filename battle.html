@@ -183,7 +183,12 @@
     try { await signInWithPopup(auth, provider); }
     catch (e) { console.warn('로그인 실패:', e.message); }
   };
-  window.battleLogout = function() { signOut(auth); };
+  // 로그아웃하면 처음부터 새로 시작하도록 잔액/진행 세션을 리셋 —
+  // 로그아웃 후 토큰이 사라지기 전에 먼저 서버에 리셋 요청을 보내야 함.
+  window.battleLogout = async function() {
+    try { await apiCall('battleReset'); } catch (e) { console.warn('리셋 실패:', e.message); }
+    signOut(auth);
+  };
 
   onAuthStateChanged(auth, (u) => {
     document.getElementById('loginBtn').style.display = u ? 'none' : 'flex';

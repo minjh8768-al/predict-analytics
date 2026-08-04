@@ -387,3 +387,26 @@ export async function handleBattleNextRound(req, res, db, user) {
 
   res.json({ success: true });
 }
+
+// 로그아웃할 때 호출 — "로그아웃했다 오면 처음부터 새로 시작" 요청에 따라
+// 잔액을 시작값으로 되돌리고 진행 중이던 세션을 폐기한다.
+export async function handleBattleReset(req, res, db, user) {
+  const userRef = db.collection('users').doc(user.localId);
+  await userRef.set(
+    { battleBalance: BATTLE_STARTING_BALANCE, battleBalanceInitAt: FieldValue.serverTimestamp() },
+    { merge: true }
+  );
+
+  const activeSnap = await db
+    .collection('battleSessions')
+    .where('uid', '==', user.localId)
+    .where('status', '==', 'active')
+    .get();
+  if (!activeSnap.empty) {
+    const batch = db.batch();
+    activeSnap.docs.forEach((d) => batch.update(d.ref, { status: 'abandoned' }));
+    await batch.commit();
+  }
+
+  res.json({ success: true });
+}
