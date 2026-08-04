@@ -1,0 +1,17 @@
+name: Advance Battle Round
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  advance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call battle-advance endpoint
+        run: |
+          curl -sf -X POST https://predictanalytics-news.vercel.app/api/bet \
+            -H "Content-Type: application/json" \
+            -H "X-Cron-Secret: ${{ secrets.SETTLE_CRON_SECRET }}" \
+            -d '{"action":"battleAdvance"}'
