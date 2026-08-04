@@ -76,11 +76,12 @@ async function pickHistoricalMarkets(n) {
   return shuffled.slice(0, n);
 }
 
-// 예측(0|1)+확신도+한국어 번역을 한 번의 Groq 배치 호출로 받아온다 —
-// 35개를 개별 호출하면 너무 느리고 비효율적.
-async function generateAiPredictions(questions) {
+// 번역을 예측/분석과 같은 호출에 욱여넣었더니(4가지 지시를 한 번에) 모델이
+// questionKo를 그냥 영어 원문 그대로 베껴서 반환하는 경우가 실측으로 확인됨
+// (지시가 많으니 우선순위 낮은 걸 대충 처리하는 전형적 패턴). 번역은 별도
+// 호출로 분리하고 "원문 그대로 베끼면 안 된다"를 명시적으로 강조한다.
+async function translateQuestions(questions) {
   const key = process.env.GROQ_API_KEY;
-  const fallback = questions.map((q) => ({ outcome: 0, confidence: 1, questionKo: q, analysis: '' }));
   try {
     const list = questions.map((q, i) => `${i + 1}. ${q}`).join('\n');
     const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -91,21 +92,61 @@ async function generateAiPredictions(questions) {
         messages: [
           {
             role: 'user',
-            content: `너는 예측시장 전문 애널리스트 겸 번역가야. 아래 ${questions.length}개 예측시장 질문
-각각에 대해 다음 네 가지를 해줘:
+            content: `아래 ${questions.length}개 영어 예측시장 질문을 자연스러운 한국어로 번역해줘.
+반드시 실제 한글 문장으로 번역해야 하고, 영어 원문을 그대로 복사하면 절대 안 돼.
+고유명사(인명·팀명·지명 등)는 한국에서 흔히 쓰는 표기를 쓰고, 나머지는 완전한 한국어 문장으로 써.
+
+${list}
+
+반드시 아래 JSON 형식으로만, 목록 순서 그대로 ${questions.length}개를 답해:
+{"translations":["번역문1","번역문2", ...]}`,
+          },
+        ],
+        max_tokens: 4000,
+        temperature: 0.3,
+        response_format: { type: 'json_object' },
+      }),
+    });
+    const data = await r.json();
+    const text = data.choices?.[0]?.message?.content;
+    const parsed = JSON.parse(text);
+    const translations = Array.isArray(parsed.translations) ? parsed.translations : [];
+    return questions.map((q, i) => {
+      const t = translations[i];
+      return (typeof t === 'string' && t.trim() && t.trim() !== q.trim()) ? t.trim() : q;
+    });
+  } catch (e) {
+    return questions;
+  }
+}
+
+async function generateAiPredictions(questions) {
+  const key = process.env.GROQ_API_KEY;
+  const fallback = questions.map(() => ({ outcome: 0, confidence: 1, analysis: '' }));
+  try {
+    const list = questions.map((q, i) => `${i + 1}. ${q}`).join('\n');
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          {
+            role: 'user',
+            content: `너는 예측시장 전문 애널리스트야. 아래 ${questions.length}개 예측시장 질문
+각각에 대해 다음 세 가지를 해줘:
 1. 실제로 결과가 어떻게 됐을지 추측 — 각 질문의 첫 번째 선택지가 맞으면 0, 두 번째 선택지가 맞으면 1
 2. 확신도 1~3(3이 가장 확신)
-3. 질문을 자연스러운 한국어로 번역(questionKo)
-4. 왜 그렇게 예측했는지 한국어로 한 문장 근거(analysis) — 당시 여론조사·시장 심리·해당 분야 상식 등을
+3. 왜 그렇게 예측했는지 한국어로 한 문장 근거(analysis) — 당시 여론조사·시장 심리·해당 분야 상식 등을
    근거로 짧고 구체적으로(예: "임기 중 지지율이 높았고 야당 지지세가 분산되어 있었습니다")
 
 ${list}
 
 반드시 아래 JSON 형식으로만, 목록 순서 그대로 ${questions.length}개를 답해:
-{"predictions":[{"outcome":0|1,"confidence":1|2|3,"questionKo":"...","analysis":"..."}, ...]}`,
+{"predictions":[{"outcome":0|1,"confidence":1|2|3,"analysis":"..."}, ...]}`,
           },
         ],
-        max_tokens: 6000,
+        max_tokens: 5000,
         temperature: 0.5,
         response_format: { type: 'json_object' },
       }),
@@ -118,9 +159,8 @@ ${list}
       const p = preds[i];
       const outcome = p && Number(p.outcome) === 1 ? 1 : 0;
       const confidence = p && [1, 2, 3].includes(Number(p.confidence)) ? Number(p.confidence) : 1;
-      const questionKo = (p && typeof p.questionKo === 'string' && p.questionKo.trim()) || q;
       const analysis = (p && typeof p.analysis === 'string' && p.analysis.trim()) || '';
-      return { outcome, confidence, questionKo, analysis };
+      return { outcome, confidence, analysis };
     });
   } catch (e) {
     return fallback;
@@ -141,7 +181,10 @@ async function createNewSession(db, uid) {
 
   const markets = await pickHistoricalMarkets(BATTLE_TOTAL_PICKS);
   const questions = markets.map((m) => m.question || '');
-  const predictions = await generateAiPredictions(questions);
+  const [predictions, questionsKo] = await Promise.all([
+    generateAiPredictions(questions),
+    translateQuestions(questions),
+  ]);
 
   const allPicks = markets.map((m, i) => {
     const outcomes = parseJsonArray(m.outcomes);
@@ -151,7 +194,7 @@ async function createNewSession(db, uid) {
       marketId: String(m.id),
       conditionId: String(m.conditionId || ''),
       question: m.question || '',
-      questionKo: predictions[i].questionKo,
+      questionKo: questionsKo[i],
       outcomes: [outcomes[0] || 'Yes', outcomes[1] || 'No'],
       fakeEntryPrice: Math.round((FAKE_PRICE_MIN + Math.random() * (FAKE_PRICE_MAX - FAKE_PRICE_MIN)) * 1000) / 1000,
       actualOutcomeIndex: actualOutcomeIndex === -1 ? 0 : actualOutcomeIndex,
