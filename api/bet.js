@@ -1,7 +1,7 @@
 import { verifyToken } from './_auth.js';
 import { getAdminDb } from './_firebaseAdmin.js';
 import { FieldValue } from 'firebase-admin/firestore';
-import { handleBattleStatus, handleBattlePlace, handleBattleAdvance } from './_battle.js';
+import { handleBattleStatus, handleBattleStartSession, handleBattlePlace, handleBattleSkipRound } from './_battle.js';
 
 // 모의투자(가상 시드머니 예측 베팅) — place/myBets/settle을 action 파라미터로 합침.
 // Vercel Hobby 플랜 서버리스 함수 12개 제한 때문에 (admin-boss.js와 같은 이유,
@@ -191,16 +191,8 @@ export default async function handler(req, res) {
 
     if (action === 'settle') return await handleSettle(req, res, db);
 
-    if (action === 'battleAdvance') {
-      const secret = req.headers['x-cron-secret'];
-      if (!CRON_SECRET || secret !== CRON_SECRET) {
-        return res.status(403).json({ error: 'Forbidden' });
-      }
-      return await handleBattleAdvance(req, res, db);
-    }
-
-    // battleStatus는 로그인 없이도 조회 가능(비회원도 라운드/AI 예측을 볼 수 있어야 함) —
-    // 토큰이 있으면 verifyToken을 시도해 내 잔액/포지션도 같이 얹어주지만, 없거나
+    // battleStatus는 로그인 없이도 조회 가능(비회원도 예측배틀을 구경할 수 있어야 함) —
+    // 토큰이 있으면 verifyToken을 시도해 내 세션/잔액도 같이 얹어주지만, 없거나
     // 실패해도 401로 막지 않고 그냥 공개 정보만 반환한다 (handleBattleStatus 내부에서 처리).
     if (action === 'battleStatus') return await handleBattleStatus(req, res, db);
 
@@ -209,7 +201,9 @@ export default async function handler(req, res) {
 
     if (action === 'place') return await handlePlace(req, res, db, user);
     if (action === 'myBets') return await handleMyBets(req, res, db, user);
+    if (action === 'battleStartSession') return await handleBattleStartSession(req, res, db, user);
     if (action === 'battlePlace') return await handleBattlePlace(req, res, db, user);
+    if (action === 'battleSkipRound') return await handleBattleSkipRound(req, res, db, user);
 
     return res.status(400).json({ error: '잘못된 요청입니다.' });
   } catch (e) {

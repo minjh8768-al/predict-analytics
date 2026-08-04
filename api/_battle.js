@@ -1,31 +1,23 @@
 import { verifyToken } from './_auth.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
-// 예측배틀(라운드제 모의투자) — 기존 api/bet.js의 개별 마켓 연속 베팅과는
+// 예측배틀(턴제 과거마켓 데모) — 기존 api/bet.js의 개별 마켓 연속 베팅과는
 // 완전히 별개의 경제(battleBalance)/데이터 모델. Vercel Hobby 12개 함수 제한이
 // 이미 꽉 차서(bet.js가 12/12) 이 파일은 라우트가 아닌 헬퍼로만 존재 — `_`
 // 접두사라 함수 개수에 안 잡히고, api/bet.js가 import해서 씀.
 //
-// v2: "라운드"는 더 이상 자체 정산 단위가 아니다 — 주기적으로 새로
-// 큐레이션되는 5개 마켓 메뉴일 뿐이고, 베팅 하나하나는 그 마켓이 실제로
-// resolve될 때 각자 따로 정산된다(며칠~몇 주 걸릴 수 있음). 그래서
-// battlePositions 스키마와 정산 로직은 기존 api/bet.js의 virtualBets/
-// handleSettle을 그대로 복제한 것 — 이미 검증된 코드라 재사용.
+// v4: 이미 resolve된 실제 마켓 중 7개를 무작위로 뽑아 한 세션을 구성, 유저가
+// "다음 라운드"를 누르며 예/아니요를 찍으면 결과가 이미 정해져 있으므로 즉시
+// 정산한다(크론/비동기 정산 불필요). 단, CLOB은 resolve된 마켓의 가격
+// 히스토리를 전혀 안 돌려주는 걸 실측 확인했기 때문에(역대 최대 거래량
+// 마켓으로도 0개), "그 당시 확률"은 복구 불가 — 그래서 확률은 합성(가짜)해서
+// 확률/배당 UI만 유지한다.
 
-export const BATTLE_ROUND_REFRESH_MS = 6 * 60 * 60 * 1000; // 6시간마다 5개 메뉴 새로고침
-export const BATTLE_PICKS_PER_ROUND = 5;
-export const BATTLE_AVOID_REPEAT_ROUNDS = 5;
+export const BATTLE_SESSION_LENGTH = 7;
+export const BATTLE_CANDIDATE_POOL_SIZE = 150;
 export const BATTLE_STARTING_BALANCE = 10000;
 export const BATTLE_MIN_STAKE = 10;
 export const BATTLE_MAX_STAKE = 2000;
-
-async function fetchMarketById(marketId) {
-  const r = await fetch(`https://gamma-api.polymarket.com/markets/${marketId}`, {
-    headers: { Accept: 'application/json' },
-  });
-  if (!r.ok) return null;
-  return r.json();
-}
 
 function parseJsonArray(raw) {
   try {
@@ -48,48 +40,32 @@ async function ensureBattleBalance(db, uid) {
   return { ref, balance: BATTLE_STARTING_BALANCE };
 }
 
-async function pickMarkets(db, n) {
-  const recentSnap = await db
-    .collection('battleRounds')
-    .orderBy('createdAt', 'desc')
-    .limit(BATTLE_AVOID_REPEAT_ROUNDS)
-    .get();
-  const recentMarketIds = new Set();
-  recentSnap.docs.forEach((d) => {
-    const picks = d.data().picks || [];
-    picks.forEach((p) => recentMarketIds.add(String(p.marketId)));
-  });
-
+async function pickHistoricalMarkets(n) {
   const r = await fetch(
-    'https://gamma-api.polymarket.com/markets?active=true&limit=60&order=volume&ascending=false',
+    `https://gamma-api.polymarket.com/markets?closed=true&limit=${BATTLE_CANDIDATE_POOL_SIZE}&order=volumeNum&ascending=false`,
     { headers: { Accept: 'application/json' } }
   );
-  if (!r.ok) throw new Error('마켓 목록을 불러올 수 없습니다.');
+  if (!r.ok) throw new Error('과거 마켓 목록을 불러올 수 없습니다.');
   const markets = await r.json();
-  if (!Array.isArray(markets) || !markets.length) throw new Error('마켓 목록이 비어있습니다.');
+  if (!Array.isArray(markets) || !markets.length) throw new Error('과거 마켓 목록이 비어있습니다.');
 
-  const strict = markets.filter((m) => {
-    if (recentMarketIds.has(String(m.id))) return false;
-    const p = parseJsonArray(m.outcomePrices).map(Number)[0];
-    return p > 0.02 && p < 0.98;
+  const eligible = markets.filter((m) => {
+    const outcomes = parseJsonArray(m.outcomes);
+    if (outcomes.length !== 2) return false;
+    const prices = parseJsonArray(m.outcomePrices).map(Number);
+    return prices.findIndex((p) => p >= 0.99) !== -1;
   });
 
-  const picks = [];
-  const usedIds = new Set();
-  for (const m of [...strict, ...markets]) {
-    if (picks.length >= n) break;
-    if (usedIds.has(m.id)) continue;
-    usedIds.add(m.id);
-    picks.push(m);
-  }
-  return picks.slice(0, n);
+  const pool = eligible.length >= n ? eligible : markets;
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
 }
 
-async function generateAiPredictions(markets) {
+async function generateAiPredictions(questions) {
   const key = process.env.GROQ_API_KEY;
-  const fallback = markets.map(() => ({ direction: 'up', confidence: 1 }));
+  const fallback = questions.map(() => ({ outcome: 0, confidence: 1 }));
   try {
-    const list = markets.map((m, i) => `${i + 1}. ${m.question}`).join('\n');
+    const list = questions.map((q, i) => `${i + 1}. ${q}`).join('\n');
     const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
@@ -98,13 +74,14 @@ async function generateAiPredictions(markets) {
         messages: [
           {
             role: 'user',
-            content: `너는 예측시장 전문 애널리스트야. 아래 ${markets.length}개 마켓 각각에 대해
-확률이 앞으로 상승(up)할지 하락(down)할지 예측하고, 확신도를 1~3(3이 가장 확신)로 매겨줘.
+            content: `너는 예측시장 전문 애널리스트야. 아래 ${questions.length}개 예측시장 질문 각각에 대해
+실제로 결과가 어떻게 됐을지 추측해줘 — 각 질문의 첫 번째 선택지가 맞을지(0), 두 번째 선택지가
+맞을지(1) 예측하고, 확신도를 1~3(3이 가장 확신)으로 매겨줘.
 
 ${list}
 
-반드시 아래 JSON 형식으로만, 목록 순서 그대로 ${markets.length}개를 답해:
-{"predictions":[{"direction":"up"|"down","confidence":1|2|3}, ...]}`,
+반드시 아래 JSON 형식으로만, 목록 순서 그대로 ${questions.length}개를 답해:
+{"predictions":[{"outcome":0|1,"confidence":1|2|3}, ...]}`,
           },
         ],
         max_tokens: 400,
@@ -116,234 +93,164 @@ ${list}
     const text = data.choices?.[0]?.message?.content;
     const parsed = JSON.parse(text);
     const preds = Array.isArray(parsed.predictions) ? parsed.predictions : [];
-    return markets.map((_, i) => {
+    return questions.map((_, i) => {
       const p = preds[i];
-      const direction = p && p.direction === 'down' ? 'down' : 'up';
+      const outcome = p && Number(p.outcome) === 1 ? 1 : 0;
       const confidence = p && [1, 2, 3].includes(Number(p.confidence)) ? Number(p.confidence) : 1;
-      return { direction, confidence };
+      return { outcome, confidence };
     });
   } catch (e) {
     return fallback;
   }
 }
 
-export async function createNextRound(db) {
-  const markets = await pickMarkets(db, BATTLE_PICKS_PER_ROUND);
-  const predictions = await generateAiPredictions(markets);
+async function createNewSession(db, uid) {
+  const activeSnap = await db
+    .collection('battleSessions')
+    .where('uid', '==', uid)
+    .where('status', '==', 'active')
+    .get();
+  const batch = db.batch();
+  activeSnap.docs.forEach((d) => batch.update(d.ref, { status: 'abandoned' }));
+  if (!activeSnap.empty) await batch.commit();
+
+  const markets = await pickHistoricalMarkets(BATTLE_SESSION_LENGTH);
+  const questions = markets.map((m) => m.question || '');
+  const predictions = await generateAiPredictions(questions);
 
   const picks = markets.map((m, i) => {
     const outcomes = parseJsonArray(m.outcomes);
     const prices = parseJsonArray(m.outcomePrices).map(Number);
+    const actualOutcomeIndex = prices.findIndex((p) => p >= 0.99);
     return {
       marketId: String(m.id),
       conditionId: String(m.conditionId || ''),
       question: m.question || '',
       outcomes: [outcomes[0] || 'Yes', outcomes[1] || 'No'],
-      entryPrice: prices[0] ?? 0.5,
-      aiDirection: predictions[i].direction,
+      fakeEntryPrice: Math.round((0.25 + Math.random() * 0.5) * 1000) / 1000,
+      actualOutcomeIndex: actualOutcomeIndex === -1 ? 0 : actualOutcomeIndex,
+      aiPrediction: predictions[i].outcome,
       aiConfidence: predictions[i].confidence,
     };
   });
 
-  const roundRef = db.collection('battleRounds').doc();
-  await roundRef.set({ picks, createdAt: FieldValue.serverTimestamp() });
-  return { id: roundRef.id, picks, createdAt: Date.now() };
-}
-
-async function getCurrentRound(db) {
-  const snap = await db.collection('battleRounds').orderBy('createdAt', 'desc').limit(1).get();
-  if (!snap.empty) {
-    const doc = snap.docs[0];
-    const data = doc.data();
-    const createdAtMs = data.createdAt?.toMillis?.() ?? 0;
-    if (Array.isArray(data.picks) && Date.now() - createdAtMs < BATTLE_ROUND_REFRESH_MS) {
-      return { id: doc.id, picks: data.picks, createdAt: createdAtMs };
-    }
-  }
-  return await createNextRound(db);
-}
-
-// shipped api/bet.js의 handleSettle과 동일한 로직 — 컬렉션/잔액 필드명만 battle용으로 교체.
-export async function settleOpenBattlePositions(db) {
-  const openSnap = await db.collection('battlePositions').where('status', '==', 'open').get();
-  if (openSnap.empty) return 0;
-
-  const byMarket = new Map();
-  openSnap.docs.forEach((d) => {
-    const data = d.data();
-    if (!byMarket.has(data.marketId)) byMarket.set(data.marketId, []);
-    byMarket.get(data.marketId).push({ id: d.id, ...data });
+  const results = new Array(BATTLE_SESSION_LENGTH).fill(null);
+  const sessionRef = db.collection('battleSessions').doc();
+  await sessionRef.set({
+    uid,
+    status: 'active',
+    picks,
+    results,
+    currentRound: 0,
+    createdAt: FieldValue.serverTimestamp(),
   });
-
-  let settledCount = 0;
-  for (const [marketId, positions] of byMarket) {
-    const market = await fetchMarketById(marketId);
-    if (!market) continue;
-    if (!(market.closed && market.umaResolutionStatus === 'resolved')) continue;
-
-    const outcomePrices = parseJsonArray(market.outcomePrices).map(Number);
-    const winningIndex = outcomePrices.findIndex((p) => p >= 0.99);
-
-    for (const pos of positions) {
-      const posRef = db.collection('battlePositions').doc(pos.id);
-      const userRef = db.collection('users').doc(pos.uid);
-
-      const isVoid = winningIndex === -1;
-      const won = !isVoid && pos.outcomeIndex === winningIndex;
-      const payout = isVoid ? pos.stake : won ? pos.potentialPayout : 0;
-
-      await db.runTransaction(async (tx) => {
-        tx.update(posRef, {
-          status: isVoid ? 'void' : won ? 'won' : 'lost',
-          settledAt: FieldValue.serverTimestamp(),
-          settlePrice: outcomePrices[pos.outcomeIndex] ?? null,
-          payout,
-        });
-        if (payout > 0) {
-          tx.set(userRef, { battleBalance: FieldValue.increment(payout) }, { merge: true });
-        }
-      });
-      settledCount++;
-    }
-  }
-  return settledCount;
+  return { id: sessionRef.id, uid, status: 'active', picks, results, currentRound: 0 };
 }
 
-export async function handleBattleAdvance(req, res, db) {
-  await getCurrentRound(db);
-  const settledCount = await settleOpenBattlePositions(db);
-  res.json({ success: true, settledCount });
+function publicSessionView(session) {
+  const revealedResults = session.results.slice(0, session.currentRound);
+  const currentPick = session.currentRound < BATTLE_SESSION_LENGTH ? session.picks[session.currentRound] : null;
+  return {
+    id: session.id,
+    status: session.status,
+    currentRound: session.currentRound,
+    totalRounds: BATTLE_SESSION_LENGTH,
+    results: revealedResults,
+    currentPick: currentPick
+      ? {
+          question: currentPick.question,
+          outcomes: currentPick.outcomes,
+          fakeEntryPrice: currentPick.fakeEntryPrice,
+          aiPrediction: currentPick.aiPrediction,
+          aiConfidence: currentPick.aiConfidence,
+        }
+      : null,
+  };
+}
+
+async function getActiveSession(db, uid) {
+  const snap = await db
+    .collection('battleSessions')
+    .where('uid', '==', uid)
+    .where('status', '==', 'active')
+    .orderBy('createdAt', 'desc')
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  return { id: snap.docs[0].id, ...snap.docs[0].data() };
 }
 
 export async function handleBattleStatus(req, res, db) {
-  const round = await getCurrentRound(db);
-
   let user = null;
   try { user = await verifyToken(req); } catch { user = null; }
 
-  let myPositionsByMarket = {};
-  if (user) {
-    const marketIds = round.picks.map((p) => p.marketId);
-    const posSnap = await db
-      .collection('battlePositions')
-      .where('uid', '==', user.localId)
-      .where('status', '==', 'open')
-      .get();
-    posSnap.docs.forEach((d) => {
-      const p = d.data();
-      if (marketIds.includes(p.marketId)) myPositionsByMarket[p.marketId] = { id: d.id, ...p };
-    });
+  if (!user) {
+    return res.json({ success: true, session: null, battleBalance: null });
   }
 
-  const picks = round.picks.map((p) => ({ ...p, myPosition: myPositionsByMarket[p.marketId] || null }));
+  const { balance } = await ensureBattleBalance(db, user.localId);
+  const session = await getActiveSession(db, user.localId);
+  res.json({ success: true, session: session ? publicSessionView(session) : null, battleBalance: balance });
+}
 
-  let openPositions = [];
-  let settledPositions = [];
-  let battleBalance = null;
-  if (user) {
-    const { balance } = await ensureBattleBalance(db, user.localId);
-    battleBalance = balance;
-    const betsSnap = await db
-      .collection('battlePositions')
-      .where('uid', '==', user.localId)
-      .orderBy('createdAt', 'desc')
-      .limit(20)
-      .get();
-    const allBets = betsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const roundEntryByMarket = new Map(round.picks.map((p) => [p.marketId, p.entryPrice]));
-
-    const openBets = allBets.filter((b) => b.status === 'open');
-    settledPositions = allBets.filter((b) => b.status !== 'open').slice(0, 10);
-
-    openPositions = await Promise.all(
-      openBets.map(async (b) => {
-        let currentPrice = roundEntryByMarket.get(b.marketId);
-        if (currentPrice == null) {
-          const market = await fetchMarketById(b.marketId);
-          const prices = market ? parseJsonArray(market.outcomePrices).map(Number) : [];
-          currentPrice = prices[b.outcomeIndex] ?? b.entryPrice;
-        } else if (b.outcomeIndex === 1) {
-          currentPrice = 1 - currentPrice;
-        }
-        return { ...b, currentPrice };
-      })
-    );
-  }
-
-  res.json({ success: true, roundId: round.id, picks, openPositions, settledPositions, battleBalance });
+export async function handleBattleStartSession(req, res, db, user) {
+  const session = await createNewSession(db, user.localId);
+  const { balance } = await ensureBattleBalance(db, user.localId);
+  res.json({ success: true, session: publicSessionView(session), battleBalance: balance });
 }
 
 export async function handleBattlePlace(req, res, db, user) {
-  const { roundId, marketId, outcomeIndex, stake } = req.body || {};
+  const { sessionId, outcomeIndex, stake } = req.body || {};
   const stakeNum = Number(stake);
 
-  if (!roundId || !marketId || (outcomeIndex !== 0 && outcomeIndex !== 1)) {
+  if (!sessionId || (outcomeIndex !== 0 && outcomeIndex !== 1)) {
     return res.status(400).json({ error: '잘못된 요청입니다.' });
   }
   if (!(stakeNum >= BATTLE_MIN_STAKE && stakeNum <= BATTLE_MAX_STAKE)) {
     return res.status(400).json({ error: `베팅 금액은 ${BATTLE_MIN_STAKE}~${BATTLE_MAX_STAKE} 포인트 사이여야 합니다.` });
   }
 
-  const roundSnap = await db.collection('battleRounds').doc(roundId).get();
-  if (!roundSnap.exists) return res.status(409).json({ error: '라운드를 찾을 수 없습니다.' });
-  const picks = roundSnap.data().picks || [];
-  if (!picks.some((p) => p.marketId === String(marketId))) {
-    return res.status(409).json({ error: '현재 라운드에 없는 마켓입니다.' });
+  const sessionRef = db.collection('battleSessions').doc(sessionId);
+  const sessionSnap = await sessionRef.get();
+  if (!sessionSnap.exists) return res.status(404).json({ error: '세션을 찾을 수 없습니다.' });
+  const session = sessionSnap.data();
+  if (session.uid !== user.localId || session.status !== 'active') {
+    return res.status(409).json({ error: '진행 중인 게임이 아닙니다.' });
+  }
+  const roundIdx = session.currentRound;
+  if (roundIdx >= BATTLE_SESSION_LENGTH || session.results[roundIdx]) {
+    return res.status(409).json({ error: '이미 진행된 라운드입니다.' });
   }
 
-  const market = await fetchMarketById(marketId);
-  if (!market) return res.status(404).json({ error: '마켓 정보를 불러올 수 없습니다.' });
-  if (market.active === false || market.closed) {
-    return res.status(409).json({ error: '이미 종료된 마켓입니다.' });
-  }
-
-  const outcomePrices = parseJsonArray(market.outcomePrices).map(Number);
-  const entryPrice = outcomePrices[outcomeIndex];
-  if (!(entryPrice > 0 && entryPrice <= 1)) {
-    return res.status(409).json({ error: '가격 정보를 확인할 수 없습니다.' });
-  }
-  const outcomes = parseJsonArray(market.outcomes);
-  const outcomeLabel = outcomes[outcomeIndex] || (outcomeIndex === 0 ? 'Yes' : 'No');
-
-  const existingSnap = await db
-    .collection('battlePositions')
-    .where('uid', '==', user.localId)
-    .where('marketId', '==', String(marketId))
-    .where('status', '==', 'open')
-    .get();
-  if (!existingSnap.empty) {
-    return res.status(409).json({ error: '이 마켓에는 이미 베팅했습니다.' });
-  }
+  const pick = session.picks[roundIdx];
+  const price = outcomeIndex === 0 ? pick.fakeEntryPrice : 1 - pick.fakeEntryPrice;
+  const correct = outcomeIndex === pick.actualOutcomeIndex;
+  const payout = correct ? Math.round((stakeNum / price) * 100) / 100 : 0;
 
   const { ref: userRef } = await ensureBattleBalance(db, user.localId);
-  const posRef = db.collection('battlePositions').doc();
+  let newBalance;
 
   try {
-    await db.runTransaction(async (tx) => {
+    newBalance = await db.runTransaction(async (tx) => {
       const freshSnap = await tx.get(userRef);
       const freshBalance = freshSnap.exists
         ? (freshSnap.data().battleBalance ?? BATTLE_STARTING_BALANCE)
         : BATTLE_STARTING_BALANCE;
       if (freshBalance < stakeNum) throw new Error('INSUFFICIENT_BALANCE');
 
-      tx.set(userRef, { battleBalance: FieldValue.increment(-stakeNum) }, { merge: true });
-      tx.set(posRef, {
-        uid: user.localId,
-        roundId,
-        marketId: String(marketId),
-        conditionId: String(market.conditionId || ''),
-        marketQuestion: market.question || '',
-        outcomeIndex,
-        outcomeLabel,
-        entryPrice,
-        stake: stakeNum,
-        potentialPayout: Math.round((stakeNum / entryPrice) * 100) / 100,
-        status: 'open',
-        createdAt: FieldValue.serverTimestamp(),
-        settledAt: null,
-        settlePrice: null,
-        payout: null,
+      const net = payout - stakeNum;
+      tx.set(userRef, { battleBalance: FieldValue.increment(net) }, { merge: true });
+
+      const results = [...session.results];
+      results[roundIdx] = { outcomeIndex, stake: stakeNum, correct, payout, skipped: false };
+      const nextRound = roundIdx + 1;
+      tx.update(sessionRef, {
+        results,
+        currentRound: nextRound,
+        status: nextRound >= BATTLE_SESSION_LENGTH ? 'done' : 'active',
       });
+
+      return freshBalance + net;
     });
   } catch (e) {
     if (e.message === 'INSUFFICIENT_BALANCE') {
@@ -352,6 +259,40 @@ export async function handleBattlePlace(req, res, db, user) {
     throw e;
   }
 
-  const freshUser = await userRef.get();
-  res.json({ success: true, positionId: posRef.id, entryPrice, newBalance: freshUser.data().battleBalance });
+  res.json({
+    success: true,
+    correct,
+    actualOutcomeIndex: pick.actualOutcomeIndex,
+    outcomeLabel: pick.outcomes[pick.actualOutcomeIndex],
+    payout,
+    battleBalance: newBalance,
+  });
+}
+
+export async function handleBattleSkipRound(req, res, db, user) {
+  const { sessionId } = req.body || {};
+  if (!sessionId) return res.status(400).json({ error: '잘못된 요청입니다.' });
+
+  const sessionRef = db.collection('battleSessions').doc(sessionId);
+  const sessionSnap = await sessionRef.get();
+  if (!sessionSnap.exists) return res.status(404).json({ error: '세션을 찾을 수 없습니다.' });
+  const session = sessionSnap.data();
+  if (session.uid !== user.localId || session.status !== 'active') {
+    return res.status(409).json({ error: '진행 중인 게임이 아닙니다.' });
+  }
+  const roundIdx = session.currentRound;
+  if (roundIdx >= BATTLE_SESSION_LENGTH || session.results[roundIdx]) {
+    return res.status(409).json({ error: '이미 진행된 라운드입니다.' });
+  }
+
+  const results = [...session.results];
+  results[roundIdx] = { skipped: true };
+  const nextRound = roundIdx + 1;
+  await sessionRef.update({
+    results,
+    currentRound: nextRound,
+    status: nextRound >= BATTLE_SESSION_LENGTH ? 'done' : 'active',
+  });
+
+  res.json({ success: true });
 }
