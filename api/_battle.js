@@ -237,7 +237,8 @@ export async function handleBattleStatus(req, res, db) {
 
   const picks = round.picks.map((p) => ({ ...p, myPosition: myPositionsByMarket[p.marketId] || null }));
 
-  let recentBets = [];
+  let openPositions = [];
+  let settledPositions = [];
   let battleBalance = null;
   if (user) {
     const { balance } = await ensureBattleBalance(db, user.localId);
@@ -246,12 +247,30 @@ export async function handleBattleStatus(req, res, db) {
       .collection('battlePositions')
       .where('uid', '==', user.localId)
       .orderBy('createdAt', 'desc')
-      .limit(10)
+      .limit(20)
       .get();
-    recentBets = betsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const allBets = betsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const roundEntryByMarket = new Map(round.picks.map((p) => [p.marketId, p.entryPrice]));
+
+    const openBets = allBets.filter((b) => b.status === 'open');
+    settledPositions = allBets.filter((b) => b.status !== 'open').slice(0, 10);
+
+    openPositions = await Promise.all(
+      openBets.map(async (b) => {
+        let currentPrice = roundEntryByMarket.get(b.marketId);
+        if (currentPrice == null) {
+          const market = await fetchMarketById(b.marketId);
+          const prices = market ? parseJsonArray(market.outcomePrices).map(Number) : [];
+          currentPrice = prices[b.outcomeIndex] ?? b.entryPrice;
+        } else if (b.outcomeIndex === 1) {
+          currentPrice = 1 - currentPrice;
+        }
+        return { ...b, currentPrice };
+      })
+    );
   }
 
-  res.json({ success: true, roundId: round.id, picks, recentBets, battleBalance });
+  res.json({ success: true, roundId: round.id, picks, openPositions, settledPositions, battleBalance });
 }
 
 export async function handleBattlePlace(req, res, db, user) {
