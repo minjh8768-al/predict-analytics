@@ -121,8 +121,8 @@
   <div>
     <div class="card">
       <div class="card-title">내 계좌</div>
-      <div class="stat-row"><span>시드머니</span><span class="val">10,000p</span></div>
-      <div class="stat-row"><span>보유 포인트</span><span class="val" style="color:var(--purple)" id="statBalance">-</span></div>
+      <div class="stat-row"><span>시드머니</span><span class="val">10,000 SIGNAL</span></div>
+      <div class="stat-row"><span>보유 SIGNAL</span><span class="val" style="color:var(--purple)" id="statBalance">-</span></div>
     </div>
     <div class="card">
       <div class="card-title">진행 현황 (<span id="progressLabel">0/7</span>)</div>
@@ -229,7 +229,7 @@ async function loadBattleStatus() {
 }
 
 function renderBalance(balance) {
-  document.getElementById('statBalance').textContent = balance == null ? '로그인 필요' : `${balance.toLocaleString()}p`;
+  document.getElementById('statBalance').textContent = balance == null ? '로그인 필요' : `${balance.toLocaleString()} SIGNAL`;
 }
 
 async function startNewSession() {
@@ -303,7 +303,7 @@ function renderCenter() {
     <div class="round-label">라운드 ${_session.currentRound + 1} / ${_session.totalRounds}</div>
     <div class="picks-grid" id="picksGrid"></div>
     <div class="next-round-bar"><button class="btn-primary-lg" onclick="goNextRound()">다음 라운드</button></div>
-    <div class="disclaimer">가상 포인트이며 실제 현금 가치가 없습니다. 실제 자산으로 출금·환전할 수 없습니다. 확률은 실제 당시 시세를 복원할 수 없어 임의로 생성한 값입니다.</div>
+    <div class="disclaimer">예측배틀 전용 가상 SIGNAL이며 실제 $SIGNAL 지갑·현금 가치와는 무관한 별개의 게임 포인트입니다. 실제 자산으로 출금·환전할 수 없습니다. 확률은 실제 당시 시세를 복원할 수 없어 임의로 생성한 값입니다.</div>
   `;
   const grid = document.getElementById('picksGrid');
   grid.innerHTML = picks.map((p, i) => renderPickCard(p, i, results[i])).join('');
@@ -326,7 +326,7 @@ function renderPickCard(p, i, result) {
         <div class="pick-q-en">${esc(p.question)}</div>
         <div class="pick-reveal">
           <div class="pick-reveal-tag ${result.correct ? 'correct' : 'wrong'}">${result.correct ? '🎉 적중' : '😢 실패'}</div>
-          <div class="pick-reveal-detail">${result.correct ? `+${result.payout.toLocaleString()}p` : `-${result.stake.toLocaleString()}p`}</div>
+          <div class="pick-reveal-detail">${result.correct ? `+${result.payout.toLocaleString()} SIGNAL` : `-${result.stake.toLocaleString()} SIGNAL`}</div>
         </div>
       </div>`;
   }
@@ -408,7 +408,7 @@ function renderEndScreen() {
       <h2>게임 종료!</h2>
       <div class="end-stats">
         <div class="end-stat"><div class="num">${correctCount}/${allResults.length}</div><div class="label">적중</div></div>
-        <div class="end-stat"><div class="num" style="color:${totalPnl >= 0 ? 'var(--green)' : 'var(--red)'}">${totalPnl >= 0 ? '+' : ''}${Math.round(totalPnl).toLocaleString()}p</div><div class="label">이번 게임 손익</div></div>
+        <div class="end-stat"><div class="num" style="color:${totalPnl >= 0 ? 'var(--green)' : 'var(--red)'}">${totalPnl >= 0 ? '+' : ''}${Math.round(totalPnl).toLocaleString()} SIGNAL</div><div class="label">이번 게임 손익</div></div>
       </div>
       <button class="btn-primary-lg" onclick="startNewSession()">새 게임 시작하기</button>
     </div>
@@ -435,7 +435,7 @@ function renderResultsList() {
     return `
       <div class="pos-item">
         <div class="pos-q">R${roundNo} · ${esc(question)}</div>
-        <div class="pos-meta">${r.stake.toLocaleString()}p <span class="${tagClass}">· ${tagLabel}</span> · ${pnl >= 0 ? '+' : ''}${Math.round(pnl).toLocaleString()}p</div>
+        <div class="pos-meta">${r.stake.toLocaleString()} SIGNAL <span class="${tagClass}">· ${tagLabel}</span> · ${pnl >= 0 ? '+' : ''}${Math.round(pnl).toLocaleString()} SIGNAL</div>
       </div>
     `;
   }).join('');
