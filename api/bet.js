@@ -1,7 +1,7 @@
 import { verifyToken } from './_auth.js';
 import { getAdminDb } from './_firebaseAdmin.js';
 import { FieldValue } from 'firebase-admin/firestore';
-import { handleBattleStatus, handleBattleStartSession, handleBattlePlace, handleBattleSkipRound } from './_battle.js';
+import { handleBattleStatus, handleBattleStartSession, handleBattlePlace, handleBattleNextRound } from './_battle.js';
 
 // 모의투자(가상 시드머니 예측 베팅) — place/myBets/settle을 action 파라미터로 합침.
 // Vercel Hobby 플랜 서버리스 함수 12개 제한 때문에 (admin-boss.js와 같은 이유,
@@ -203,7 +203,7 @@ export default async function handler(req, res) {
     if (action === 'myBets') return await handleMyBets(req, res, db, user);
     if (action === 'battleStartSession') return await handleBattleStartSession(req, res, db, user);
     if (action === 'battlePlace') return await handleBattlePlace(req, res, db, user);
-    if (action === 'battleSkipRound') return await handleBattleSkipRound(req, res, db, user);
+    if (action === 'battleNextRound') return await handleBattleNextRound(req, res, db, user);
 
     return res.status(400).json({ error: '잘못된 요청입니다.' });
   } catch (e) {

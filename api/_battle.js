@@ -6,18 +6,28 @@ import { FieldValue } from 'firebase-admin/firestore';
 // 이미 꽉 차서(bet.js가 12/12) 이 파일은 라우트가 아닌 헬퍼로만 존재 — `_`
 // 접두사라 함수 개수에 안 잡히고, api/bet.js가 import해서 씀.
 //
-// v4: 이미 resolve된 실제 마켓 중 7개를 무작위로 뽑아 한 세션을 구성, 유저가
-// "다음 라운드"를 누르며 예/아니요를 찍으면 결과가 이미 정해져 있으므로 즉시
-// 정산한다(크론/비동기 정산 불필요). 단, CLOB은 resolve된 마켓의 가격
-// 히스토리를 전혀 안 돌려주는 걸 실측 확인했기 때문에(역대 최대 거래량
-// 마켓으로도 0개), "그 당시 확률"은 복구 불가 — 그래서 확률은 합성(가짜)해서
-// 확률/배당 UI만 유지한다.
+// v4: 이미 resolve된 실제 마켓 7라운드 x 5개(총 35개)를 무작위로 뽑아 구성.
+// 결과가 이미 정해져 있으므로 베팅 즉시 정산(크론/비동기 정산 불필요).
+// CLOB은 resolve된 마켓의 가격 히스토리를 전혀 안 돌려주는 걸 실측 확인했기
+// 때문에(역대 최대 거래량 마켓으로도 0개), "그 당시 확률"은 복구 불가 —
+// 그래서 확률은 합성(가짜)해서 확률/배당 UI만 유지한다. 질문 한국어 번역도
+// 같은 Groq 배치 호출에 얹어서 한 번에 받아온다.
 
 export const BATTLE_SESSION_LENGTH = 7;
-export const BATTLE_CANDIDATE_POOL_SIZE = 150;
+export const BATTLE_PICKS_PER_ROUND = 5;
+export const BATTLE_TOTAL_PICKS = BATTLE_SESSION_LENGTH * BATTLE_PICKS_PER_ROUND;
+// Gamma API는 limit을 몇으로 주든 실측상 100개로 잘라서 돌려준다(확인됨) —
+// 그래서 top-100(전부 초유명 이벤트)만 후보로 쓰면 LLM이 학습 데이터로
+// "이미 아는" 사실을 맞히는 꼴이 되어 AI 예측이 항상 정답이 되는 문제가
+// 생긴다. offset 페이지네이션으로 여러 페이지를 모아 유명한 것부터
+// 덜 알려진 것까지 섞인 풀을 만든다.
+export const BATTLE_CANDIDATE_PAGE_SIZE = 100;
+export const BATTLE_CANDIDATE_PAGES = 10; // 최대 1,000개 풀
 export const BATTLE_STARTING_BALANCE = 10000;
 export const BATTLE_MIN_STAKE = 10;
 export const BATTLE_MAX_STAKE = 2000;
+const FAKE_PRICE_MIN = 0.08;
+const FAKE_PRICE_MAX = 0.92;
 
 function parseJsonArray(raw) {
   try {
@@ -41,13 +51,18 @@ async function ensureBattleBalance(db, uid) {
 }
 
 async function pickHistoricalMarkets(n) {
-  const r = await fetch(
-    `https://gamma-api.polymarket.com/markets?closed=true&limit=${BATTLE_CANDIDATE_POOL_SIZE}&order=volumeNum&ascending=false`,
-    { headers: { Accept: 'application/json' } }
+  const pages = await Promise.all(
+    Array.from({ length: BATTLE_CANDIDATE_PAGES }, (_, i) =>
+      fetch(
+        `https://gamma-api.polymarket.com/markets?closed=true&limit=${BATTLE_CANDIDATE_PAGE_SIZE}&offset=${i * BATTLE_CANDIDATE_PAGE_SIZE}&order=volumeNum&ascending=false`,
+        { headers: { Accept: 'application/json' } }
+      )
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => [])
+    )
   );
-  if (!r.ok) throw new Error('과거 마켓 목록을 불러올 수 없습니다.');
-  const markets = await r.json();
-  if (!Array.isArray(markets) || !markets.length) throw new Error('과거 마켓 목록이 비어있습니다.');
+  const markets = pages.flat();
+  if (!markets.length) throw new Error('과거 마켓 목록이 비어있습니다.');
 
   const eligible = markets.filter((m) => {
     const outcomes = parseJsonArray(m.outcomes);
@@ -61,9 +76,11 @@ async function pickHistoricalMarkets(n) {
   return shuffled.slice(0, n);
 }
 
+// 예측(0|1)+확신도+한국어 번역을 한 번의 Groq 배치 호출로 받아온다 —
+// 35개를 개별 호출하면 너무 느리고 비효율적.
 async function generateAiPredictions(questions) {
   const key = process.env.GROQ_API_KEY;
-  const fallback = questions.map(() => ({ outcome: 0, confidence: 1 }));
+  const fallback = questions.map((q) => ({ outcome: 0, confidence: 1, questionKo: q, analysis: '' }));
   try {
     const list = questions.map((q, i) => `${i + 1}. ${q}`).join('\n');
     const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -74,18 +91,22 @@ async function generateAiPredictions(questions) {
         messages: [
           {
             role: 'user',
-            content: `너는 예측시장 전문 애널리스트야. 아래 ${questions.length}개 예측시장 질문 각각에 대해
-실제로 결과가 어떻게 됐을지 추측해줘 — 각 질문의 첫 번째 선택지가 맞을지(0), 두 번째 선택지가
-맞을지(1) 예측하고, 확신도를 1~3(3이 가장 확신)으로 매겨줘.
+            content: `너는 예측시장 전문 애널리스트 겸 번역가야. 아래 ${questions.length}개 예측시장 질문
+각각에 대해 다음 네 가지를 해줘:
+1. 실제로 결과가 어떻게 됐을지 추측 — 각 질문의 첫 번째 선택지가 맞으면 0, 두 번째 선택지가 맞으면 1
+2. 확신도 1~3(3이 가장 확신)
+3. 질문을 자연스러운 한국어로 번역(questionKo)
+4. 왜 그렇게 예측했는지 한국어로 한 문장 근거(analysis) — 당시 여론조사·시장 심리·해당 분야 상식 등을
+   근거로 짧고 구체적으로(예: "임기 중 지지율이 높았고 야당 지지세가 분산되어 있었습니다")
 
 ${list}
 
 반드시 아래 JSON 형식으로만, 목록 순서 그대로 ${questions.length}개를 답해:
-{"predictions":[{"outcome":0|1,"confidence":1|2|3}, ...]}`,
+{"predictions":[{"outcome":0|1,"confidence":1|2|3,"questionKo":"...","analysis":"..."}, ...]}`,
           },
         ],
-        max_tokens: 400,
-        temperature: 0.7,
+        max_tokens: 6000,
+        temperature: 0.5,
         response_format: { type: 'json_object' },
       }),
     });
@@ -93,11 +114,13 @@ ${list}
     const text = data.choices?.[0]?.message?.content;
     const parsed = JSON.parse(text);
     const preds = Array.isArray(parsed.predictions) ? parsed.predictions : [];
-    return questions.map((_, i) => {
+    return questions.map((q, i) => {
       const p = preds[i];
       const outcome = p && Number(p.outcome) === 1 ? 1 : 0;
       const confidence = p && [1, 2, 3].includes(Number(p.confidence)) ? Number(p.confidence) : 1;
-      return { outcome, confidence };
+      const questionKo = (p && typeof p.questionKo === 'string' && p.questionKo.trim()) || q;
+      const analysis = (p && typeof p.analysis === 'string' && p.analysis.trim()) || '';
+      return { outcome, confidence, questionKo, analysis };
     });
   } catch (e) {
     return fallback;
@@ -110,15 +133,17 @@ async function createNewSession(db, uid) {
     .where('uid', '==', uid)
     .where('status', '==', 'active')
     .get();
-  const batch = db.batch();
-  activeSnap.docs.forEach((d) => batch.update(d.ref, { status: 'abandoned' }));
-  if (!activeSnap.empty) await batch.commit();
+  if (!activeSnap.empty) {
+    const batch = db.batch();
+    activeSnap.docs.forEach((d) => batch.update(d.ref, { status: 'abandoned' }));
+    await batch.commit();
+  }
 
-  const markets = await pickHistoricalMarkets(BATTLE_SESSION_LENGTH);
+  const markets = await pickHistoricalMarkets(BATTLE_TOTAL_PICKS);
   const questions = markets.map((m) => m.question || '');
   const predictions = await generateAiPredictions(questions);
 
-  const picks = markets.map((m, i) => {
+  const allPicks = markets.map((m, i) => {
     const outcomes = parseJsonArray(m.outcomes);
     const prices = parseJsonArray(m.outcomePrices).map(Number);
     const actualOutcomeIndex = prices.findIndex((p) => p >= 0.99);
@@ -126,45 +151,62 @@ async function createNewSession(db, uid) {
       marketId: String(m.id),
       conditionId: String(m.conditionId || ''),
       question: m.question || '',
+      questionKo: predictions[i].questionKo,
       outcomes: [outcomes[0] || 'Yes', outcomes[1] || 'No'],
-      fakeEntryPrice: Math.round((0.25 + Math.random() * 0.5) * 1000) / 1000,
+      fakeEntryPrice: Math.round((FAKE_PRICE_MIN + Math.random() * (FAKE_PRICE_MAX - FAKE_PRICE_MIN)) * 1000) / 1000,
       actualOutcomeIndex: actualOutcomeIndex === -1 ? 0 : actualOutcomeIndex,
       aiPrediction: predictions[i].outcome,
       aiConfidence: predictions[i].confidence,
+      aiAnalysis: predictions[i].analysis,
     };
   });
 
-  const results = new Array(BATTLE_SESSION_LENGTH).fill(null);
+  const rounds = [];
+  for (let i = 0; i < BATTLE_SESSION_LENGTH; i++) {
+    rounds.push({
+      picks: allPicks.slice(i * BATTLE_PICKS_PER_ROUND, (i + 1) * BATTLE_PICKS_PER_ROUND),
+      results: new Array(BATTLE_PICKS_PER_ROUND).fill(null),
+    });
+  }
+
   const sessionRef = db.collection('battleSessions').doc();
   await sessionRef.set({
     uid,
     status: 'active',
-    picks,
-    results,
+    rounds,
     currentRound: 0,
     createdAt: FieldValue.serverTimestamp(),
   });
-  return { id: sessionRef.id, uid, status: 'active', picks, results, currentRound: 0 };
+  return { id: sessionRef.id, uid, status: 'active', rounds, currentRound: 0 };
+}
+
+function publicPick(p) {
+  return {
+    question: p.question,
+    questionKo: p.questionKo,
+    outcomes: p.outcomes,
+    fakeEntryPrice: p.fakeEntryPrice,
+    aiPrediction: p.aiPrediction,
+    aiConfidence: p.aiConfidence,
+    aiAnalysis: p.aiAnalysis,
+  };
 }
 
 function publicSessionView(session) {
-  const revealedResults = session.results.slice(0, session.currentRound);
-  const currentPick = session.currentRound < BATTLE_SESSION_LENGTH ? session.picks[session.currentRound] : null;
+  const pastRounds = session.rounds.slice(0, session.currentRound).map((r, ri) => ({
+    picks: r.picks.map((p) => ({ questionKo: p.questionKo, outcomes: p.outcomes, actualOutcomeIndex: p.actualOutcomeIndex })),
+    results: r.results,
+  }));
+  const current = session.currentRound < BATTLE_SESSION_LENGTH ? session.rounds[session.currentRound] : null;
   return {
     id: session.id,
     status: session.status,
     currentRound: session.currentRound,
     totalRounds: BATTLE_SESSION_LENGTH,
-    results: revealedResults,
-    currentPick: currentPick
-      ? {
-          question: currentPick.question,
-          outcomes: currentPick.outcomes,
-          fakeEntryPrice: currentPick.fakeEntryPrice,
-          aiPrediction: currentPick.aiPrediction,
-          aiConfidence: currentPick.aiConfidence,
-        }
-      : null,
+    picksPerRound: BATTLE_PICKS_PER_ROUND,
+    pastRounds,
+    currentRoundPicks: current ? current.picks.map(publicPick) : null,
+    currentRoundResults: current ? current.results : null,
   };
 }
 
@@ -200,10 +242,11 @@ export async function handleBattleStartSession(req, res, db, user) {
 }
 
 export async function handleBattlePlace(req, res, db, user) {
-  const { sessionId, outcomeIndex, stake } = req.body || {};
+  const { sessionId, pickIdx, outcomeIndex, stake } = req.body || {};
   const stakeNum = Number(stake);
+  const pickIdxNum = Number(pickIdx);
 
-  if (!sessionId || (outcomeIndex !== 0 && outcomeIndex !== 1)) {
+  if (!sessionId || !Number.isInteger(pickIdxNum) || pickIdxNum < 0 || pickIdxNum >= BATTLE_PICKS_PER_ROUND || (outcomeIndex !== 0 && outcomeIndex !== 1)) {
     return res.status(400).json({ error: '잘못된 요청입니다.' });
   }
   if (!(stakeNum >= BATTLE_MIN_STAKE && stakeNum <= BATTLE_MAX_STAKE)) {
@@ -218,11 +261,11 @@ export async function handleBattlePlace(req, res, db, user) {
     return res.status(409).json({ error: '진행 중인 게임이 아닙니다.' });
   }
   const roundIdx = session.currentRound;
-  if (roundIdx >= BATTLE_SESSION_LENGTH || session.results[roundIdx]) {
-    return res.status(409).json({ error: '이미 진행된 라운드입니다.' });
+  if (roundIdx >= BATTLE_SESSION_LENGTH || session.rounds[roundIdx].results[pickIdxNum]) {
+    return res.status(409).json({ error: '이미 진행된 항목입니다.' });
   }
 
-  const pick = session.picks[roundIdx];
+  const pick = session.rounds[roundIdx].picks[pickIdxNum];
   const price = outcomeIndex === 0 ? pick.fakeEntryPrice : 1 - pick.fakeEntryPrice;
   const correct = outcomeIndex === pick.actualOutcomeIndex;
   const payout = correct ? Math.round((stakeNum / price) * 100) / 100 : 0;
@@ -241,14 +284,9 @@ export async function handleBattlePlace(req, res, db, user) {
       const net = payout - stakeNum;
       tx.set(userRef, { battleBalance: FieldValue.increment(net) }, { merge: true });
 
-      const results = [...session.results];
-      results[roundIdx] = { outcomeIndex, stake: stakeNum, correct, payout, skipped: false };
-      const nextRound = roundIdx + 1;
-      tx.update(sessionRef, {
-        results,
-        currentRound: nextRound,
-        status: nextRound >= BATTLE_SESSION_LENGTH ? 'done' : 'active',
-      });
+      const rounds = session.rounds.map((r) => ({ picks: r.picks, results: [...r.results] }));
+      rounds[roundIdx].results[pickIdxNum] = { outcomeIndex, stake: stakeNum, correct, payout, skipped: false };
+      tx.update(sessionRef, { rounds });
 
       return freshBalance + net;
     });
@@ -269,7 +307,7 @@ export async function handleBattlePlace(req, res, db, user) {
   });
 }
 
-export async function handleBattleSkipRound(req, res, db, user) {
+export async function handleBattleNextRound(req, res, db, user) {
   const { sessionId } = req.body || {};
   if (!sessionId) return res.status(400).json({ error: '잘못된 요청입니다.' });
 
@@ -281,15 +319,16 @@ export async function handleBattleSkipRound(req, res, db, user) {
     return res.status(409).json({ error: '진행 중인 게임이 아닙니다.' });
   }
   const roundIdx = session.currentRound;
-  if (roundIdx >= BATTLE_SESSION_LENGTH || session.results[roundIdx]) {
-    return res.status(409).json({ error: '이미 진행된 라운드입니다.' });
+  if (roundIdx >= BATTLE_SESSION_LENGTH) {
+    return res.status(409).json({ error: '이미 종료된 게임입니다.' });
   }
 
-  const results = [...session.results];
-  results[roundIdx] = { skipped: true };
+  const rounds = session.rounds.map((r) => ({ picks: r.picks, results: [...r.results] }));
+  rounds[roundIdx].results = rounds[roundIdx].results.map((res_) => res_ || { skipped: true });
   const nextRound = roundIdx + 1;
+
   await sessionRef.update({
-    results,
+    rounds,
     currentRound: nextRound,
     status: nextRound >= BATTLE_SESSION_LENGTH ? 'done' : 'active',
   });
