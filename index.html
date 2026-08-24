@@ -3961,7 +3961,7 @@ async function pollCLOB() {
   try {
     // Batch midpoint fetch from CLOB API
     const ids = tokenIds.slice(0, 50).join(',');
-    const res = await fetch(`https://clob.polymarket.com/midpoints?token_ids=${ids}`, { cache: 'no-store' });
+    const res = await fetch(`/api/proxy-polymarket?url=https://clob.polymarket.com/midpoints?token_ids=${ids}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
     const mid  = data.midpoints || data;
@@ -3973,7 +3973,7 @@ async function pollCLOB() {
     // fallback: Gamma API prices (updated ~every few seconds)
     try {
       const res2 = await fetch(
-        `https://gamma-api.polymarket.com/markets?active=true&limit=20&order=volume&ascending=false&_=${Date.now()}`,
+        `/api/proxy-polymarket?url=https://gamma-api.polymarket.com/markets?active=true&limit=20&order=volume&ascending=false&_=${Date.now()}`,
         { cache: 'no-store' }
       );
       if (!res2.ok) return;
@@ -4126,7 +4126,7 @@ async function fetchPolymarkets() {
   try {
     // 상위 거래량 60개 fetch — 가격 변동이 활발한 종목들 (20개씩 3바퀴 로테이션)
     const res = await fetch(
-      'https://gamma-api.polymarket.com/markets?active=true&limit=60&order=volume&ascending=false',
+      '/api/proxy-polymarket?url=https://gamma-api.polymarket.com/markets?active=true&limit=60&order=volume&ascending=false',
       { headers: { Accept: 'application/json' } }
     );
     if (!res.ok) throw new Error(res.status);
@@ -4771,7 +4771,7 @@ async function getPriceHistories(m, outcomes, prices) {
     try {
       const weekAgo = Math.floor(Date.now()/1000) - 7*86400;
       const hRes = await fetch(
-        `https://clob.polymarket.com/prices-history?market=${m.conditionId}&startTs=${weekAgo}&fidelity=60`,
+        `/api/proxy-polymarket?url=https://clob.polymarket.com/prices-history?market=${m.conditionId}&startTs=${weekAgo}&fidelity=60`,
         { cache:'no-store' }
       );
       if (hRes.ok) {
@@ -4804,7 +4804,7 @@ async function fetchPmTrades(conditionId) {
   if (!conditionId) return [];
   try {
     const r = await fetch(
-      `https://clob.polymarket.com/trades?market=${conditionId}&limit=20`,
+      `/api/proxy-polymarket?url=https://clob.polymarket.com/trades?market=${conditionId}&limit=20`,
       { cache: 'no-store' }
     );
     if (!r.ok) return [];
@@ -4839,7 +4839,7 @@ async function showFeatMarket(idx) {
 async function fetchPolyFeatured() {
   try {
     const res = await fetch(
-      'https://gamma-api.polymarket.com/markets?active=true&limit=12&order=volume&ascending=false',
+      '/api/proxy-polymarket?url=https://gamma-api.polymarket.com/markets?active=true&limit=12&order=volume&ascending=false',
       { headers: { Accept: 'application/json' } }
     );
     if (!res.ok) throw new Error(res.status);
@@ -4884,7 +4884,7 @@ async function fetchLiveTrades() {
   let yesBets = [], noBets = [];
   try {
     const r = await fetch(
-      `https://clob.polymarket.com/trades?market=${m.conditionId}&limit=20`,
+      `/api/proxy-polymarket?url=https://clob.polymarket.com/trades?market=${m.conditionId}&limit=20`,
       { cache: 'no-store' }
     );
     if (r.ok) {
@@ -5008,7 +5008,7 @@ async function loadMarketsForCategory(cat) {
   const slug = CATEGORY_TAG_SLUGS[cat];
   try {
     const res = await fetch(
-      `https://gamma-api.polymarket.com/events?active=true&closed=false&limit=40&order=volume&ascending=false&tag_slug=${slug}`,
+      `/api/proxy-polymarket?url=https://gamma-api.polymarket.com/events?active=true&closed=false&limit=40&order=volume&ascending=false&tag_slug=${slug}`,
       { headers: { Accept: 'application/json' } }
     );
     if (!res.ok) throw new Error(res.status);
