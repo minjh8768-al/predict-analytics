@@ -2207,6 +2207,13 @@
       <div class="stat-change" id="statMarketCountTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
     </div>
 
+    <!-- 모의 예측 리더보드 — 정산된 예측 기준 (api/bet.js action=leaderboard) -->
+    <div class="sidebar-card" id="leaderboardCard">
+      <h3>🏆 예측 랭킹</h3>
+      <div id="leaderboardContent" style="font-size:12.5px;color:var(--text-muted);padding:8px 0">불러오는 중...</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px">결과가 나온 예측 3건 이상 · 가상 포인트 기준</div>
+    </div>
+
     <!-- 실제 Bluesky 공식 계정 피드 (예전엔 트럼프/머스크/밴스 가짜 트윗이었음) -->
     <div class="twitter-card">
       <div class="twitter-card-header">
@@ -2324,7 +2331,7 @@
 </div>
 
 <!-- ─── MARKET GRID ─── -->
-<div class="market-section">
+<div class="market-section" id="markets">
   <div class="section-header">
     <div class="section-title">시장 | 거래자</div>
     <div id="pmLiveStatus" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)">
@@ -4357,11 +4364,20 @@ async function openMyBetsModal() {
 
     document.getElementById('menuVirtualBalance').textContent = `${data.balance.toLocaleString()} 포인트`;
 
+    // 랭킹에 표시될 닉네임 — 없으면 랭킹에 "예측가 1234"처럼 나온다.
+    const nicknameRow = `
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+        <input id="nicknameInput" maxlength="12" placeholder="랭킹에 표시할 닉네임" value="${escapeAttr(data.nickname || '')}"
+          style="flex:1;min-width:0;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:13.5px">
+        <button onclick="saveNickname()" style="padding:9px 14px;border-radius:10px;border:none;background:#6c5ce7;color:#fff;font-size:13px;font-weight:700;cursor:pointer">저장</button>
+      </div>
+      <div id="nicknameStatus" style="font-size:12px;margin-bottom:10px;color:var(--text-muted)">한글·영문·숫자 2~12자</div>`;
+
     if (!data.bets.length) {
-      body.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px 0">아직 예측 내역이 없습니다.</p>';
+      body.innerHTML = nicknameRow + '<p style="text-align:center;color:var(--text-muted);padding:20px 0">아직 예측 내역이 없습니다.</p>';
       return;
     }
-    body.innerHTML = data.bets.map(b => `
+    body.innerHTML = nicknameRow + data.bets.map(b => `
       <div style="padding:12px 0;border-bottom:1px solid var(--border)">
         <div style="font-size:13.5px;font-weight:600;color:var(--text-primary);margin-bottom:4px">${escapeAttr(b.marketQuestion)}</div>
         <div style="font-size:12.5px;color:var(--text-muted)">
@@ -4379,6 +4395,58 @@ async function openMyBetsModal() {
 function closeMyBetsModal() {
   document.getElementById('myBetsOverlay').classList.remove('open');
 }
+
+async function saveNickname() {
+  const input = document.getElementById('nicknameInput');
+  const status = document.getElementById('nicknameStatus');
+  const u = window._fbAuth && window._fbAuth.currentUser;
+  if (!input || !u) return;
+  try {
+    const idToken = await u.getIdToken();
+    const r = await fetch('/api/bet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      body: JSON.stringify({ action: 'setNickname', nickname: input.value.trim() }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || '저장 실패');
+    status.style.color = 'var(--green)';
+    status.textContent = '저장했습니다. 랭킹에는 몇 분 안에 반영됩니다.';
+  } catch (e) {
+    status.style.color = 'var(--red)';
+    status.textContent = e.message || '저장 실패';
+  }
+}
+
+async function loadLeaderboard() {
+  const el = document.getElementById('leaderboardContent');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/bet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'leaderboard' }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || '조회 실패');
+    if (!data.leaders.length) {
+      el.innerHTML = '아직 순위가 없습니다.<br>첫 번째 예측가가 되어 보세요!';
+      return;
+    }
+    const medal = ['🥇', '🥈', '🥉'];
+    el.innerHTML = data.leaders.slice(0, 10).map(l => `
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <span style="width:22px;text-align:center;font-weight:700;color:var(--text-secondary)">${medal[l.rank - 1] || l.rank}</span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary);font-weight:600">${escapeAttr(l.name)}</span>
+        <span style="color:${l.profit >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:700">${l.profit >= 0 ? '+' : ''}${l.profit.toLocaleString()}p</span>
+        <span style="width:38px;text-align:right">${l.accuracy}%</span>
+      </div>
+    `).join('');
+  } catch (e) {
+    el.textContent = '랭킹을 불러오지 못했습니다.';
+  }
+}
+loadLeaderboard();
 
 renderNews();
 renderMarkets();

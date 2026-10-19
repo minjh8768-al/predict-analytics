@@ -111,8 +111,75 @@ async function handlePlace(req, res, db, user) {
   res.json({ success: true, betId: betRef.id, entryPrice, newBalance: freshUser.data().virtualBalance });
 }
 
+// 리더보드 — 정산이 끝난 예측만으로 순위를 매긴다. 잔액(virtualBalance)으로 줄 세우면
+// 아직 결과가 안 나온 예측에 묶인 포인트 때문에 순위가 왜곡되고, 한 번도 예측 안 한
+// 사람(시작 잔액 그대로)까지 섞인다. 이용자 규모가 작을 때를 전제로 한 단순 집계라
+// 정산 건이 수만 건을 넘으면 집계 문서를 따로 두는 방식으로 바꿔야 한다.
+const LEADERBOARD_MIN_SETTLED = 3;
+const LEADERBOARD_SIZE = 20;
+const NICKNAME_RE = /^[0-9A-Za-z가-힣_]{2,12}$/;
+
+function fallbackName(uid) {
+  return `예측가 ${uid.slice(-4)}`;
+}
+
+// 페이지를 열 때마다 호출되므로 같은 함수 인스턴스 안에서 5분간 결과를 재사용해
+// Firestore 읽기 비용을 줄인다(POST라 CDN 캐시를 쓸 수 없다).
+const LEADERBOARD_TTL_MS = 5 * 60 * 1000;
+let leaderboardCache = { at: 0, body: null };
+
+async function handleLeaderboard(req, res, db) {
+  if (leaderboardCache.body && Date.now() - leaderboardCache.at < LEADERBOARD_TTL_MS) {
+    return res.json(leaderboardCache.body);
+  }
+  const snap = await db.collection('virtualBets').where('status', 'in', ['won', 'lost']).limit(20000).get();
+  const byUser = new Map();
+  snap.docs.forEach((d) => {
+    const b = d.data();
+    const row = byUser.get(b.uid) || { uid: b.uid, profit: 0, wins: 0, settled: 0 };
+    row.profit += (b.payout || 0) - b.stake;
+    row.settled += 1;
+    if (b.status === 'won') row.wins += 1;
+    byUser.set(b.uid, row);
+  });
+
+  const ranked = [...byUser.values()]
+    .filter((r) => r.settled >= LEADERBOARD_MIN_SETTLED)
+    .sort((a, b) => b.profit - a.profit)
+    .slice(0, LEADERBOARD_SIZE);
+
+  const userSnaps = ranked.length
+    ? await db.getAll(...ranked.map((r) => db.collection('users').doc(r.uid)))
+    : [];
+  const names = new Map(userSnaps.map((s) => [s.id, s.exists ? s.data().nickname : null]));
+
+  const body = {
+    success: true,
+    minSettled: LEADERBOARD_MIN_SETTLED,
+    leaders: ranked.map((r, i) => ({
+      rank: i + 1,
+      name: names.get(r.uid) || fallbackName(r.uid),
+      profit: Math.round(r.profit),
+      accuracy: Math.round((r.wins / r.settled) * 100),
+      settled: r.settled,
+    })),
+  };
+  leaderboardCache = { at: Date.now(), body };
+  res.json(body);
+}
+
+async function handleSetNickname(req, res, db, user) {
+  const nickname = String((req.body || {}).nickname || '').trim();
+  if (!NICKNAME_RE.test(nickname)) {
+    return res.status(400).json({ error: '닉네임은 한글·영문·숫자·_ 로 2~12자여야 합니다.' });
+  }
+  await db.collection('users').doc(user.localId).set({ nickname }, { merge: true });
+  res.json({ success: true, nickname });
+}
+
 async function handleMyBets(req, res, db, user) {
-  const { balance } = await ensureBalance(db, user.localId);
+  const { ref, balance } = await ensureBalance(db, user.localId);
+  const nickname = (await ref.get()).data()?.nickname || '';
   const q = await db
     .collection('virtualBets')
     .where('uid', '==', user.localId)
@@ -120,7 +187,7 @@ async function handleMyBets(req, res, db, user) {
     .limit(50)
     .get();
   const bets = q.docs.map((d) => ({ id: d.id, ...d.data() }));
-  res.json({ success: true, balance, bets });
+  res.json({ success: true, balance, nickname, bets });
 }
 
 async function handleSettle(req, res, db) {
@@ -195,12 +262,14 @@ export default async function handler(req, res) {
     // 토큰이 있으면 verifyToken을 시도해 내 세션/잔액도 같이 얹어주지만, 없거나
     // 실패해도 401로 막지 않고 그냥 공개 정보만 반환한다 (handleBattleStatus 내부에서 처리).
     if (action === 'battleStatus') return await handleBattleStatus(req, res, db);
+    if (action === 'leaderboard') return await handleLeaderboard(req, res, db);
 
     const user = await verifyToken(req);
     if (!user) return res.status(401).json({ error: '로그인이 필요합니다.' });
 
     if (action === 'place') return await handlePlace(req, res, db, user);
     if (action === 'myBets') return await handleMyBets(req, res, db, user);
+    if (action === 'setNickname') return await handleSetNickname(req, res, db, user);
     if (action === 'battleStartSession') return await handleBattleStartSession(req, res, db, user);
     if (action === 'battlePlace') return await handleBattlePlace(req, res, db, user);
     if (action === 'battleNextRound') return await handleBattleNextRound(req, res, db, user);
