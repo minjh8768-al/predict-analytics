@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://predictanalytics-news.vercel.app/blog/articles/sitemap.xml

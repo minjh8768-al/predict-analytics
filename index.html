@@ -2158,7 +2158,7 @@
             <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:8px">🎮 모의투자</div>
             <div id="menuVirtualBalance" style="font-size:14px;color:var(--text-secondary);margin-bottom:4px">불러오는 중...</div>
             <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">가상 포인트이며 실제 현금 가치가 없습니다.</div>
-            <button onclick="openMyBetsModal()" style="width:100%;text-align:left;padding:10px 14px;background:none;border:1px solid var(--border);border-radius:10px;color:#a78bfa;font-size:14px;cursor:pointer">내 베팅 보기</button>
+            <button onclick="openMyBetsModal()" style="width:100%;text-align:left;padding:10px 14px;background:none;border:1px solid var(--border);border-radius:10px;color:#a78bfa;font-size:14px;cursor:pointer">내 예측 보기</button>
           </div>
           <button onclick="logoutUser()" style="width:100%;text-align:left;padding:12px 16px;background:none;border:none;border-radius:10px;color:var(--text-muted);font-size:14px;cursor:pointer">로그아웃</button>
           <button onclick="deleteAccountFromMenu()" style="width:100%;text-align:left;padding:8px 16px;background:none;border:none;border-radius:10px;color:var(--text-muted);font-size:12px;opacity:0.65;cursor:pointer">회원 탈퇴</button>
@@ -2195,7 +2195,7 @@
 
     <div class="sidebar-card" id="liveTradesCard">
       <div class="lt-header">
-        <h3>실시간 베팅</h3>
+        <h3>실시간 거래</h3>
         <span class="lt-dot"></span>
       </div>
       <div id="liveTradesContent" style="color:var(--text-muted);font-size:12px;text-align:center;padding:16px 0">로딩 중...</div>
@@ -4277,7 +4277,7 @@ async function submitBet() {
   errEl.textContent = '';
 
   if (!(stake >= VBET_MIN_STAKE && stake <= VBET_MAX_STAKE)) {
-    errEl.textContent = `베팅 금액은 ${VBET_MIN_STAKE}~${VBET_MAX_STAKE} 포인트 사이여야 합니다.`;
+    errEl.textContent = `예측 포인트는 ${VBET_MIN_STAKE}~${VBET_MAX_STAKE} 포인트 사이여야 합니다.`;
     return;
   }
   const u = window._fbAuth && window._fbAuth.currentUser;
@@ -4285,7 +4285,7 @@ async function submitBet() {
 
   const btn = document.getElementById('betSubmitBtn');
   btn.disabled = true;
-  btn.textContent = '베팅 중...';
+  btn.textContent = '예측 중...';
   try {
     const idToken = await u.getIdToken();
     const r = await fetch('/api/bet', {
@@ -4300,14 +4300,14 @@ async function submitBet() {
       }),
     });
     const body = await r.json();
-    if (!r.ok) throw new Error(body.error || '베팅 실패');
+    if (!r.ok) throw new Error(body.error || '예측 실패');
     closeBetModal();
     refreshMenuVirtualBalance();
   } catch (e) {
-    errEl.textContent = e.message || '베팅 실패';
+    errEl.textContent = e.message || '예측 실패';
   } finally {
     btn.disabled = false;
-    btn.textContent = '베팅하기';
+    btn.textContent = '예측하기';
   }
 }
 
@@ -4358,14 +4358,14 @@ async function openMyBetsModal() {
     document.getElementById('menuVirtualBalance').textContent = `${data.balance.toLocaleString()} 포인트`;
 
     if (!data.bets.length) {
-      body.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px 0">아직 베팅 내역이 없습니다.</p>';
+      body.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px 0">아직 예측 내역이 없습니다.</p>';
       return;
     }
     body.innerHTML = data.bets.map(b => `
       <div style="padding:12px 0;border-bottom:1px solid var(--border)">
         <div style="font-size:13.5px;font-weight:600;color:var(--text-primary);margin-bottom:4px">${escapeAttr(b.marketQuestion)}</div>
         <div style="font-size:12.5px;color:var(--text-muted)">
-          ${escapeAttr(b.outcomeLabel)} · ${b.stake.toLocaleString()}p 베팅
+          ${escapeAttr(b.outcomeLabel)} · ${b.stake.toLocaleString()}p 예측
           <span style="color:${VBET_STATUS_COLOR[b.status] || '#888'};font-weight:700"> · ${VBET_STATUS_LABEL[b.status] || b.status}</span>
           ${b.status !== 'open' ? ` · ${(b.payout || 0).toLocaleString()}p 정산` : ''}
         </div>
@@ -5614,15 +5614,15 @@ function mobTab(tab, btn) {
       <button class="modal-close" onclick="closeBetModal()">✕</button>
     </div>
     <div style="padding:0 24px 24px">
-      <div style="font-size:18px;font-weight:800;margin-bottom:14px">🎮 모의투자 베팅</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:14px">🎮 모의 예측</div>
       <div id="betModalQuestion" style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:6px;line-height:1.4"></div>
       <div id="betModalOutcome" style="font-size:13px;color:#a78bfa;font-weight:700;margin-bottom:16px"></div>
-      <label style="font-size:12.5px;color:var(--text-muted);display:block;margin-bottom:6px">베팅 금액 (10 ~ 2,000 포인트)</label>
+      <label style="font-size:12.5px;color:var(--text-muted);display:block;margin-bottom:6px">사용할 포인트 (10 ~ 2,000)</label>
       <input id="betStakeInput" type="number" min="10" max="2000" step="10" value="100" oninput="updateBetPayoutPreview()"
         style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:15px;box-sizing:border-box;margin-bottom:10px">
       <div id="betPayoutPreview" style="font-size:12.5px;color:var(--text-secondary);margin-bottom:16px">-</div>
       <div id="betModalError" style="font-size:12.5px;color:var(--red);margin-bottom:10px;min-height:16px"></div>
-      <button id="betSubmitBtn" class="btn-primary" style="width:100%" onclick="submitBet()">베팅하기</button>
+      <button id="betSubmitBtn" class="btn-primary" style="width:100%" onclick="submitBet()">예측하기</button>
       <div style="font-size:11px;color:var(--text-muted);margin-top:14px;text-align:center;line-height:1.5">
         가상 포인트이며 실제 현금 가치가 없습니다. 실제 자산으로 출금·환전할 수 없습니다.
       </div>
@@ -5637,7 +5637,7 @@ function mobTab(tab, btn) {
       <button class="modal-close" onclick="closeMyBetsModal()">✕</button>
     </div>
     <div style="padding:0 24px 24px">
-      <div style="font-size:18px;font-weight:800;margin-bottom:14px">🎮 내 베팅</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:14px">🎮 내 예측</div>
       <div id="myBetsBody"></div>
     </div>
   </div>

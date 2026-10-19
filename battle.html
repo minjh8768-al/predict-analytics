@@ -353,7 +353,7 @@ function renderCenter() {
     el.innerHTML = `
       <div class="start-screen">
         <h2>AI를 이길 수 있을까요? 🎯</h2>
-        <p>트럼프 대선부터 월드컵까지 — 이미 결과가 나온 실제 사건 35개가 무작위로 등장합니다. 직감으로 예/아니요를 골라보세요. AI도 똑같이 베팅에 참여해요. 승부는 당신 몫!</p>
+        <p>트럼프 대선부터 월드컵까지 — 이미 결과가 나온 실제 사건 35개가 무작위로 등장합니다. 직감으로 예/아니요를 골라보세요. AI도 똑같이 예측에 참여해요. 승부는 당신 몫!</p>
         <button class="btn-primary-lg" onclick="battleLogin()">Google로 로그인하고 도전하기</button>
       </div>`;
     return;
@@ -391,7 +391,7 @@ function renderPickCard(p, i, result) {
         <div class="pick-card">
           <div class="pick-q-ko">${esc(p.questionKo)}</div>
           <div class="pick-q-en">${esc(p.question)}</div>
-          <div class="pick-reveal"><div class="pick-reveal-tag skipped">베팅 안 함</div></div>
+          <div class="pick-reveal"><div class="pick-reveal-tag skipped">건너뜀</div></div>
         </div>`;
     }
     return `
@@ -423,7 +423,7 @@ function renderPickCard(p, i, result) {
       </div>
       <div class="pick-stake-row">
         <input id="stakeInput_${i}" type="number" min="10" max="2000" step="10" value="100">
-        <button class="pick-submit-btn" id="submitBtn_${i}" onclick="submitCard(${i})" ${selected == null ? 'disabled' : ''}>베팅</button>
+        <button class="pick-submit-btn" id="submitBtn_${i}" onclick="submitCard(${i})" ${selected == null ? 'disabled' : ''}>예측하기</button>
       </div>
       <div class="pick-error" id="pickError_${i}"></div>
     </div>`;
@@ -456,9 +456,9 @@ async function submitCard(i) {
     grid.children[i].outerHTML = renderPickCard(_session.currentRoundPicks[i], i, _session.currentRoundResults[i]);
     if (data.correct) { fireJackpot(); playCoinSound(); }
   } catch (e) {
-    errEl.textContent = e.message || '베팅 실패';
+    errEl.textContent = e.message || '예측 실패';
     btn.disabled = false;
-    btn.textContent = '베팅';
+    btn.textContent = '예측하기';
   }
 }
 
@@ -501,7 +501,7 @@ function renderResultsList() {
   if (!items.length) { el.innerHTML = '<div class="empty-state">아직 결과가 없습니다.</div>'; return; }
   el.innerHTML = items.reverse().map(({ r, question, roundNo }) => {
     if (r.skipped) {
-      return `<div class="pos-item"><div class="pos-q">R${roundNo} · ${esc(question)}</div><div class="pos-meta tag-void">베팅 안 함</div></div>`;
+      return `<div class="pos-item"><div class="pos-q">R${roundNo} · ${esc(question)}</div><div class="pos-meta tag-void">건너뜀</div></div>`;
     }
     const tagClass = r.correct ? 'tag-won' : 'tag-lost';
     const tagLabel = r.correct ? '적중' : '실패';

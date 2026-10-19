@@ -54,7 +54,7 @@ async function handlePlace(req, res, db, user) {
     return res.status(400).json({ error: '잘못된 요청입니다.' });
   }
   if (!(stakeNum >= MIN_STAKE && stakeNum <= MAX_STAKE)) {
-    return res.status(400).json({ error: `베팅 금액은 ${MIN_STAKE}~${MAX_STAKE} 포인트 사이여야 합니다.` });
+    return res.status(400).json({ error: `예측 포인트는 ${MIN_STAKE}~${MAX_STAKE} 포인트 사이여야 합니다.` });
   }
 
   const market = await fetchMarketById(marketId);

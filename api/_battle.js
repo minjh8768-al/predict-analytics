@@ -302,7 +302,7 @@ export async function handleBattlePlace(req, res, db, user) {
     return res.status(400).json({ error: '잘못된 요청입니다.' });
   }
   if (!(stakeNum >= BATTLE_MIN_STAKE && stakeNum <= BATTLE_MAX_STAKE)) {
-    return res.status(400).json({ error: `베팅 금액은 ${BATTLE_MIN_STAKE}~${BATTLE_MAX_STAKE} 포인트 사이여야 합니다.` });
+    return res.status(400).json({ error: `예측 포인트는 ${BATTLE_MIN_STAKE}~${BATTLE_MAX_STAKE} 포인트 사이여야 합니다.` });
   }
 
   const sessionRef = db.collection('battleSessions').doc(sessionId);
